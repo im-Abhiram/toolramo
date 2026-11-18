@@ -34,11 +34,32 @@ else:
 RAW_ALLOWED_HOSTS = os.environ.get('DJANGO_ALLOWED_HOSTS', '')
 if RAW_ALLOWED_HOSTS:
     ALLOWED_HOSTS = [h.strip() for h in RAW_ALLOWED_HOSTS.split(',') if h.strip()]
-elif DEBUG:
-    ALLOWED_HOSTS = ['localhost', '127.0.0.1', 'testserver', '[::1]']
 else:
-    # PythonAnywhere production defaults
-    ALLOWED_HOSTS = ['localhost', '127.0.0.1', 'testserver', '.pythonanywhere.com']
+    # PythonAnywhere production and local development defaults
+    ALLOWED_HOSTS = [
+        'localhost',
+        '127.0.0.1',
+        'testserver',
+        '[::1]',
+        '.pythonanywhere.com',
+        'ramonet.pythonanywhere.com',
+    ]
+
+# Security: CSRF Trusted Origins (Mandatory for Django 4.0+ over HTTPS / PythonAnywhere)
+RAW_CSRF_TRUSTED_ORIGINS = os.environ.get('DJANGO_CSRF_TRUSTED_ORIGINS', '')
+if RAW_CSRF_TRUSTED_ORIGINS:
+    CSRF_TRUSTED_ORIGINS = [o.strip() for o in RAW_CSRF_TRUSTED_ORIGINS.split(',') if o.strip()]
+else:
+    CSRF_TRUSTED_ORIGINS = [
+        'https://ramonet.pythonanywhere.com',
+        'https://*.pythonanywhere.com',
+        'http://ramonet.pythonanywhere.com',
+        'http://*.pythonanywhere.com',
+        'http://localhost',
+        'http://127.0.0.1',
+        'https://localhost',
+        'https://127.0.0.1',
+    ]
 
 # Application definition
 INSTALLED_APPS = [
