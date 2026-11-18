@@ -1,0 +1,125 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}{{ course.title }} — Ramonet Academy{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <!-- Breadcrumb -->
+    <nav aria-label="breadcrumb" class="mb-3">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{% url 'academy:dashboard' %}" class="text-info text-decoration-none"><i class="fa-solid fa-graduation-cap me-1"></i>Academy</a></li>
+            <li class="breadcrumb-item active text-secondary" aria-current="page">{{ course.title }}</li>
+        </ol>
+    </nav>
+
+    <!-- Course Header Card -->
+    <div class="card bg-card border-accent mb-4 shadow-sm" style="background: linear-gradient(135deg, rgba(14, 165, 233, 0.08) 0%, rgba(15, 23, 42, 0.95) 100%);">
+        <div class="card-body p-4">
+            <div class="row align-items-center">
+                <div class="col-lg-8">
+                    <div class="d-flex align-items-center gap-2 mb-2">
+                        <span class="badge bg-card-secondary text-info border border-accent">
+                            <i class="fa-solid {{ course.icon }} me-1"></i> {{ course.get_category_display }}
+                        </span>
+                        <span class="badge {% if course.level == 'beginner' %}bg-success-subtle text-success border border-success{% elif course.level == 'intermediate' %}bg-info-subtle text-info border border-info{% else %}bg-danger-subtle text-danger border border-danger{% endif %} text-uppercase" style="font-size: 0.7rem;">
+                            {{ course.get_level_display }}
+                        </span>
+                        <span class="badge bg-secondary-subtle text-light border border-secondary" style="font-size: 0.7rem;">
+                            <i class="fa-regular fa-clock me-1"></i> {{ course.estimated_hours }} Hours
+                        </span>
+                    </div>
+
+                    <h2 class="h3 text-white fw-bold mb-3">{{ course.title }}</h2>
+                    <p class="text-secondary mb-4" style="line-height: 1.6; max-width: 750px;">
+                        {{ course.description }}
+                    </p>
+
+                    <div class="d-flex flex-wrap gap-2 align-items-center">
+                        {% if lessons %}
+                        <a href="{% url 'academy:lesson_reader' course.slug lessons.first.slug %}" class="btn btn-primary-blue shadow-sm">
+                            <i class="fa-solid fa-play me-2"></i>Start Learning (Lesson 1)
+                        </a>
+                        {% endif %}
+                        <a href="{% url 'academy:certificate' course.slug %}" class="btn btn-outline-warning">
+                            <i class="fa-solid fa-certificate me-2"></i>View Completion Certificate
+                        </a>
+                    </div>
+                </div>
+
+                <div class="col-lg-4 text-end d-none d-lg-block">
+                    <div class="bg-card-secondary p-4 rounded border border-accent d-inline-block text-center" style="min-width: 240px;">
+                        <div class="text-warning display-5 mb-2"><i class="fa-solid fa-award"></i></div>
+                        <div class="small text-muted text-uppercase fw-bold" style="letter-spacing: 0.05em;">Credential Award</div>
+                        <div class="text-light fw-bold fs-6 mt-1">{{ course.badge_name }}</div>
+                        <div class="text-secondary small mt-2">Awarded on completing all lessons and passing practical exams.</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Course Modules / Lessons Syllabus -->
+    <div class="card bg-card border-accent mb-4">
+        <div class="card-header bg-card-secondary border-accent py-3 d-flex align-items-center justify-content-between">
+            <h3 class="h6 text-white fw-bold mb-0">
+                <i class="fa-solid fa-list-check text-info me-2"></i>Course Syllabus & Practical Labs ({{ lessons.count }} Modules)
+            </h3>
+            <span class="badge bg-primary-subtle text-primary border border-primary">
+                {{ lessons.count }} Lessons
+            </span>
+        </div>
+        <div class="card-body p-0">
+            <div class="list-group list-group-flush">
+                {% for lesson in lessons %}
+                <div class="list-group-item bg-card border-accent p-4 d-flex flex-column flex-md-row align-items-md-center justify-content-between gap-3 hover-bg-card-secondary transition-all">
+                    <div class="d-flex align-items-start gap-3">
+                        <div class="lesson-num-badge bg-primary text-white rounded-circle d-flex align-items-center justify-content-center fw-bold" style="width: 38px; height: 38px; flex-shrink: 0;">
+                            {{ lesson.lesson_number }}
+                        </div>
+                        <div>
+                            <div class="d-flex align-items-center gap-2 mb-1">
+                                <h4 class="h6 text-white fw-bold mb-0">
+                                    <a href="{% url 'academy:lesson_reader' course.slug lesson.slug %}" class="text-white text-decoration-none hover-primary">
+                                        {{ lesson.title }}
+                                    </a>
+                                </h4>
+                                {% if lesson.has_practical_lab %}
+                                <span class="badge bg-success-subtle text-success border border-success" style="font-size: 0.65rem;">
+                                    <i class="fa-solid fa-flask me-1"></i> Practical Lab
+                                </span>
+                                {% endif %}
+                            </div>
+                            <p class="small text-secondary mb-2" style="max-width: 650px;">
+                                {{ lesson.summary }}
+                            </p>
+                            <div class="d-flex gap-3 text-muted small" style="font-size: 0.75rem;">
+                                <span><i class="fa-regular fa-clock me-1"></i> {{ lesson.estimated_minutes }} mins</span>
+                                <span><i class="fa-solid fa-puzzle-piece me-1"></i> 8 Standard Sections</span>
+                                <span><i class="fa-solid fa-circle-question me-1"></i> Assessment Quiz</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Lesson Actions -->
+                    <div class="d-flex flex-shrink-0 align-items-center gap-2">
+                        <a href="{% url 'academy:lesson_reader' course.slug lesson.slug %}" class="btn btn-sm btn-outline-secondary text-light">
+                            <i class="fa-solid fa-book-open me-1"></i> Read Theory
+                        </a>
+                        {% if lesson.has_practical_lab %}
+                        <a href="{% url 'academy:practical_lab' course.slug lesson.slug %}" class="btn btn-sm btn-primary-blue">
+                            <i class="fa-solid fa-laptop-code me-1"></i> Launch Lab
+                        </a>
+                        {% endif %}
+                    </div>
+                </div>
+                {% empty %}
+                <div class="p-4 text-center text-muted">
+                    No lessons published yet for this course.
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,66 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Networking Learning Center | Ramonet{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-0">
+    <div class="d-flex align-items-center justify-content-between mb-4">
+        <div>
+            <h4 class="text-white fw-bold mb-1">
+                <i class="fa-solid fa-graduation-cap text-warning me-2"></i>Structured Networking Knowledge & Learning Center
+            </h4>
+            <p class="text-secondary small mb-0">20 comprehensive modules from foundational OSI/TCP models to advanced OSPF, Firewalls, NAS, CCTV, and Enterprise Troubleshooting.</p>
+        </div>
+        <div class="btn-group btn-group-sm">
+            <a href="{% url 'learning:center' %}" class="btn {% if not selected_level %}btn-info text-dark fw-bold{% else %}btn-outline-secondary{% endif %}">All Topics</a>
+            <a href="{% url 'learning:center' %}?level=beginner" class="btn {% if selected_level == 'beginner' %}btn-info text-dark fw-bold{% else %}btn-outline-secondary{% endif %}">Beginner Path</a>
+            <a href="{% url 'learning:center' %}?level=intermediate" class="btn {% if selected_level == 'intermediate' %}btn-info text-dark fw-bold{% else %}btn-outline-secondary{% endif %}">Intermediate Path</a>
+            <a href="{% url 'learning:center' %}?level=advanced" class="btn {% if selected_level == 'advanced' %}btn-info text-dark fw-bold{% else %}btn-outline-secondary{% endif %}">Advanced Path</a>
+        </div>
+    </div>
+
+    <!-- 20 Topics Grid -->
+    <div class="row g-3">
+        {% for t in topics %}
+        <div class="col-xl-4 col-md-6">
+            <div class="ramonet-card h-100 d-flex flex-column justify-content-between">
+                <div class="ramonet-card-body">
+                    <div class="d-flex align-items-center justify-content-between mb-2">
+                        <span class="badge bg-secondary font-monospace" style="font-size:0.7rem;">Module {{ t.topic_number }}</span>
+                        <span class="badge {% if t.level == 'beginner' %}bg-success{% elif t.level == 'intermediate' %}bg-warning text-dark{% else %}bg-danger{% endif %}" style="font-size:0.65rem;">
+                            {{ t.get_level_display }}
+                        </span>
+                    </div>
+
+                    <h6 class="text-white fw-bold mb-2">{{ t.title }}</h6>
+                    
+                    <!-- Simple Real-World Explanation Metaphor -->
+                    <div class="p-2 bg-sidebar rounded border border-secondary border-opacity-25 small text-secondary mb-3" style="min-height: 64px;">
+                        <span class="text-info small fw-bold d-block"><i class="fa-solid fa-lightbulb me-1"></i>Intuitive Concept:</span>
+                        {{ t.simple_explanation|truncatewords:20 }}
+                    </div>
+
+                    <!-- Relevant Commands Badge Preview -->
+                    <div class="small text-muted mb-1">Key Commands:</div>
+                    <div class="d-flex flex-wrap gap-1 mb-2">
+                        {% for cmd in t.relevant_commands|slice:":3" %}
+                        <span class="badge bg-dark font-monospace text-info border border-secondary border-opacity-25" style="font-size:0.68rem;">{{ cmd }}</span>
+                        {% endfor %}
+                    </div>
+                </div>
+
+                <div class="p-3 bg-sidebar border-top border-secondary border-opacity-25 d-flex justify-content-between align-items-center">
+                    <span class="text-muted small"><i class="fa-solid fa-layer-group me-1"></i>{{ t.category }}</span>
+                    <a href="{% url 'learning:topic_detail' t.slug %}" class="btn btn-sm btn-outline-cyan py-0 px-2">
+                        Read Lesson →
+                    </a>
+                </div>
+            </div>
+        </div>
+        {% empty %}
+        <div class="col-12 text-center text-muted py-5">No topics found.</div>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}

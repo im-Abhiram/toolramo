@@ -1,0 +1,220 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Network Discovery & Inventory — Ramonet{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-0">
+    <!-- Header -->
+    <div class="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-4">
+        <div>
+            <h4 class="text-white fw-bold mb-1">
+                <i class="fa-solid fa-radar text-info me-2"></i>Network Discovery & Automated Inventory
+            </h4>
+            <p class="text-secondary small mb-0">
+                Layer 2 link discovery via IEEE 802.1AB LLDP, Cisco CDP, ARP resolution, and rogue device detection.
+            </p>
+        </div>
+        <div class="d-flex gap-2">
+            <button class="btn btn-outline-cyan btn-sm" id="btn-run-lldp">
+                <i class="fa-solid fa-satellite-dish me-1"></i> Scan via LLDP
+            </button>
+            <button class="btn btn-outline-secondary btn-sm" id="btn-run-cdp">
+                <i class="fa-solid fa-network-wired me-1"></i> Scan via CDP
+            </button>
+            <a href="{% url 'topology:designer' %}" class="btn btn-primary-blue btn-sm">
+                <i class="fa-solid fa-diagram-project me-1"></i> View in Designer
+            </a>
+        </div>
+    </div>
+
+    <!-- Rogue Device Alert Banner -->
+    <div id="discovery-alert-banner" class="mb-4"></div>
+
+    <!-- KPI Grid -->
+    <div class="row g-3 mb-4">
+        <div class="col-md-3 col-6">
+            <div class="ramonet-card p-3">
+                <div class="d-flex align-items-center justify-content-between mb-2">
+                    <span class="text-secondary small">Discovered Neighbors</span>
+                    <i class="fa-solid fa-sitemap text-info"></i>
+                </div>
+                <h3 class="text-white fw-bold mb-0" id="kpi-neighbors-count">4</h3>
+                <small class="text-muted d-block mt-2">Active L2 Adjacencies</small>
+            </div>
+        </div>
+        <div class="col-md-3 col-6">
+            <div class="ramonet-card p-3">
+                <div class="d-flex align-items-center justify-content-between mb-2">
+                    <span class="text-secondary small">Discovery Protocol</span>
+                    <i class="fa-solid fa-satellite-dish text-cyan"></i>
+                </div>
+                <h3 class="text-cyan fw-bold mb-0" id="kpi-protocol">LLDP</h3>
+                <small class="text-muted d-block mt-2">IEEE 802.1AB Standard</small>
+            </div>
+        </div>
+        <div class="col-md-3 col-6">
+            <div class="ramonet-card p-3">
+                <div class="d-flex align-items-center justify-content-between mb-2">
+                    <span class="text-secondary small">ARP Cache Entries</span>
+                    <i class="fa-solid fa-table-list text-warning"></i>
+                </div>
+                <h3 class="text-warning fw-bold mb-0" id="kpi-arp-count">5</h3>
+                <small class="text-muted d-block mt-2">MAC-to-IP Resolved</small>
+            </div>
+        </div>
+        <div class="col-md-3 col-6">
+            <div class="ramonet-card p-3">
+                <div class="d-flex align-items-center justify-content-between mb-2">
+                    <span class="text-secondary small">Rogue Devices</span>
+                    <i class="fa-solid fa-triangle-exclamation text-danger"></i>
+                </div>
+                <h3 class="text-danger fw-bold mb-0" id="kpi-rogue-count">1</h3>
+                <small class="text-danger d-block mt-2">Unauthorized node found</small>
+            </div>
+        </div>
+    </div>
+
+    <!-- LLDP / CDP Neighbor Table -->
+    <div class="ramonet-card mb-4">
+        <div class="ramonet-card-header d-flex justify-content-between align-items-center">
+            <span class="text-white fw-bold small">
+                <i class="fa-solid fa-list-check text-cyan me-2"></i>Link Layer Neighbor Adjacency Table
+            </span>
+            <span class="badge bg-secondary font-monospace" id="scan-status-badge">Scan Complete</span>
+        </div>
+        <div class="table-responsive">
+            <table class="table table-ramonet table-hover mb-0">
+                <thead>
+                    <tr>
+                        <th>Local Interface</th>
+                        <th>Remote System Name</th>
+                        <th>Remote Port</th>
+                        <th>Management IP</th>
+                        <th>Chassis MAC ID</th>
+                        <th>Capabilities</th>
+                        <th>System Description</th>
+                    </tr>
+                </thead>
+                <tbody id="neighbors-table-body">
+                    <!-- Populated dynamically -->
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- ARP Cache Table -->
+    <div class="ramonet-card">
+        <div class="ramonet-card-header d-flex justify-content-between align-items-center">
+            <span class="text-white fw-bold small">
+                <i class="fa-solid fa-table text-warning me-2"></i>Switch ARP Resolution Cache Table
+            </span>
+            <span class="badge bg-secondary font-monospace">L3-to-L2 Bindings</span>
+        </div>
+        <div class="table-responsive">
+            <table class="table table-ramonet table-hover mb-0">
+                <thead>
+                    <tr>
+                        <th>IPv4 Address</th>
+                        <th>Hardware MAC Address</th>
+                        <th>Interface / VLAN</th>
+                        <th>Binding Type</th>
+                        <th>Age (Minutes)</th>
+                    </tr>
+                </thead>
+                <tbody id="arp-table-body">
+                    <!-- Populated dynamically -->
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    const neighborsBody = document.getElementById('neighbors-table-body');
+    const arpBody = document.getElementById('arp-table-body');
+    const alertBanner = document.getElementById('discovery-alert-banner');
+
+    async function runScan(protocol = 'lldp') {
+        document.getElementById('scan-status-badge').innerHTML = '<i class="fa-solid fa-spinner fa-spin me-1"></i>Scanning...';
+
+        try {
+            const res = await fetch('/networktools/api/discovery/', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ protocol: protocol })
+            });
+
+            if (res.ok) {
+                const data = await res.json();
+                document.getElementById('scan-status-badge').textContent = `${data.protocol} Scan Complete`;
+                document.getElementById('kpi-protocol').textContent = data.protocol;
+                document.getElementById('kpi-neighbors-count').textContent = data.discovered_devices_count;
+                document.getElementById('kpi-arp-count').textContent = data.arp_table.length;
+                document.getElementById('kpi-rogue-count').textContent = data.rogue_devices_detected;
+
+                // Populate Neighbors
+                neighborsBody.innerHTML = '';
+                data.neighbors.forEach(n => {
+                    const tr = document.createElement('tr');
+                    tr.innerHTML = `
+                        <td class="font-monospace text-cyan fw-bold small">${n.local_interface}</td>
+                        <td class="fw-bold text-white small">${n.system_name}</td>
+                        <td class="font-monospace text-secondary small">${n.port_id}</td>
+                        <td class="font-monospace text-info small">${n.management_ip}</td>
+                        <td class="font-monospace text-muted small">${n.chassis_id}</td>
+                        <td><span class="badge bg-secondary">${n.capabilities}</span></td>
+                        <td class="text-secondary small" style="max-width:250px; text-overflow:ellipsis; overflow:hidden; white-space:nowrap;">${n.system_description}</td>
+                    `;
+                    neighborsBody.appendChild(tr);
+                });
+
+                // Populate ARP
+                arpBody.innerHTML = '';
+                data.arp_table.forEach(a => {
+                    const isRogue = a.type.includes('Rogue');
+                    const tr = document.createElement('tr');
+                    tr.innerHTML = `
+                        <td class="font-monospace ${isRogue ? 'text-danger fw-bold' : 'text-cyan'} small">${a.ip}</td>
+                        <td class="font-monospace ${isRogue ? 'text-danger' : 'text-white'} small">${a.mac}</td>
+                        <td class="font-monospace text-secondary small">${a.interface}</td>
+                        <td><span class="badge ${isRogue ? 'bg-danger' : 'bg-secondary'}">${a.type}</span></td>
+                        <td class="text-muted small">${a.age_min} min</td>
+                    `;
+                    arpBody.appendChild(tr);
+                });
+
+                // Rogue Alert
+                alertBanner.innerHTML = '';
+                if (data.rogue_details && data.rogue_details.length > 0) {
+                    data.rogue_details.forEach(r => {
+                        const div = document.createElement('div');
+                        div.className = 'alert alert-danger d-flex align-items-center justify-content-between py-2 px-3 small';
+                        div.innerHTML = `
+                            <div>
+                                <i class="fa-solid fa-triangle-exclamation me-2 fs-6"></i>
+                                <strong>Security Incident: Rogue Device Detected!</strong> IP <code>${r.ip}</code> (MAC: <code>${r.mac}</code>) active on switchport <strong>${r.port}</strong>.
+                                <div class="text-white-50 mt-1">${r.warning}</div>
+                            </div>
+                            <button class="btn btn-xs btn-outline-danger" onclick="alert('Port ${r.port} shutdown command queued.')">Disable Switchport</button>
+                        `;
+                        alertBanner.appendChild(div);
+                    });
+                }
+            }
+        } catch (err) {
+            console.error('Scan error:', err);
+        }
+    }
+
+    document.getElementById('btn-run-lldp').addEventListener('click', () => runScan('lldp'));
+    document.getElementById('btn-run-cdp').addEventListener('click', () => runScan('cdp'));
+
+    // Run initial scan
+    runScan('lldp');
+});
+</script>
+{% endblock %}

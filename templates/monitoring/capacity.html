@@ -1,0 +1,212 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Network Health & Capacity Planning — Ramonet{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-0">
+    <!-- Header -->
+    <div class="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-4">
+        <div>
+            <h4 class="text-white fw-bold mb-1">
+                <i class="fa-solid fa-chart-line text-cyan me-2"></i>Network Health & Capacity Planning
+            </h4>
+            <p class="text-secondary small mb-0">
+                Link bandwidth utilization metrics, interface saturation warnings, latency, jitter, and packet drop analysis.
+            </p>
+        </div>
+        <div class="d-flex gap-2">
+            <button class="btn btn-outline-cyan btn-sm" id="btn-refresh-capacity">
+                <i class="fa-solid fa-arrows-rotate me-1"></i> Refresh Metrics
+            </button>
+            <a href="{% url 'topology:designer' %}" class="btn btn-primary-blue btn-sm">
+                <i class="fa-solid fa-diagram-project me-1"></i> Topology View
+            </a>
+        </div>
+    </div>
+
+    <!-- Top KPI Grid -->
+    <div class="row g-3 mb-4">
+        <div class="col-md-3 col-6">
+            <div class="ramonet-card p-3">
+                <div class="d-flex align-items-center justify-content-between mb-2">
+                    <span class="text-secondary small">Average Utilization</span>
+                    <i class="fa-solid fa-gauge text-cyan"></i>
+                </div>
+                <h3 class="text-white fw-bold mb-0" id="kpi-avg-util">58.0%</h3>
+                <div class="progress mt-2" style="height: 4px; background: rgba(255,255,255,0.06);">
+                    <div class="progress-bar bg-cyan" style="width: 58%;"></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-3 col-6">
+            <div class="ramonet-card p-3">
+                <div class="d-flex align-items-center justify-content-between mb-2">
+                    <span class="text-secondary small">Near-Saturated Links</span>
+                    <i class="fa-solid fa-triangle-exclamation text-warning"></i>
+                </div>
+                <h3 class="text-warning fw-bold mb-0" id="kpi-sat-count">1</h3>
+                <small class="text-warning d-block mt-2">Surveillance uplink > 80%</small>
+            </div>
+        </div>
+
+        <div class="col-md-3 col-6">
+            <div class="ramonet-card p-3">
+                <div class="d-flex align-items-center justify-content-between mb-2">
+                    <span class="text-secondary small">Round-Trip Latency</span>
+                    <i class="fa-solid fa-stopwatch text-info"></i>
+                </div>
+                <h3 class="text-info fw-bold mb-0">4.2 ms</h3>
+                <small class="text-muted d-block mt-2">Jitter: 0.8 ms (Excellent)</small>
+            </div>
+        </div>
+
+        <div class="col-md-3 col-6">
+            <div class="ramonet-card p-3">
+                <div class="d-flex align-items-center justify-content-between mb-2">
+                    <span class="text-secondary small">Packet Loss Rate</span>
+                    <i class="fa-solid fa-chart-pie text-success"></i>
+                </div>
+                <h3 class="text-success fw-bold mb-0">0.02%</h3>
+                <small class="text-success d-block mt-2"><i class="fa-solid fa-circle-check me-1"></i>Well below 1.0% SLA</small>
+            </div>
+        </div>
+    </div>
+
+    <!-- Chart & Saturated Interface Row -->
+    <div class="row g-4 mb-4">
+        <!-- 24-Hour Bandwidth Profile Chart -->
+        <div class="col-lg-7">
+            <div class="ramonet-card h-100">
+                <div class="ramonet-card-header d-flex justify-content-between align-items-center">
+                    <span class="text-white fw-bold small">
+                        <i class="fa-solid fa-chart-area text-cyan me-2"></i>24-Hour Campus Bandwidth Profile (Mbps)
+                    </span>
+                    <span class="badge bg-secondary font-monospace">Hourly Trend</span>
+                </div>
+                <div class="ramonet-card-body">
+                    <canvas id="capacityChart" style="max-height: 280px;"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- Interface Utilization Schedule -->
+        <div class="col-lg-5">
+            <div class="ramonet-card h-100">
+                <div class="ramonet-card-header d-flex justify-content-between align-items-center">
+                    <span class="text-white fw-bold small">
+                        <i class="fa-solid fa-network-wired text-warning me-2"></i>Interface Bandwidth Saturation
+                    </span>
+                    <span class="badge bg-secondary font-monospace">5 Key Links</span>
+                </div>
+                <div class="table-responsive">
+                    <table class="table table-ramonet table-hover mb-0">
+                        <thead>
+                            <tr>
+                                <th>Interface / Link</th>
+                                <th>Capacity</th>
+                                <th>Load</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody id="interface-capacity-body">
+                            <!-- Populated dynamically -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    let capacityChart = null;
+    const ifaceBody = document.getElementById('interface-capacity-body');
+
+    async function loadCapacity() {
+        try {
+            const res = await fetch('/monitoring/api/capacity/');
+            if (res.ok) {
+                const data = await res.json();
+                document.getElementById('kpi-avg-util').textContent = `${data.overall_utilization_pct}%`;
+                document.getElementById('kpi-sat-count').textContent = data.saturated_links_count;
+
+                // Render table
+                ifaceBody.innerHTML = '';
+                data.interfaces.forEach(iface => {
+                    const tr = document.createElement('tr');
+                    const isSat = iface.utilization_pct > 80;
+                    const isWarn = iface.utilization_pct > 70;
+                    const badgeClass = isSat ? 'bg-danger' : isWarn ? 'bg-warning text-dark' : 'bg-success';
+
+                    tr.innerHTML = `
+                        <td>
+                            <div class="text-white small fw-bold">${iface.name}</div>
+                        </td>
+                        <td class="font-monospace text-secondary small">${iface.speed}</td>
+                        <td>
+                            <div class="d-flex align-items-center gap-2">
+                                <div class="progress bg-sidebar flex-grow-1" style="height: 6px;">
+                                    <div class="progress-bar ${badgeClass}" style="width: ${iface.utilization_pct}%;"></div>
+                                </div>
+                                <span class="small font-monospace text-white">${iface.utilization_pct}%</span>
+                            </div>
+                        </td>
+                        <td><span class="badge ${badgeClass}">${iface.status}</span></td>
+                    `;
+                    ifaceBody.appendChild(tr);
+                });
+
+                // Render Chart.js
+                if (typeof Chart !== 'undefined') {
+                    const ctx = document.getElementById('capacityChart').getContext('2d');
+                    if (capacityChart) capacityChart.destroy();
+
+                    capacityChart = new Chart(ctx, {
+                        type: 'line',
+                        data: {
+                            labels: ['00:00', '02:00', '04:00', '06:00', '08:00', '10:00', '12:00', '14:00', '16:00', '18:00', '20:00', '22:00'],
+                            datasets: [{
+                                label: 'Aggregate Traffic (Mbps)',
+                                data: data.hourly_bandwidth,
+                                borderColor: '#00f2fe',
+                                backgroundColor: 'rgba(0, 242, 254, 0.1)',
+                                fill: true,
+                                tension: 0.3,
+                                borderWidth: 2
+                            }]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            plugins: {
+                                legend: { display: false }
+                            },
+                            scales: {
+                                x: {
+                                    grid: { color: 'rgba(255, 255, 255, 0.05)' },
+                                    ticks: { color: '#94a3b8' }
+                                },
+                                y: {
+                                    grid: { color: 'rgba(255, 255, 255, 0.05)' },
+                                    ticks: { color: '#94a3b8' }
+                                }
+                            }
+                        }
+                    });
+                }
+            }
+        } catch (err) {
+            console.error('Capacity error:', err);
+        }
+    }
+
+    document.getElementById('btn-refresh-capacity').addEventListener('click', loadCapacity);
+    loadCapacity();
+});
+</script>
+{% endblock %}

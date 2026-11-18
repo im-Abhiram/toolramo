@@ -1,0 +1,649 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Network Infrastructure Documentation — Ramonet{% endblock %}
+
+{% block extra_css %}
+<style>
+@media print {
+    /* Optimize for clean PDF and paper printing */
+    body {
+        background: #ffffff !important;
+        color: #000000 !important;
+        font-size: 11pt;
+    }
+    .sidebar, .navbar, .btn, .no-print {
+        display: none !important;
+    }
+    .main-content {
+        margin-left: 0 !important;
+        padding: 0 !important;
+    }
+    .ramonet-card {
+        background: #ffffff !important;
+        border: 1px solid #cccccc !important;
+        color: #000000 !important;
+        box-shadow: none !important;
+        page-break-inside: avoid;
+        margin-bottom: 20px !important;
+    }
+    .ramonet-card-header {
+        background: #f0f0f0 !important;
+        color: #000000 !important;
+        border-bottom: 1px solid #cccccc !important;
+    }
+    table {
+        color: #000000 !important;
+    }
+    th {
+        background-color: #f5f5f5 !important;
+        color: #000000 !important;
+    }
+    td {
+        color: #111111 !important;
+    }
+    .badge {
+        border: 1px solid #666666 !important;
+        color: #000000 !important;
+        background: transparent !important;
+    }
+    .text-cyan, .text-info, .text-warning, .text-success, .text-white {
+        color: #000000 !important;
+    }
+    .page-break {
+        page-break-before: always;
+    }
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-0">
+    <!-- Header & Action Buttons (Hidden when printing) -->
+    <div class="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-4 no-print">
+        <div>
+            <h4 class="text-white fw-bold mb-1">
+                <i class="fa-solid fa-file-contract text-cyan me-2"></i>Network Infrastructure Documentation Generator
+            </h4>
+            <p class="text-secondary small mb-0">
+                Automated engineering specification: Inventory, Subnets, VLANs, Routing, Firewalls, Racks, CCTV, and Cabling Schedule.
+            </p>
+        </div>
+        <div class="d-flex gap-2">
+            <button class="btn btn-outline-secondary btn-sm" onclick="window.print()">
+                <i class="fa-solid fa-print me-1"></i> Print / Save as PDF
+            </button>
+            <button class="btn btn-outline-cyan btn-sm" id="btn-export-csv">
+                <i class="fa-solid fa-file-csv me-1"></i> Export Inventory CSV
+            </button>
+            <button class="btn btn-primary-blue btn-sm" id="btn-export-doc-json">
+                <i class="fa-solid fa-download me-1"></i> Export Full JSON Spec
+            </button>
+        </div>
+    </div>
+
+    <!-- DOCUMENT CONTAINER -->
+    <div id="documentation-document">
+        <!-- 1. EXECUTIVE SUMMARY & PROJECT COVER -->
+        <div class="ramonet-card mb-4 border border-info border-opacity-25">
+            <div class="ramonet-card-header d-flex justify-content-between align-items-center">
+                <span class="text-white fw-bold small">
+                    <i class="fa-solid fa-circle-info text-info me-2"></i>Section 1: Executive Summary & Project Identification
+                </span>
+                <span class="badge bg-info text-dark font-monospace">CONFIDENTIAL — NETWORK SPECIFICATION</span>
+            </div>
+            <div class="ramonet-card-body">
+                <div class="row g-3">
+                    <div class="col-md-3 col-6">
+                        <small class="text-muted d-block">Project Name</small>
+                        <strong class="text-white" id="doc-proj-name">Enterprise Campus Network Architecture</strong>
+                    </div>
+                    <div class="col-md-3 col-6">
+                        <small class="text-muted d-block">Prepared By</small>
+                        <strong class="text-white" id="doc-proj-author">Senior Network Engineer</strong>
+                    </div>
+                    <div class="col-md-3 col-6">
+                        <small class="text-muted d-block">Revision & Status</small>
+                        <strong class="text-cyan">Rev 2.4 — Approved for Implementation</strong>
+                    </div>
+                    <div class="col-md-3 col-6">
+                        <small class="text-muted d-block">Date of Generation</small>
+                        <strong class="text-secondary font-monospace">{{ generated_date }}</strong>
+                    </div>
+                </div>
+                <hr class="border-secondary border-opacity-25 my-3">
+                <p class="text-secondary small mb-0">
+                    This document provides an exhaustive physical, logical, addressing, and security specification for the Ramonet campus infrastructure. It serves as the baseline for commissioning, cable installation, configuration deployment, and post-installation audit verification.
+                </p>
+            </div>
+        </div>
+
+        <!-- 2. DEVICE INVENTORY SCHEDULE -->
+        <div class="ramonet-card mb-4">
+            <div class="ramonet-card-header d-flex justify-content-between align-items-center">
+                <span class="text-white fw-bold small">
+                    <i class="fa-solid fa-server text-cyan me-2"></i>Section 2: Comprehensive Hardware Device Inventory
+                </span>
+                <span class="badge bg-secondary font-monospace">7 Active Nodes</span>
+            </div>
+            <div class="table-responsive">
+                <table class="table table-ramonet mb-0">
+                    <thead>
+                        <tr>
+                            <th>Device Hostname</th>
+                            <th>Category</th>
+                            <th>Hardware Model</th>
+                            <th>Management IP</th>
+                            <th>Rack Location</th>
+                            <th>Power Supply</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody id="doc-inventory-table">
+                        <tr>
+                            <td class="fw-bold text-white"><i class="fa-solid fa-route text-warning me-2"></i>Edge-Router-01</td>
+                            <td><span class="badge bg-secondary">Router</span></td>
+                            <td class="text-secondary small">Cisco ISR 4331 Gigabit</td>
+                            <td class="font-monospace text-cyan">192.168.1.1</td>
+                            <td class="font-monospace text-muted">Rack-A / U40-U41</td>
+                            <td class="small text-secondary">Dual AC 250W</td>
+                            <td><span class="badge bg-success">Operational</span></td>
+                        </tr>
+                        <tr>
+                            <td class="fw-bold text-white"><i class="fa-solid fa-shield-halved text-danger me-2"></i>Corp-Firewall-01</td>
+                            <td><span class="badge bg-secondary">Firewall</span></td>
+                            <td class="text-secondary small">FortiGate 60F NGFW</td>
+                            <td class="font-monospace text-cyan">192.168.1.2</td>
+                            <td class="font-monospace text-muted">Rack-A / U38-U39</td>
+                            <td class="small text-secondary">Single AC 100W</td>
+                            <td><span class="badge bg-success">Operational</span></td>
+                        </tr>
+                        <tr>
+                            <td class="fw-bold text-white"><i class="fa-solid fa-network-wired text-info me-2"></i>Core-Switch-01</td>
+                            <td><span class="badge bg-secondary">L3 Switch</span></td>
+                            <td class="text-secondary small">Cisco Catalyst 3850 48P</td>
+                            <td class="font-monospace text-cyan">192.168.1.3</td>
+                            <td class="font-monospace text-muted">Rack-A / U35</td>
+                            <td class="small text-secondary">Dual AC 715W PoE+</td>
+                            <td><span class="badge bg-success">Operational</span></td>
+                        </tr>
+                        <tr>
+                            <td class="fw-bold text-white"><i class="fa-solid fa-server text-success me-2"></i>AD-DNS-DHCP-01</td>
+                            <td><span class="badge bg-secondary">Server</span></td>
+                            <td class="text-secondary small">Dell PowerEdge R650 1U</td>
+                            <td class="font-monospace text-cyan">192.168.20.5</td>
+                            <td class="font-monospace text-muted">Rack-A / U30</td>
+                            <td class="small text-secondary">Dual AC 800W Platinum</td>
+                            <td><span class="badge bg-success">Operational</span></td>
+                        </tr>
+                        <tr>
+                            <td class="fw-bold text-white"><i class="fa-solid fa-hard-drive text-warning me-2"></i>Storage-NAS-01</td>
+                            <td><span class="badge bg-secondary">Storage</span></td>
+                            <td class="text-secondary small">Synology RS2423+ 2U</td>
+                            <td class="font-monospace text-cyan">192.168.20.10</td>
+                            <td class="font-monospace text-muted">Rack-A / U27-U28</td>
+                            <td class="small text-secondary">Dual AC 500W</td>
+                            <td><span class="badge bg-success">Operational</span></td>
+                        </tr>
+                        <tr>
+                            <td class="fw-bold text-white"><i class="fa-solid fa-video text-info me-2"></i>Surveillance-NVR-01</td>
+                            <td><span class="badge bg-secondary">CCTV</span></td>
+                            <td class="text-secondary small">Hikvision 32-Channel 2U NVR</td>
+                            <td class="font-monospace text-cyan">192.168.50.2</td>
+                            <td class="font-monospace text-muted">Rack-A / U24-U25</td>
+                            <td class="small text-secondary">Single AC 300W</td>
+                            <td><span class="badge bg-success">Operational</span></td>
+                        </tr>
+                        <tr>
+                            <td class="fw-bold text-white"><i class="fa-solid fa-bolt text-danger me-2"></i>APC-SmartUPS-3000</td>
+                            <td><span class="badge bg-secondary">Power</span></td>
+                            <td class="text-secondary small">APC Smart-UPS RT 3000VA 3U</td>
+                            <td class="font-monospace text-cyan">192.168.1.250</td>
+                            <td class="font-monospace text-muted">Rack-A / U01-U03</td>
+                            <td class="small text-secondary">3000VA / 2700W Battery</td>
+                            <td><span class="badge bg-success">Normal Line</span></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- 3. IP ADDRESSING & SUBNET SCHEDULE -->
+        <div class="ramonet-card mb-4 page-break">
+            <div class="ramonet-card-header d-flex justify-content-between align-items-center">
+                <span class="text-white fw-bold small">
+                    <i class="fa-solid fa-sitemap text-info me-2"></i>Section 3: IP Address Management & Subnet Allocation Schedule
+                </span>
+                <span class="badge bg-secondary font-monospace">5 Subnets Planned</span>
+            </div>
+            <div class="table-responsive">
+                <table class="table table-ramonet mb-0">
+                    <thead>
+                        <tr>
+                            <th>Subnet Purpose</th>
+                            <th>VLAN</th>
+                            <th>Network CIDR</th>
+                            <th>Subnet Mask</th>
+                            <th>Default Gateway</th>
+                            <th>Usable Range</th>
+                            <th>DHCP Scope</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td class="fw-bold text-white">Out-of-Band Management</td>
+                            <td><span class="badge bg-secondary font-monospace">VLAN 1</span></td>
+                            <td class="font-monospace text-cyan">192.168.1.0/24</td>
+                            <td class="font-monospace text-secondary">255.255.255.0</td>
+                            <td class="font-monospace text-info">192.168.1.1</td>
+                            <td class="font-monospace small text-muted">192.168.1.1 - 192.168.1.254</td>
+                            <td class="font-monospace small text-white">192.168.1.100 - .200</td>
+                        </tr>
+                        <tr>
+                            <td class="fw-bold text-white">Corporate LAN / Workstations</td>
+                            <td><span class="badge bg-info text-dark font-monospace">VLAN 10</span></td>
+                            <td class="font-monospace text-cyan">192.168.10.0/24</td>
+                            <td class="font-monospace text-secondary">255.255.255.0</td>
+                            <td class="font-monospace text-info">192.168.10.1</td>
+                            <td class="font-monospace small text-muted">192.168.10.1 - 192.168.10.254</td>
+                            <td class="font-monospace small text-white">192.168.10.50 - .240</td>
+                        </tr>
+                        <tr>
+                            <td class="fw-bold text-white">Data Center / Servers</td>
+                            <td><span class="badge bg-warning text-dark font-monospace">VLAN 20</span></td>
+                            <td class="font-monospace text-cyan">192.168.20.0/24</td>
+                            <td class="font-monospace text-secondary">255.255.255.0</td>
+                            <td class="font-monospace text-info">192.168.20.1</td>
+                            <td class="font-monospace small text-muted">192.168.20.1 - 192.168.20.254</td>
+                            <td class="font-monospace small text-secondary">Static Reservations Only</td>
+                        </tr>
+                        <tr>
+                            <td class="fw-bold text-white">CCTV & Surveillance Fleet</td>
+                            <td><span class="badge bg-success font-monospace">VLAN 50</span></td>
+                            <td class="font-monospace text-cyan">192.168.50.0/24</td>
+                            <td class="font-monospace text-secondary">255.255.255.0</td>
+                            <td class="font-monospace text-info">192.168.50.1</td>
+                            <td class="font-monospace small text-muted">192.168.50.1 - 192.168.50.254</td>
+                            <td class="font-monospace small text-white">192.168.50.10 - .50</td>
+                        </tr>
+                        <tr>
+                            <td class="fw-bold text-white">Primary WAN Gateway Link</td>
+                            <td><span class="badge bg-danger font-monospace">WAN</span></td>
+                            <td class="font-monospace text-cyan">10.0.0.0/30</td>
+                            <td class="font-monospace text-secondary">255.255.255.252</td>
+                            <td class="font-monospace text-info">10.0.0.1</td>
+                            <td class="font-monospace small text-muted">10.0.0.1 - 10.0.0.2</td>
+                            <td class="font-monospace small text-secondary">Point-to-Point /30</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- 4. VLAN & PORT ALLOCATION MATRIX -->
+        <div class="ramonet-card mb-4">
+            <div class="ramonet-card-header d-flex justify-content-between align-items-center">
+                <span class="text-white fw-bold small">
+                    <i class="fa-solid fa-layer-group text-primary-cyan me-2"></i>Section 4: 802.1Q VLAN & Switchport Matrix
+                </span>
+                <span class="badge bg-secondary font-monospace">Standard 802.1Q</span>
+            </div>
+            <div class="table-responsive">
+                <table class="table table-ramonet mb-0">
+                    <thead>
+                        <tr>
+                            <th>VLAN ID</th>
+                            <th>VLAN Name</th>
+                            <th>Switch Name</th>
+                            <th>Port Mode</th>
+                            <th>Assigned Ports</th>
+                            <th>Native VLAN</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><span class="badge bg-secondary font-monospace">1</span></td>
+                            <td class="text-white fw-bold">Default Management</td>
+                            <td>Core-Switch-01</td>
+                            <td><span class="badge bg-info text-dark">Access</span></td>
+                            <td class="font-monospace small text-muted">Gig1/0/45 - Gig1/0/48</td>
+                            <td class="font-monospace text-secondary">1</td>
+                        </tr>
+                        <tr>
+                            <td><span class="badge bg-info text-dark font-monospace">10</span></td>
+                            <td class="text-white fw-bold">Corporate Workstations</td>
+                            <td>Core-Switch-01</td>
+                            <td><span class="badge bg-info text-dark">Access</span></td>
+                            <td class="font-monospace small text-muted">Gig1/0/1 - Gig1/0/24</td>
+                            <td class="font-monospace text-secondary">1</td>
+                        </tr>
+                        <tr>
+                            <td><span class="badge bg-warning text-dark font-monospace">20</span></td>
+                            <td class="text-white fw-bold">Servers & Infrastructure</td>
+                            <td>Core-Switch-01</td>
+                            <td><span class="badge bg-info text-dark">Access</span></td>
+                            <td class="font-monospace small text-muted">Gig1/0/25 - Gig1/0/36</td>
+                            <td class="font-monospace text-secondary">1</td>
+                        </tr>
+                        <tr>
+                            <td><span class="badge bg-success font-monospace">50</span></td>
+                            <td class="text-white fw-bold">Surveillance CCTV</td>
+                            <td>Core-Switch-01</td>
+                            <td><span class="badge bg-info text-dark">Access</span></td>
+                            <td class="font-monospace small text-muted">Gig1/0/37 - Gig1/0/44</td>
+                            <td class="font-monospace text-secondary">1</td>
+                        </tr>
+                        <tr>
+                            <td><span class="badge bg-primary-blue font-monospace">Trunk</span></td>
+                            <td class="text-white fw-bold">Inter-Switch & Router Uplink</td>
+                            <td>Core-Switch-01</td>
+                            <td><span class="badge bg-primary-blue">Trunk (802.1Q)</span></td>
+                            <td class="font-monospace small text-cyan">Te1/1/1, Te1/1/2 (10G SFP+)</td>
+                            <td class="font-monospace text-secondary">VLAN 1</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- 5. FIREWALL POLICIES & ROUTING -->
+        <div class="row g-4 mb-4 page-break">
+            <!-- Routing Table -->
+            <div class="col-lg-6">
+                <div class="ramonet-card h-100">
+                    <div class="ramonet-card-header">
+                        <span class="text-white fw-bold small">
+                            <i class="fa-solid fa-route text-warning me-2"></i>Section 5.1: Routing Table & Static Routes
+                        </span>
+                    </div>
+                    <div class="table-responsive">
+                        <table class="table table-ramonet mb-0">
+                            <thead>
+                                <tr>
+                                    <th>Destination Prefix</th>
+                                    <th>Next Hop Gateway</th>
+                                    <th>Interface</th>
+                                    <th>Metric / Protocol</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td class="font-monospace text-white fw-bold">0.0.0.0/0 (Default)</td>
+                                    <td class="font-monospace text-cyan">10.0.0.1</td>
+                                    <td class="font-monospace small text-secondary">Gig0/0 (WAN)</td>
+                                    <td><span class="badge bg-secondary">Static (AD 1)</span></td>
+                                </tr>
+                                <tr>
+                                    <td class="font-monospace text-white fw-bold">192.168.10.0/24</td>
+                                    <td class="font-monospace text-cyan">Directly Connected</td>
+                                    <td class="font-monospace small text-secondary">Gig0/1.10</td>
+                                    <td><span class="badge bg-info text-dark">Connected (AD 0)</span></td>
+                                </tr>
+                                <tr>
+                                    <td class="font-monospace text-white fw-bold">192.168.20.0/24</td>
+                                    <td class="font-monospace text-cyan">Directly Connected</td>
+                                    <td class="font-monospace small text-secondary">Gig0/1.20</td>
+                                    <td><span class="badge bg-info text-dark">Connected (AD 0)</span></td>
+                                </tr>
+                                <tr>
+                                    <td class="font-monospace text-white fw-bold">192.168.50.0/24</td>
+                                    <td class="font-monospace text-cyan">Directly Connected</td>
+                                    <td class="font-monospace small text-secondary">Gig0/1.50</td>
+                                    <td><span class="badge bg-info text-dark">Connected (AD 0)</span></td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Firewall ACL Policies -->
+            <div class="col-lg-6">
+                <div class="ramonet-card h-100">
+                    <div class="ramonet-card-header">
+                        <span class="text-white fw-bold small">
+                            <i class="fa-solid fa-shield-halved text-danger me-2"></i>Section 5.2: Stateful Firewall Rules (ACLs)
+                        </span>
+                    </div>
+                    <div class="table-responsive">
+                        <table class="table table-ramonet mb-0">
+                            <thead>
+                                <tr>
+                                    <th>Rule ID</th>
+                                    <th>Source Zone</th>
+                                    <th>Dest Zone</th>
+                                    <th>Service</th>
+                                    <th>Action</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td><span class="badge bg-secondary font-monospace">10</span></td>
+                                    <td class="text-white small">LAN (VLAN 10)</td>
+                                    <td class="text-white small">WAN (Internet)</td>
+                                    <td class="font-monospace text-secondary small">HTTP/HTTPS/DNS</td>
+                                    <td><span class="badge bg-success">Permit (NAT)</span></td>
+                                </tr>
+                                <tr>
+                                    <td><span class="badge bg-secondary font-monospace">20</span></td>
+                                    <td class="text-white small">LAN (VLAN 10)</td>
+                                    <td class="text-white small">DMZ (VLAN 20)</td>
+                                    <td class="font-monospace text-secondary small">TCP 80, 443</td>
+                                    <td><span class="badge bg-success">Permit</span></td>
+                                </tr>
+                                <tr>
+                                    <td><span class="badge bg-secondary font-monospace">30</span></td>
+                                    <td class="text-white small">CCTV (VLAN 50)</td>
+                                    <td class="text-white small">WAN (Internet)</td>
+                                    <td class="font-monospace text-secondary small">ANY</td>
+                                    <td><span class="badge bg-danger">Deny & Log</span></td>
+                                </tr>
+                                <tr>
+                                    <td><span class="badge bg-secondary font-monospace">99</span></td>
+                                    <td class="text-white small">WAN (Internet)</td>
+                                    <td class="text-white small">LAN / DMZ</td>
+                                    <td class="font-monospace text-secondary small">ANY (Inbound)</td>
+                                    <td><span class="badge bg-danger">Implicit Deny</span></td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 6. PHYSICAL RACK ELEVATION & THERMAL SUMMARY -->
+        <div class="ramonet-card mb-4">
+            <div class="ramonet-card-header d-flex justify-content-between align-items-center">
+                <span class="text-white fw-bold small">
+                    <i class="fa-solid fa-bars-staggered text-cyan me-2"></i>Section 6: Physical 19-Inch Equipment Rack Layout (42U)
+                </span>
+                <span class="badge bg-secondary font-monospace">Rack-A: Main Distribution Frame (MDF)</span>
+            </div>
+            <div class="ramonet-card-body">
+                <div class="row g-3">
+                    <div class="col-md-3 col-6">
+                        <small class="text-muted d-block">Rack Form Factor</small>
+                        <strong class="text-white">Standard 19", 42U Enclosure</strong>
+                    </div>
+                    <div class="col-md-3 col-6">
+                        <small class="text-muted d-block">Space Utilization</small>
+                        <strong class="text-cyan">14U Occupied / 28U Free (33%)</strong>
+                    </div>
+                    <div class="col-md-3 col-6">
+                        <small class="text-muted d-block">Total Power Demand</small>
+                        <strong class="text-warning">1,940 Watts Max Draw</strong>
+                    </div>
+                    <div class="col-md-3 col-6">
+                        <small class="text-muted d-block">Heat Dissipation</small>
+                        <strong class="text-danger">6,619 BTU / Hour</strong>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 7. PORT-TO-PORT CABLING SCHEDULE -->
+        <div class="ramonet-card mb-4 page-break">
+            <div class="ramonet-card-header d-flex justify-content-between align-items-center">
+                <span class="text-white fw-bold small">
+                    <i class="fa-solid fa-diagram-project text-info me-2"></i>Section 7: Port-to-Port Physical Cabling Schedule
+                </span>
+                <span class="badge bg-secondary font-monospace">Structured Cabling Run Table</span>
+            </div>
+            <div class="table-responsive">
+                <table class="table table-ramonet mb-0">
+                    <thead>
+                        <tr>
+                            <th>Cable ID</th>
+                            <th>Source Device</th>
+                            <th>Source Port</th>
+                            <th>Destination Device</th>
+                            <th>Destination Port</th>
+                            <th>Media Type</th>
+                            <th>Color Standard</th>
+                        </tr>
+                    </thead>
+                    <tbody id="doc-cabling-table">
+                        <tr>
+                            <td><span class="badge bg-secondary font-monospace">CBL-001</span></td>
+                            <td class="text-white fw-bold">Edge-Router-01</td>
+                            <td class="font-monospace text-cyan">Gig0/0</td>
+                            <td class="text-white fw-bold">ISP-Modem</td>
+                            <td class="font-monospace text-secondary">Port 1</td>
+                            <td><span class="badge bg-dark border border-secondary">Cat6A Copper</span></td>
+                            <td><span class="text-warning"><i class="fa-solid fa-square me-1"></i>Yellow (WAN)</span></td>
+                        </tr>
+                        <tr>
+                            <td><span class="badge bg-secondary font-monospace">CBL-002</span></td>
+                            <td class="text-white fw-bold">Edge-Router-01</td>
+                            <td class="font-monospace text-cyan">Gig0/1</td>
+                            <td class="text-white fw-bold">Corp-Firewall-01</td>
+                            <td class="font-monospace text-secondary">wan1</td>
+                            <td><span class="badge bg-dark border border-secondary">Cat6A Copper</span></td>
+                            <td><span class="text-danger"><i class="fa-solid fa-square me-1"></i>Red (Perimeter)</span></td>
+                        </tr>
+                        <tr>
+                            <td><span class="badge bg-secondary font-monospace">CBL-003</span></td>
+                            <td class="text-white fw-bold">Corp-Firewall-01</td>
+                            <td class="font-monospace text-cyan">internal</td>
+                            <td class="text-white fw-bold">Core-Switch-01</td>
+                            <td class="font-monospace text-secondary">Te1/1/1</td>
+                            <td><span class="badge bg-info text-dark">OM4 Multi-Mode Fiber</span></td>
+                            <td><span class="text-cyan"><i class="fa-solid fa-square me-1"></i>Aqua (10G Core)</span></td>
+                        </tr>
+                        <tr>
+                            <td><span class="badge bg-secondary font-monospace">CBL-004</span></td>
+                            <td class="text-white fw-bold">Core-Switch-01</td>
+                            <td class="font-monospace text-cyan">Gig1/0/25</td>
+                            <td class="text-white fw-bold">AD-DNS-DHCP-01</td>
+                            <td class="font-monospace text-secondary">NIC1 (eth0)</td>
+                            <td><span class="badge bg-dark border border-secondary">Cat6 Copper</span></td>
+                            <td><span class="text-success"><i class="fa-solid fa-square me-1"></i>Blue (Server LAN)</span></td>
+                        </tr>
+                        <tr>
+                            <td><span class="badge bg-secondary font-monospace">CBL-005</span></td>
+                            <td class="text-white fw-bold">Core-Switch-01</td>
+                            <td class="font-monospace text-cyan">Gig1/0/27</td>
+                            <td class="text-white fw-bold">Storage-NAS-01</td>
+                            <td class="font-monospace text-secondary">LAN1</td>
+                            <td><span class="badge bg-dark border border-secondary">Cat6A Copper</span></td>
+                            <td><span class="text-success"><i class="fa-solid fa-square me-1"></i>Blue (Server LAN)</span></td>
+                        </tr>
+                        <tr>
+                            <td><span class="badge bg-secondary font-monospace">CBL-006</span></td>
+                            <td class="text-white fw-bold">Core-Switch-01</td>
+                            <td class="font-monospace text-cyan">Gig1/0/37 (PoE+)</td>
+                            <td class="text-white fw-bold">Surveillance-NVR-01</td>
+                            <td class="font-monospace text-secondary">Uplink LAN</td>
+                            <td><span class="badge bg-dark border border-secondary">Cat6 Copper</span></td>
+                            <td><span class="text-info"><i class="fa-solid fa-square me-1"></i>Purple (CCTV)</span></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    // Export Full JSON Spec
+    document.getElementById('btn-export-doc-json').addEventListener('click', async () => {
+        const payload = {
+            format: 'json',
+            project_name: 'Enterprise-Campus-Network',
+            author: 'Senior Network Architect',
+            revision: '2.4',
+            description: 'Comprehensive Enterprise Network Infrastructure Plan generated by Ramonet',
+            devices: [
+                { name: 'Edge-Router-01', category: 'Router', model: 'Cisco ISR 4331', ip: '192.168.1.1', status: 'Operational' },
+                { name: 'Corp-Firewall-01', category: 'Firewall', model: 'FortiGate 60F', ip: '192.168.1.2', status: 'Operational' },
+                { name: 'Core-Switch-01', category: 'L3 Switch', model: 'Catalyst 3850', ip: '192.168.1.3', status: 'Operational' },
+                { name: 'AD-DNS-DHCP-01', category: 'Server', model: 'Dell R650', ip: '192.168.20.5', status: 'Operational' }
+            ],
+            subnets: [
+                { name: 'Management', vlan: 1, cidr: '192.168.1.0/24', gateway: '192.168.1.1' },
+                { name: 'Corporate LAN', vlan: 10, cidr: '192.168.10.0/24', gateway: '192.168.10.1' },
+                { name: 'Servers', vlan: 20, cidr: '192.168.20.0/24', gateway: '192.168.20.1' },
+                { name: 'CCTV', vlan: 50, cidr: '192.168.50.0/24', gateway: '192.168.50.1' }
+            ]
+        };
+
+        try {
+            const res = await fetch('/projects/api/documentation/export/', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+            if (res.ok) {
+                const data = await res.json();
+                const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `ramonet-network-spec-${new Date().toISOString().slice(0, 10)}.json`;
+                a.click();
+                URL.revokeObjectURL(url);
+            }
+        } catch (err) {
+            console.error('Error exporting documentation JSON:', err);
+        }
+    });
+
+    // Export Inventory CSV
+    document.getElementById('btn-export-csv').addEventListener('click', async () => {
+        const payload = {
+            format: 'csv',
+            project_name: 'Enterprise-Campus-Network',
+            devices: [
+                { name: 'Edge-Router-01', category: 'Router', role: 'WAN Gateway', ip: '192.168.1.1', status: 'Operational', interfaces: ['Gig0/0', 'Gig0/1'] },
+                { name: 'Corp-Firewall-01', category: 'Firewall', role: 'NGFW Perimeter', ip: '192.168.1.2', status: 'Operational', interfaces: ['wan1', 'internal'] },
+                { name: 'Core-Switch-01', category: 'Switch', role: 'Distribution Core', ip: '192.168.1.3', status: 'Operational', interfaces: ['Gi1/0/1', 'Te1/1/1'] },
+                { name: 'AD-DNS-DHCP-01', category: 'Server', role: 'Domain Controller', ip: '192.168.20.5', status: 'Operational', interfaces: ['eth0'] }
+            ]
+        };
+
+        try {
+            const res = await fetch('/projects/api/documentation/export/', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+            if (res.ok) {
+                const blob = await res.blob();
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `Enterprise-Campus-Network_Inventory.csv`;
+                a.click();
+                URL.revokeObjectURL(url);
+            }
+        } catch (err) {
+            console.error('Error exporting inventory CSV:', err);
+        }
+    });
+});
+</script>
+{% endblock %}

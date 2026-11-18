@@ -1,0 +1,537 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en" data-bs-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}RAMONET — Enterprise Network Simulator & Operations Lab{% endblock %}</title>
+    
+    <!-- Offline Local CSS Assets -->
+    <link rel="stylesheet" href="{% static 'vendor/bootstrap/bootstrap.min.css' %}">
+    <link rel="stylesheet" href="{% static 'vendor/fontawesome/css/all.min.css' %}">
+    <link rel="stylesheet" href="{% static 'css/ramonet-theme.css' %}">
+    <link rel="stylesheet" href="{% static 'css/terminal.css' %}">
+    {% block extra_css %}{% endblock %}
+</head>
+<body>
+
+    <!-- Top Navigation Header -->
+    <header class="ramonet-header">
+        <div class="d-flex align-items-center gap-3">
+            <button class="btn btn-sm text-secondary p-1" id="sidebar-toggle-btn" title="Toggle Sidebar (Ctrl+B)">
+                <i class="fa-solid fa-bars fa-lg"></i>
+            </button>
+            <a href="{% url 'dashboard' %}" class="ramonet-brand">
+                <i class="fa-solid fa-network-wired text-cyan"></i>
+                <span class="fw-bold">RAMONET</span>
+                <span class="brand-badge">2.0</span>
+            </a>
+        </div>
+
+        <!-- Global Command Palette Trigger -->
+        <div class="mx-auto position-relative d-none d-md-block">
+            <div class="global-search-trigger" id="btn-open-command-palette">
+                <i class="fa-solid fa-magnifying-glass text-secondary"></i>
+                <span>Search tools, devices, commands...</span>
+                <span class="search-shortcut-pill">Ctrl+K</span>
+            </div>
+        </div>
+
+        <!-- Right Quick Actions, Live Clock & Profile -->
+        <div class="d-flex align-items-center gap-2">
+            <!-- Live Date & Clock -->
+            <div class="d-none d-lg-flex align-items-center gap-2 px-2 py-1 rounded bg-surface border border-secondary border-opacity-25 small text-secondary font-monospace" style="font-size:0.75rem;">
+                <i class="fa-regular fa-clock text-cyan"></i>
+                <span id="live-header-clock">--:--:--</span>
+            </div>
+
+            <!-- Interactive Tour Button -->
+            <button class="btn btn-sm btn-outline-secondary d-none d-sm-inline-flex align-items-center gap-1" id="btn-header-tour" data-bs-toggle="modal" data-bs-target="#ramonetTourModal" title="Platform Tour & Guide">
+                <i class="fa-solid fa-compass text-warning"></i>
+                <span class="small">Tour</span>
+            </button>
+
+            <!-- Theme Toggle Button -->
+            <button class="btn btn-sm btn-outline-secondary p-1 px-2" id="btn-theme-toggle" title="Toggle Dark/Light Theme">
+                <i class="fa-solid fa-sun text-warning" id="theme-icon"></i>
+            </button>
+
+            <!-- Academy Shortcut -->
+            <a href="{% url 'academy:dashboard' %}" class="btn btn-sm btn-purple d-none d-md-inline-flex align-items-center gap-1">
+                <i class="fa-solid fa-graduation-cap"></i>
+                <span>Academy</span>
+            </a>
+
+            <!-- Open Designer CTA -->
+            <a href="{% url 'topology:designer' %}" class="btn btn-sm btn-primary-blue">
+                <i class="fa-solid fa-diagram-project"></i>
+                <span>Designer</span>
+            </a>
+
+            <!-- User Menu Dropdown -->
+            <div class="dropdown">
+                <button class="btn btn-sm btn-outline-secondary dropdown-toggle d-flex align-items-center gap-2" data-bs-toggle="dropdown" aria-expanded="false">
+                    <i class="fa-solid fa-circle-user text-cyan"></i>
+                    <span class="d-none d-sm-inline">{{ request.user.username|default:"Guest Engineer" }}</span>
+                </button>
+                <ul class="dropdown-menu dropdown-menu-end bg-card border-accent shadow">
+                    <li><h6 class="dropdown-header text-muted">Signed in as <strong>{{ request.user.username|default:"Guest" }}</strong></h6></li>
+                    <li><a class="dropdown-item text-secondary" href="{% url 'projects:manager' %}"><i class="fa-solid fa-folder-open me-2 text-info"></i>My Projects</a></li>
+                    <li><a class="dropdown-item text-secondary" href="{% url 'projects:scenarios' %}"><i class="fa-solid fa-shapes me-2 text-warning"></i>Scenario Library (16)</a></li>
+                    <li><a class="dropdown-item text-secondary" href="{% url 'projects:documentation' %}"><i class="fa-solid fa-file-contract me-2 text-cyan"></i>Documentation</a></li>
+                    <li><a class="dropdown-item text-secondary" href="{% url 'audit:storage' %}"><i class="fa-solid fa-hard-drive me-2 text-warning"></i>Storage Allocation</a></li>
+                    {% if request.user.is_staff or request.user.is_superuser or request.user.profile.role == 'instructor' or request.user.profile.role == 'architect' %}
+                    <li><a class="dropdown-item text-danger" href="{% url 'audit:security_dashboard' %}"><i class="fa-solid fa-shield-halved me-2"></i>Security Operations</a></li>
+                    {% endif %}
+                    <li><a class="dropdown-item text-secondary" href="{% url 'accounts:settings' %}"><i class="fa-solid fa-gear me-2"></i>Preferences & Settings</a></li>
+                    <li><hr class="dropdown-divider border-accent"></li>
+                    <li><a class="dropdown-item text-secondary" href="#" data-bs-toggle="modal" data-bs-target="#keyboardShortcutsModal"><i class="fa-solid fa-keyboard me-2 text-muted"></i>Keyboard Shortcuts <kbd class="ms-auto">?</kbd></a></li>
+                    <li><hr class="dropdown-divider border-accent"></li>
+                    {% if request.user.is_authenticated %}
+                    <li><a class="dropdown-item text-danger" href="{% url 'accounts:logout' %}"><i class="fa-solid fa-right-from-bracket me-2"></i>Logout</a></li>
+                    {% else %}
+                    <li><a class="dropdown-item text-success" href="{% url 'accounts:login' %}"><i class="fa-solid fa-right-to-bracket me-2"></i>Login / Sign Up</a></li>
+                    {% endif %}
+                </ul>
+            </div>
+        </div>
+    </header>
+
+    <!-- Application Shell Layout -->
+    <div class="ramonet-shell">
+        <!-- Collapsible Grouped Left Sidebar -->
+        <aside class="ramonet-sidebar" id="ramonet-sidebar">
+            
+            <!-- GROUP 1: WORKSPACE -->
+            <div class="nav-group-header" data-bs-toggle="collapse" data-bs-target="#nav-group-workspace">
+                <span><i class="fa-solid fa-desktop me-2 text-cyan"></i>Workspace</span>
+                <i class="fa-solid fa-chevron-down group-chevron"></i>
+            </div>
+            <div class="collapse show" id="nav-group-workspace">
+                <a href="{% url 'dashboard' %}" class="sidebar-nav-item {% if request.resolver_match.url_name == 'dashboard' %}active{% endif %}">
+                    <i class="fa-solid fa-gauge-high"></i>
+                    <span>Dashboard</span>
+                </a>
+                <a href="{% url 'topology:designer' %}" class="sidebar-nav-item {% if 'topology' in request.path and 'rack' not in request.path %}active{% endif %}">
+                    <i class="fa-solid fa-diagram-project"></i>
+                    <span>Network Designer</span>
+                    <span class="badge bg-primary ms-auto" style="font-size:0.6rem;">Canvas</span>
+                </a>
+                <a href="{% url 'projects:manager' %}" class="sidebar-nav-item {% if request.resolver_match.url_name == 'manager' and 'projects' in request.path %}active{% endif %}">
+                    <i class="fa-solid fa-folder-open"></i>
+                    <span>My Projects</span>
+                </a>
+                <a href="{% url 'devices:library' %}" class="sidebar-nav-item {% if 'devices' in request.path and 'academy' not in request.path %}active{% endif %}">
+                    <i class="fa-solid fa-microchip"></i>
+                    <span>Device Library</span>
+                </a>
+            </div>
+
+            <!-- GROUP 2: LEARNING -->
+            <div class="nav-group-header" data-bs-toggle="collapse" data-bs-target="#nav-group-learning">
+                <span><i class="fa-solid fa-graduation-cap me-2 text-purple"></i>Learning</span>
+                <i class="fa-solid fa-chevron-down group-chevron"></i>
+            </div>
+            <div class="collapse show" id="nav-group-learning">
+                <a href="{% url 'academy:dashboard' %}" class="sidebar-nav-item {% if 'academy' in request.path and 'devices' not in request.path %}active{% endif %}">
+                    <i class="fa-solid fa-graduation-cap text-warning"></i>
+                    <span>RAMONET Academy</span>
+                    <span class="badge bg-warning text-dark ms-auto" style="font-size:0.6rem;">14 Courses</span>
+                </a>
+                <a href="{% url 'academy:device_guides' %}" class="sidebar-nav-item {% if 'academy/devices' in request.path %}active{% endif %}">
+                    <i class="fa-solid fa-book-bookmark text-info"></i>
+                    <span>Practical Labs (27)</span>
+                </a>
+                <a href="{% url 'projects:scenarios' %}" class="sidebar-nav-item {% if 'scenarios' in request.path %}active{% endif %}">
+                    <i class="fa-solid fa-shapes text-cyan"></i>
+                    <span>Challenges (16)</span>
+                </a>
+                <a href="{% url 'learning:center' %}" class="sidebar-nav-item {% if 'learning' in request.path and 'academy' not in request.path %}active{% endif %}">
+                    <i class="fa-solid fa-trophy text-warning"></i>
+                    <span>Learning Progress</span>
+                </a>
+            </div>
+
+            <!-- GROUP 3: CONFIGURATION -->
+            <div class="nav-group-header" data-bs-toggle="collapse" data-bs-target="#nav-group-configuration">
+                <span><i class="fa-solid fa-sliders me-2 text-warning"></i>Configuration</span>
+                <i class="fa-solid fa-chevron-down group-chevron"></i>
+            </div>
+            <div class="collapse show" id="nav-group-configuration">
+                <a href="{% url 'configuration:assistant' %}" class="sidebar-nav-item {% if 'assistant' in request.path %}active{% endif %}">
+                    <i class="fa-solid fa-wand-magic-sparkles text-info"></i>
+                    <span>Config Assistant</span>
+                </a>
+                <a href="{% url 'commands:library' %}" class="sidebar-nav-item {% if 'commands' in request.path %}active{% endif %}">
+                    <i class="fa-solid fa-terminal text-success"></i>
+                    <span>Command Library</span>
+                </a>
+                <a href="{% url 'topology:designer' %}?open=cli" class="sidebar-nav-item">
+                    <i class="fa-solid fa-square-terminal text-cyan"></i>
+                    <span>CLI Terminal</span>
+                </a>
+                <a href="{% url 'configuration:ipam' %}" class="sidebar-nav-item {% if 'ipam' in request.path %}active{% endif %}">
+                    <i class="fa-solid fa-sitemap text-info"></i>
+                    <span>IP Address Manager</span>
+                </a>
+            </div>
+
+            <!-- GROUP 4: NETWORK OPERATIONS -->
+            <div class="nav-group-header" data-bs-toggle="collapse" data-bs-target="#nav-group-operations">
+                <span><i class="fa-solid fa-network-wired me-2 text-success"></i>Operations</span>
+                <i class="fa-solid fa-chevron-down group-chevron"></i>
+            </div>
+            <div class="collapse show" id="nav-group-operations">
+                <a href="{% url 'monitoring:dashboard' %}" class="sidebar-nav-item {% if request.resolver_match.url_name == 'dashboard' and 'monitoring' in request.path %}active{% endif %}">
+                    <i class="fa-solid fa-chart-line text-success"></i>
+                    <span>Network Monitoring</span>
+                </a>
+                <a href="{% url 'troubleshooting:lab' %}" class="sidebar-nav-item {% if 'troubleshooting' in request.path %}active{% endif %}">
+                    <i class="fa-solid fa-stethoscope text-danger"></i>
+                    <span>Troubleshooting</span>
+                </a>
+                <a href="{% url 'monitoring:security_audit' %}" class="sidebar-nav-item {% if 'security-audit' in request.path %}active{% endif %}">
+                    <i class="fa-solid fa-shield-halved text-warning"></i>
+                    <span>Security Assessment</span>
+                </a>
+                <a href="{% url 'monitoring:alerts' %}" class="sidebar-nav-item {% if 'alerts' in request.path %}active{% endif %}">
+                    <i class="fa-solid fa-bell text-danger"></i>
+                    <span>Event Centre</span>
+                    <span class="badge bg-danger ms-auto" style="font-size:0.6rem;">Live</span>
+                </a>
+                {% if request.user.is_staff or request.user.is_superuser or request.user.profile.role == 'instructor' or request.user.profile.role == 'architect' %}
+                <a href="{% url 'audit:security_dashboard' %}" class="sidebar-nav-item {% if 'security' in request.path and 'storage' in request.path %}active{% endif %}">
+                    <i class="fa-solid fa-user-shield text-danger"></i>
+                    <span>Security Operations</span>
+                    <span class="badge bg-danger ms-auto" style="font-size:0.6rem;">SOC</span>
+                </a>
+                {% endif %}
+            </div>
+
+            <!-- GROUP 5: INFRASTRUCTURE -->
+            <div class="nav-group-header" data-bs-toggle="collapse" data-bs-target="#nav-group-infrastructure">
+                <span><i class="fa-solid fa-server me-2 text-info"></i>Infrastructure</span>
+                <i class="fa-solid fa-chevron-down group-chevron"></i>
+            </div>
+            <div class="collapse show" id="nav-group-infrastructure">
+                <a href="{% url 'topology:rack' %}" class="sidebar-nav-item {% if 'rack' in request.path %}active{% endif %}">
+                    <i class="fa-solid fa-bars-staggered text-cyan"></i>
+                    <span>Physical Rack Designer</span>
+                    <span class="badge bg-info text-dark ms-auto" style="font-size:0.6rem;">19" MDF</span>
+                </a>
+                <a href="{% url 'configuration:cctv' %}" class="sidebar-nav-item {% if 'cctv' in request.path %}active{% endif %}">
+                    <i class="fa-solid fa-video text-warning"></i>
+                    <span>CCTV Planner</span>
+                </a>
+                <a href="{% url 'configuration:storage' %}" class="sidebar-nav-item {% if 'storage' in request.path and 'audit' not in request.path %}active{% endif %}">
+                    <i class="fa-solid fa-hard-drive text-secondary"></i>
+                    <span>NAS & Storage</span>
+                </a>
+                <a href="{% url 'projects:documentation' %}" class="sidebar-nav-item {% if 'documentation' in request.path %}active{% endif %}">
+                    <i class="fa-solid fa-file-contract text-cyan"></i>
+                    <span>Documentation</span>
+                </a>
+            </div>
+
+            <!-- GROUP 6: TOOLS & SETTINGS -->
+            <div class="nav-group-header" data-bs-toggle="collapse" data-bs-target="#nav-group-tools">
+                <span><i class="fa-solid fa-toolbox me-2 text-secondary"></i>Tools & Settings</span>
+                <i class="fa-solid fa-chevron-down group-chevron"></i>
+            </div>
+            <div class="collapse show" id="nav-group-tools">
+                <a href="{% url 'networktools:toolbox' %}" class="sidebar-nav-item {% if 'toolbox' in request.path %}active{% endif %}">
+                    <i class="fa-solid fa-calculator text-info"></i>
+                    <span>Network Calculators</span>
+                </a>
+                <a href="{% url 'projects:scenarios' %}" class="sidebar-nav-item">
+                    <i class="fa-solid fa-shapes text-secondary"></i>
+                    <span>Network Templates</span>
+                </a>
+                <a href="{% url 'projects:changes' %}" class="sidebar-nav-item {% if 'changes' in request.path %}active{% endif %}">
+                    <i class="fa-solid fa-code-compare text-warning"></i>
+                    <span>Change & Diffs</span>
+                </a>
+                <a href="{% url 'projects:backups' %}" class="sidebar-nav-item {% if 'backups' in request.path %}active{% endif %}">
+                    <i class="fa-solid fa-floppy-disk text-cyan"></i>
+                    <span>Backup & Restore</span>
+                </a>
+                <a href="{% url 'accounts:settings' %}" class="sidebar-nav-item {% if 'settings' in request.path %}active{% endif %}">
+                    <i class="fa-solid fa-sliders text-secondary"></i>
+                    <span>Settings</span>
+                </a>
+            </div>
+
+            <!-- Bottom Storage Status -->
+            <div class="mt-auto p-3 border-top border-secondary border-opacity-25 bg-sidebar small">
+                <div class="d-flex align-items-center justify-content-between text-secondary mb-1" style="font-size:0.75rem;">
+                    <span>SQLite Storage:</span>
+                    <strong class="text-cyan">588 KB / 512 MB</strong>
+                </div>
+                <div class="progress mb-2" style="height: 4px; background: rgba(255,255,255,0.06);">
+                    <div class="progress-bar bg-success" style="width: 1.2%;"></div>
+                </div>
+                <span class="text-muted d-block" style="font-size:0.7rem;"><i class="fa-solid fa-shield-check text-success me-1"></i>IndexedDB Client Storage Active</span>
+            </div>
+        </aside>
+
+        <!-- Main Content Area -->
+        <main class="ramonet-main {% block main_class %}{% endblock %}">
+            {% block content %}{% endblock %}
+        </main>
+    </div>
+
+    <!-- COMMAND PALETTE (Ctrl+K) -->
+    <div class="command-palette-backdrop" id="command-palette">
+        <div class="command-palette-box">
+            <div class="command-palette-input-wrap">
+                <i class="fa-solid fa-magnifying-glass text-cyan"></i>
+                <input type="text" class="command-palette-input" id="command-palette-input" placeholder="Type a command, tool name, device, or guide..." autocomplete="off">
+                <span class="badge bg-secondary font-monospace" style="font-size:0.7rem;">ESC to close</span>
+            </div>
+            <div class="command-palette-results" id="command-palette-results">
+                <!-- Dynamically populated entries -->
+            </div>
+        </div>
+    </div>
+
+    <!-- RAMONET TOUR / ONBOARDING MODAL -->
+    <div class="modal fade" id="ramonetTourModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-lg modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header border-secondary">
+                    <div class="d-flex align-items-center gap-2">
+                        <i class="fa-solid fa-network-wired text-cyan fs-5"></i>
+                        <h5 class="modal-title fw-bold text-white mb-0">Welcome to RAMONET</h5>
+                        <span class="brand-badge ms-2">Platform Overview</span>
+                    </div>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body p-4">
+                    <p class="text-secondary mb-4">
+                        RAMONET is an enterprise-grade web-based network simulation, configuration, learning, and physical planning platform. Explore the 5 integrated pillars:
+                    </p>
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <div class="p-3 bg-sidebar rounded border border-secondary border-opacity-25 h-100">
+                                <div class="fw-bold text-cyan mb-1"><i class="fa-solid fa-diagram-project me-2"></i>1. Network Designer</div>
+                                <div class="text-secondary small">Cisco Packet Tracer-inspired drag & drop topology canvas with packet flow tracer, cable validation, and live simulation.</div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="p-3 bg-sidebar rounded border border-secondary border-opacity-25 h-100">
+                                <div class="fw-bold text-purple mb-1"><i class="fa-solid fa-graduation-cap me-2"></i>2. RAMONET Academy</div>
+                                <div class="text-secondary small">14 comprehensive interactive courses, 27 device guides, hands-on lab workspaces, and gamified progress tracking.</div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="p-3 bg-sidebar rounded border border-secondary border-opacity-25 h-100">
+                                <div class="fw-bold text-info mb-1"><i class="fa-solid fa-bars-staggered me-2"></i>3. Physical Rack Designer</div>
+                                <div class="text-secondary small">Plan 19-inch equipment racks (12U/24U/42U), front/rear elevations, heat dissipation (BTU/hr), and port patch schedules.</div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="p-3 bg-sidebar rounded border border-secondary border-opacity-25 h-100">
+                                <div class="fw-bold text-warning mb-1"><i class="fa-solid fa-video me-2"></i>4. CCTV & IPAM Suite</div>
+                                <div class="text-secondary small">Surveillance bandwidth, PoE power budgeting, NVR channel calculations, and central IPv4 VLSM subnet planning.</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer border-secondary justify-content-between">
+                    <span class="text-muted small">Tip: Press <kbd>Ctrl+K</kbd> anywhere to open the command palette.</span>
+                    <button type="button" class="btn btn-primary-blue btn-sm" data-bs-dismiss="modal">Start Exploring</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- KEYBOARD SHORTCUTS MODAL -->
+    <div class="modal fade" id="keyboardShortcutsModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header border-secondary">
+                    <h6 class="modal-title fw-bold text-white"><i class="fa-solid fa-keyboard text-cyan me-2"></i>Keyboard Shortcuts</h6>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body p-3">
+                    <div class="d-flex flex-column gap-2 small">
+                        <div class="d-flex justify-content-between align-items-center py-1 border-bottom border-secondary border-opacity-25">
+                            <span class="text-secondary">Open Command Palette</span>
+                            <kbd>Ctrl + K</kbd>
+                        </div>
+                        <div class="d-flex justify-content-between align-items-center py-1 border-bottom border-secondary border-opacity-25">
+                            <span class="text-secondary">Toggle Navigation Sidebar</span>
+                            <kbd>Ctrl + B</kbd>
+                        </div>
+                        <div class="d-flex justify-content-between align-items-center py-1 border-bottom border-secondary border-opacity-25">
+                            <span class="text-secondary">Undo Canvas Action</span>
+                            <kbd>Ctrl + Z</kbd>
+                        </div>
+                        <div class="d-flex justify-content-between align-items-center py-1 border-bottom border-secondary border-opacity-25">
+                            <span class="text-secondary">Redo Canvas Action</span>
+                            <kbd>Ctrl + Y</kbd>
+                        </div>
+                        <div class="d-flex justify-content-between align-items-center py-1 border-bottom border-secondary border-opacity-25">
+                            <span class="text-secondary">Duplicate Selected Device</span>
+                            <kbd>Ctrl + D</kbd>
+                        </div>
+                        <div class="d-flex justify-content-between align-items-center py-1 border-bottom border-secondary border-opacity-25">
+                            <span class="text-secondary">Delete Selected Node</span>
+                            <kbd>Del</kbd>
+                        </div>
+                        <div class="d-flex justify-content-between align-items-center py-1">
+                            <span class="text-secondary">Show Shortcuts Cheat Sheet</span>
+                            <kbd>?</kbd>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Notification Container -->
+    <div id="toast-container" class="toast-container"></div>
+
+    <!-- Global Offline JS Assets -->
+    <script src="{% static 'vendor/bootstrap/bootstrap.bundle.min.js' %}"></script>
+    <script src="{% static 'vendor/chartjs/chart.umd.min.js' %}"></script>
+    <script src="{% static 'js/storage/indexeddb-storage.js' %}"></script>
+    <script src="{% static 'js/storage/local-storage.js' %}"></script>
+    <script src="{% static 'js/assistant/assistant-modal.js' %}"></script>
+    <script src="{% static 'js/tools/calculators.js' %}"></script>
+    <script src="{% static 'js/academy/academy-progress.js' %}"></script>
+    <script src="{% static 'js/app.js' %}"></script>
+
+    <!-- Global App Enhancement Controller -->
+    <script>
+    document.addEventListener('DOMContentLoaded', () => {
+        // 1. Live Clock
+        function updateClock() {
+            const clockEl = document.getElementById('live-header-clock');
+            if (clockEl) {
+                const now = new Date();
+                clockEl.textContent = now.toTimeString().split(' ')[0] + ' UTC';
+            }
+        }
+        setInterval(updateClock, 1000);
+        updateClock();
+
+        // 2. Theme Toggle Controller
+        const themeBtn = document.getElementById('btn-theme-toggle');
+        const themeIcon = document.getElementById('theme-icon');
+        const currentTheme = localStorage.getItem('ramonet_theme') || 'dark';
+        document.documentElement.setAttribute('data-bs-theme', currentTheme);
+        updateThemeIcon(currentTheme);
+
+        if (themeBtn) {
+            themeBtn.addEventListener('click', () => {
+                const active = document.documentElement.getAttribute('data-bs-theme');
+                const next = active === 'dark' ? 'light' : 'dark';
+                document.documentElement.setAttribute('data-bs-theme', next);
+                localStorage.setItem('ramonet_theme', next);
+                updateThemeIcon(next);
+            });
+        }
+
+        function updateThemeIcon(t) {
+            if (!themeIcon) return;
+            if (t === 'light') {
+                themeIcon.className = 'fa-solid fa-moon text-info';
+            } else {
+                themeIcon.className = 'fa-solid fa-sun text-warning';
+            }
+        }
+
+        // 3. Command Palette (Ctrl+K)
+        const palette = document.getElementById('command-palette');
+        const paletteInput = document.getElementById('command-palette-input');
+        const paletteResults = document.getElementById('command-palette-results');
+        const openPaletteBtn = document.getElementById('btn-open-command-palette');
+
+        const commandIndex = [
+            { title: 'Dashboard', icon: 'fa-gauge-high', url: '{% url "dashboard" %}', cat: 'Workspace' },
+            { title: 'Network Designer', icon: 'fa-diagram-project', url: '{% url "topology:designer" %}', cat: 'Workspace' },
+            { title: 'Physical Rack Designer', icon: 'fa-bars-staggered', url: '{% url "topology:rack" %}', cat: 'Infrastructure' },
+            { title: 'CCTV Surveillance Planner', icon: 'fa-video', url: '{% url "configuration:cctv" %}', cat: 'Infrastructure' },
+            { title: 'IP Address Manager (IPAM)', icon: 'fa-sitemap', url: '{% url "configuration:ipam" %}', cat: 'Configuration' },
+            { title: 'RAMONET Academy', icon: 'fa-graduation-cap', url: '{% url "academy:dashboard" %}', cat: 'Learning' },
+            { title: 'Practical Labs', icon: 'fa-book-bookmark', url: '{% url "academy:device_guides" %}', cat: 'Learning' },
+            { title: 'Scenario Library (16)', icon: 'fa-shapes', url: '{% url "projects:scenarios" %}', cat: 'Challenges' },
+            { title: 'Configuration Assistant', icon: 'fa-wand-magic-sparkles', url: '{% url "configuration:assistant" %}', cat: 'Configuration' },
+            { title: 'Command Library', icon: 'fa-terminal', url: '{% url "commands:library" %}', cat: 'Configuration' },
+            { title: 'Documentation Generator', icon: 'fa-file-contract', url: '{% url "projects:documentation" %}', cat: 'Infrastructure' },
+            { title: 'Network Discovery (LLDP/CDP)', icon: 'fa-radar', url: '{% url "networktools:discovery" %}', cat: 'Operations' },
+            { title: 'Change Management & Diffs', icon: 'fa-code-compare', url: '{% url "projects:changes" %}', cat: 'Tools' },
+            { title: 'Backup & Restore', icon: 'fa-floppy-disk', url: '{% url "projects:backups" %}', cat: 'Tools' },
+            { title: 'Security Assessment', icon: 'fa-shield-halved', url: '{% url "monitoring:security_audit" %}', cat: 'Operations' },
+            { title: 'Security Operations & Audit (SOC)', icon: 'fa-user-shield text-danger', url: '{% url "audit:security_dashboard" %}', cat: 'Security' },
+            { title: 'Capacity Planning', icon: 'fa-gauge', url: '{% url "monitoring:capacity" %}', cat: 'Operations' },
+            { title: 'Event Centre', icon: 'fa-bell', url: '{% url "monitoring:alerts" %}', cat: 'Operations' }
+        ];
+
+        function renderPalette(filter = '') {
+            if (!paletteResults) return;
+            paletteResults.innerHTML = '';
+            const filtered = commandIndex.filter(c => c.title.toLowerCase().includes(filter.toLowerCase()) || c.cat.toLowerCase().includes(filter.toLowerCase()));
+            
+            if (filtered.length === 0) {
+                paletteResults.innerHTML = '<div class="text-muted small p-3 text-center">No matching navigation tools found.</div>';
+                return;
+            }
+
+            filtered.forEach(item => {
+                const a = document.createElement('a');
+                a.className = 'command-palette-item';
+                a.href = item.url;
+                a.innerHTML = `
+                    <i class="fa-solid ${item.icon}"></i>
+                    <span class="flex-grow-1">${item.title}</span>
+                    <span class="badge bg-secondary font-monospace" style="font-size:0.65rem;">${item.cat}</span>
+                `;
+                paletteResults.appendChild(a);
+            });
+        }
+
+        function openPalette() {
+            if (palette) {
+                palette.classList.add('active');
+                renderPalette('');
+                if (paletteInput) {
+                    paletteInput.value = '';
+                    paletteInput.focus();
+                }
+            }
+        }
+
+        function closePalette() {
+            if (palette) palette.classList.remove('active');
+        }
+
+        if (openPaletteBtn) openPaletteBtn.addEventListener('click', openPalette);
+        if (paletteInput) {
+            paletteInput.addEventListener('input', (e) => renderPalette(e.target.value));
+        }
+
+        // Keyboard Shortcut Listeners
+        window.addEventListener('keydown', (e) => {
+            if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') {
+                e.preventDefault();
+                if (palette?.classList.contains('active')) closePalette();
+                else openPalette();
+            } else if (e.key === 'Escape' && palette?.classList.contains('active')) {
+                closePalette();
+            } else if (e.key === '?' && !['INPUT', 'TEXTAREA'].includes(document.activeElement.tagName)) {
+                e.preventDefault();
+                const modal = new bootstrap.Modal(document.getElementById('keyboardShortcutsModal'));
+                modal.show();
+            }
+        });
+
+        palette?.addEventListener('click', (e) => {
+            if (e.target === palette) closePalette();
+        });
+    });
+    </script>
+    {% block extra_js %}{% endblock %}
+</body>
+</html>

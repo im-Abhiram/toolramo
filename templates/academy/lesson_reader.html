@@ -1,0 +1,447 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}L{{ lesson.lesson_number }}: {{ lesson.title }} — Ramonet Academy{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <!-- Breadcrumb -->
+    <nav aria-label="breadcrumb" class="mb-3">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{% url 'academy:dashboard' %}" class="text-info text-decoration-none"><i class="fa-solid fa-graduation-cap me-1"></i>Academy</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'academy:course_detail' course.slug %}" class="text-info text-decoration-none">{{ course.title }}</a></li>
+            <li class="breadcrumb-item active text-secondary" aria-current="page">L{{ lesson.lesson_number }}: {{ lesson.title }}</li>
+        </ol>
+    </nav>
+
+    <!-- Lesson Top Banner -->
+    <div class="card bg-card border-accent mb-4 shadow-sm">
+        <div class="card-body p-4 d-flex flex-column flex-md-row align-items-md-center justify-content-between gap-3">
+            <div>
+                <div class="d-flex align-items-center gap-2 mb-2">
+                    <span class="badge bg-primary">Lesson {{ lesson.lesson_number }}</span>
+                    <span class="badge {% if lesson.difficulty == 'beginner' %}bg-success-subtle text-success border border-success{% elif lesson.difficulty == 'intermediate' %}bg-info-subtle text-info border border-info{% else %}bg-danger-subtle text-danger border border-danger{% endif %} text-uppercase" style="font-size: 0.7rem;">
+                        {{ lesson.get_difficulty_display }}
+                    </span>
+                    <span class="badge bg-card-secondary text-secondary border border-accent">
+                        <i class="fa-regular fa-clock me-1"></i> {{ lesson.estimated_minutes }} mins
+                    </span>
+                </div>
+                <h2 class="h4 text-white fw-bold mb-1">{{ lesson.title }}</h2>
+                <p class="text-secondary small mb-0">{{ lesson.summary }}</p>
+            </div>
+
+            {% if lesson.has_practical_lab %}
+            <div class="flex-shrink-0">
+                <a href="{% url 'academy:practical_lab' course.slug lesson.slug %}" class="btn btn-primary-blue shadow-sm d-flex align-items-center gap-2">
+                    <i class="fa-solid fa-laptop-code fs-5"></i>
+                    <div>
+                        <div class="fw-bold">Launch Practical Lab</div>
+                        <div class="small text-light" style="font-size: 0.7rem;">4-Pane Simulation Engine</div>
+                    </div>
+                </a>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <div class="row g-4">
+        <!-- Main Lesson Content (Sections A to H) -->
+        <div class="col-lg-9">
+            <!-- SECTION A: INTRODUCTION -->
+            <div class="card bg-card border-accent mb-4 section-card" id="section-a">
+                <div class="card-header bg-card-secondary border-accent py-3 d-flex align-items-center gap-2">
+                    <span class="badge bg-primary">A</span>
+                    <h3 class="h6 text-white fw-bold mb-0">SECTION A — INTRODUCTION</h3>
+                </div>
+                <div class="card-body p-4">
+                    <div class="mb-4">
+                        <h4 class="h6 text-info fw-bold mb-2"><i class="fa-solid fa-circle-info me-2"></i>Definition & Concept</h4>
+                        <p class="text-light" style="line-height: 1.7;">{{ lesson.section_a_intro.definition }}</p>
+                    </div>
+
+                    <div class="row g-3 mb-4">
+                        <div class="col-md-6">
+                            <div class="bg-card-secondary p-3 rounded border border-accent h-100">
+                                <h5 class="small text-white fw-bold mb-2"><i class="fa-solid fa-bullseye text-primary me-2"></i>Purpose & Function</h5>
+                                <p class="small text-secondary mb-0">{{ lesson.section_a_intro.purpose }}</p>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="bg-card-secondary p-3 rounded border border-accent h-100">
+                                <h5 class="small text-white fw-bold mb-2"><i class="fa-solid fa-question text-warning me-2"></i>Why It Is Needed</h5>
+                                <p class="small text-secondary mb-0">{{ lesson.section_a_intro.why_needed }}</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="mb-4">
+                        <h5 class="small text-white fw-bold mb-2"><i class="fa-solid fa-earth-americas text-info me-2"></i>Where It Is Used & Real-World Examples</h5>
+                        <p class="text-secondary small">{{ lesson.section_a_intro.where_used }}</p>
+                        <div class="alert alert-dark border border-accent small text-light">
+                            <strong><i class="fa-solid fa-lightbulb text-warning me-1"></i> Real-World Scenario:</strong> {{ lesson.section_a_intro.real_world_examples }}
+                        </div>
+                    </div>
+
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <h5 class="small text-success fw-bold mb-2"><i class="fa-solid fa-thumbs-up me-1"></i> Key Advantages</h5>
+                            <ul class="small text-secondary ps-3 mb-0">
+                                {% for adv in lesson.section_a_intro.advantages %}
+                                <li>{{ adv }}</li>
+                                {% endfor %}
+                            </ul>
+                        </div>
+                        <div class="col-md-6">
+                            <h5 class="small text-danger fw-bold mb-2"><i class="fa-solid fa-triangle-exclamation me-1"></i> Limitations & Considerations</h5>
+                            <ul class="small text-secondary ps-3 mb-0">
+                                {% for lim in lesson.section_a_intro.limitations %}
+                                <li>{{ lim }}</li>
+                                {% endfor %}
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- SECTION B: HOW IT WORKS -->
+            <div class="card bg-card border-accent mb-4 section-card" id="section-b">
+                <div class="card-header bg-card-secondary border-accent py-3 d-flex align-items-center gap-2">
+                    <span class="badge bg-info">B</span>
+                    <h3 class="h6 text-white fw-bold mb-0">SECTION B — HOW IT WORKS</h3>
+                </div>
+                <div class="card-body p-4">
+                    <div class="mb-4">
+                        <h4 class="h6 text-info fw-bold mb-2"><i class="fa-solid fa-microchip me-2"></i>Technical Operation & Architecture</h4>
+                        <p class="text-light" style="line-height: 1.7;">{{ lesson.section_b_how_it_works.architecture }}</p>
+                    </div>
+
+                    <div class="row g-3 mb-4">
+                        <div class="col-md-6">
+                            <div class="bg-card-secondary p-3 rounded border border-accent h-100">
+                                <h5 class="small text-white fw-bold mb-2"><i class="fa-solid fa-diagram-project text-info me-2"></i>Data Flow & Encapsulation</h5>
+                                <p class="small text-secondary mb-0">{{ lesson.section_b_how_it_works.data_flow }}</p>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="bg-card-secondary p-3 rounded border border-accent h-100">
+                                <h5 class="small text-white fw-bold mb-2"><i class="fa-solid fa-layer-group text-primary me-2"></i>OSI Reference Layers</h5>
+                                <p class="small text-secondary mb-0">{{ lesson.section_b_how_it_works.osi_layers }}</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div>
+                        <h5 class="small text-white fw-bold mb-2"><i class="fa-solid fa-network-wired text-warning me-2"></i>Relevant Protocols</h5>
+                        <div class="d-flex flex-wrap gap-2">
+                            {% for proto in lesson.section_b_how_it_works.protocols %}
+                            <span class="badge bg-card-secondary text-info border border-accent p-2">{{ proto }}</span>
+                            {% endfor %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- SECTION C: DEVICE CONNECTION -->
+            <div class="card bg-card border-accent mb-4 section-card" id="section-c">
+                <div class="card-header bg-card-secondary border-accent py-3 d-flex align-items-center gap-2">
+                    <span class="badge bg-warning text-dark">C</span>
+                    <h3 class="h6 text-white fw-bold mb-0">SECTION C — DEVICE CONNECTION & WIRING</h3>
+                </div>
+                <div class="card-body p-4">
+                    <div class="mb-4">
+                        <h4 class="h6 text-info fw-bold mb-2"><i class="fa-solid fa-plug me-2"></i>Physical Topology & Cable Requirements</h4>
+                        <div class="bg-dark p-3 rounded border border-accent font-monospace text-success small mb-3">
+                            {{ lesson.section_c_connection.connection_diagram }}
+                        </div>
+                    </div>
+
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <h5 class="small text-white fw-bold mb-2"><i class="fa-solid fa-server text-primary me-1"></i> Required Devices</h5>
+                            <ul class="small text-secondary ps-3">
+                                {% for dev in lesson.section_c_connection.required_devices %}
+                                <li>{{ dev }}</li>
+                                {% endfor %}
+                            </ul>
+                        </div>
+                        <div class="col-md-6">
+                            <h5 class="small text-white fw-bold mb-2"><i class="fa-solid fa-lines-leaning text-warning me-1"></i> Cable Types & Ports</h5>
+                            <p class="small text-secondary mb-1"><strong>Cables:</strong> {{ lesson.section_c_connection.cable_types|join:", " }}</p>
+                            <p class="small text-secondary mb-0"><strong>Port Selection:</strong> {{ lesson.section_c_connection.port_selection }}</p>
+                        </div>
+                    </div>
+
+                    <div class="bg-card-secondary p-3 rounded border border-accent mt-3">
+                        <div class="d-flex align-items-center justify-content-between small">
+                            <div><strong>IP Addressing Plan:</strong> <span class="text-info">{{ lesson.section_c_connection.ip_requirements }}</span></div>
+                            <div><strong>Power & PoE:</strong> <span class="text-warning">{{ lesson.section_c_connection.power_poe }}</span></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- SECTION D: CONFIGURATION -->
+            <div class="card bg-card border-accent mb-4 section-card" id="section-d">
+                <div class="card-header bg-card-secondary border-accent py-3 d-flex align-items-center gap-2">
+                    <span class="badge bg-success">D</span>
+                    <h3 class="h6 text-white fw-bold mb-0">SECTION D — CONFIGURATION PROCEDURE</h3>
+                </div>
+                <div class="card-body p-4">
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <div class="bg-card-secondary p-3 rounded border border-accent h-100">
+                                <h5 class="small text-info fw-bold mb-2">1. Device Setup</h5>
+                                <p class="small text-secondary mb-0">{{ lesson.section_d_configuration.device_setup }}</p>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="bg-card-secondary p-3 rounded border border-accent h-100">
+                                <h5 class="small text-info fw-bold mb-2">2. Interface Configuration</h5>
+                                <p class="small text-secondary mb-0">{{ lesson.section_d_configuration.interface_config }}</p>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="bg-card-secondary p-3 rounded border border-accent h-100">
+                                <h5 class="small text-info fw-bold mb-2">3. IP Configuration</h5>
+                                <p class="small text-secondary mb-0">{{ lesson.section_d_configuration.ip_config }}</p>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="bg-card-secondary p-3 rounded border border-accent h-100">
+                                <h5 class="small text-info fw-bold mb-2">4. Security & Verification</h5>
+                                <p class="small text-secondary mb-0">{{ lesson.section_d_configuration.security_settings }} — {{ lesson.section_d_configuration.verification }}</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- SECTION E: COMMAND TRAINING -->
+            <div class="card bg-card border-accent mb-4 section-card" id="section-e">
+                <div class="card-header bg-card-secondary border-accent py-3 d-flex align-items-center gap-2">
+                    <span class="badge bg-danger">E</span>
+                    <h3 class="h6 text-white fw-bold mb-0">SECTION E — COMMAND TRAINING</h3>
+                </div>
+                <div class="card-body p-4">
+                    <p class="small text-secondary mb-3">Syntax, parameters, execution modes, and expected terminal output for this lesson.</p>
+                    <div class="d-flex flex-column gap-3">
+                        {% for cmd in lesson.section_e_commands %}
+                        <div class="bg-card-secondary p-3 rounded border border-accent">
+                            <div class="d-flex align-items-center justify-content-between mb-2">
+                                <span class="badge bg-dark text-info border border-info font-monospace">{{ cmd.mode }}</span>
+                                <span class="small text-muted">{{ cmd.purpose }}</span>
+                            </div>
+                            <div class="bg-dark p-2 rounded border border-secondary font-monospace text-warning small mb-2">
+                                {{ cmd.command|linebreaksbr }}
+                            </div>
+                            <div class="small text-secondary mb-1"><strong>Syntax:</strong> <code>{{ cmd.syntax }}</code></div>
+                            <div class="small text-secondary mb-2"><strong>Parameters:</strong> {{ cmd.params }}</div>
+                            <div class="bg-black p-2 rounded small text-light font-monospace" style="font-size: 0.75rem;">
+                                <span class="text-muted"># Expected Terminal Output:</span><br>
+                                {{ cmd.expected_output|linebreaksbr }}
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+
+            <!-- SECTION F: PRACTICAL LAB LAUNCHER -->
+            <div class="card bg-card border-accent mb-4 section-card" id="section-f">
+                <div class="card-header bg-card-secondary border-accent py-3 d-flex align-items-center justify-content-between">
+                    <div class="d-flex align-items-center gap-2">
+                        <span class="badge bg-primary">F</span>
+                        <h3 class="h6 text-white fw-bold mb-0">SECTION F — PRACTICAL SIMULATION LAB</h3>
+                    </div>
+                    {% if lesson.has_practical_lab %}
+                    <span class="badge bg-success text-dark fw-bold">Lab Ready</span>
+                    {% endif %}
+                </div>
+                <div class="card-body p-4 text-center">
+                    {% if lesson.has_practical_lab %}
+                    <div class="py-3">
+                        <div class="display-6 text-info mb-3"><i class="fa-solid fa-network-wired"></i></div>
+                        <h4 class="h5 text-white fw-bold mb-2">Hands-On Practice in the 4-Pane Lab Environment</h4>
+                        <p class="text-secondary small mx-auto mb-4" style="max-width: 600px;">
+                            Open the interactive network canvas loaded with the pre-configured devices. Work through the guided tasks, configure interfaces in the terminal, run progressive hints, and test real ICMP packet flows.
+                        </p>
+                        <a href="{% url 'academy:practical_lab' course.slug lesson.slug %}" class="btn btn-primary-blue btn-lg px-4 shadow">
+                            <i class="fa-solid fa-play me-2"></i>Launch Lab Workspace
+                        </a>
+                    </div>
+                    {% else %}
+                    <p class="text-muted py-3">This lesson is theoretical and does not require an active simulation canvas.</p>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- SECTION G: TROUBLESHOOTING -->
+            <div class="card bg-card border-accent mb-4 section-card" id="section-g">
+                <div class="card-header bg-card-secondary border-accent py-3 d-flex align-items-center gap-2">
+                    <span class="badge bg-warning text-dark">G</span>
+                    <h3 class="h6 text-white fw-bold mb-0">SECTION G — TROUBLESHOOTING GUIDE</h3>
+                </div>
+                <div class="card-body p-4">
+                    <div class="d-flex flex-column gap-3">
+                        {% for issue in lesson.section_g_troubleshooting %}
+                        <div class="bg-card-secondary p-3 rounded border border-accent">
+                            <div class="h6 text-danger fw-bold mb-1">
+                                <i class="fa-solid fa-triangle-exclamation me-2"></i>Symptom: {{ issue.symptom }}
+                            </div>
+                            <div class="small text-light mb-1"><strong>Root Cause:</strong> {{ issue.cause }}</div>
+                            <div class="small text-secondary mb-1"><strong>Diagnosis:</strong> {{ issue.diagnosis }}</div>
+                            <div class="small text-success"><strong>Resolution / Fix:</strong> {{ issue.fix }}</div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+
+            <!-- SECTION H: ASSESSMENT QUIZ -->
+            <div class="card bg-card border-accent mb-5 section-card" id="section-h">
+                <div class="card-header bg-card-secondary border-accent py-3 d-flex align-items-center justify-content-between">
+                    <div class="d-flex align-items-center gap-2">
+                        <span class="badge bg-success">H</span>
+                        <h3 class="h6 text-white fw-bold mb-0">SECTION H — KNOWLEDGE ASSESSMENT QUIZ</h3>
+                    </div>
+                    <span class="badge bg-card text-light border border-accent" id="quiz-score-badge">0 / {{ quizzes.count }} Answered</span>
+                </div>
+                <div class="card-body p-4">
+                    <p class="small text-secondary mb-4">Answer the assessment questions below to test your understanding. Immediate feedback and detailed explanations are provided.</p>
+
+                    <div class="d-flex flex-column gap-4" id="quiz-container">
+                        {% for q in quizzes %}
+                        <div class="quiz-question-card bg-card-secondary p-4 rounded border border-accent" data-qid="{{ q.id }}" data-correct="{{ q.correct_answer }}">
+                            <div class="d-flex align-items-center justify-content-between mb-2">
+                                <span class="badge bg-dark text-info border border-info">Question {{ forloop.counter }}</span>
+                                <span class="badge bg-secondary" style="font-size: 0.65rem;">{{ q.get_question_type_display }}</span>
+                            </div>
+                            <h5 class="h6 text-white fw-bold mb-3">{{ q.question_text }}</h5>
+
+                            <div class="quiz-options d-flex flex-column gap-2 mb-3">
+                                {% for opt in q.options %}
+                                <label class="quiz-option-label d-flex align-items-center gap-2 p-2 rounded border border-secondary cursor-pointer hover-bg-card transition-all">
+                                    <input type="radio" name="quiz_{{ q.id }}" value="{{ opt.id }}" class="form-check-input mt-0 quiz-radio">
+                                    <span class="small text-light"><strong>{{ opt.id }}.</strong> {{ opt.text }}</span>
+                                </label>
+                                {% endfor %}
+                            </div>
+
+                            <button type="button" class="btn btn-sm btn-outline-info check-answer-btn" onclick="checkQuizAnswer(this)">
+                                Submit Answer
+                            </button>
+
+                            <div class="quiz-feedback-box mt-3 d-none">
+                                <div class="feedback-msg alert py-2 px-3 small mb-2"></div>
+                                <div class="explanation-box p-2 bg-dark rounded border border-secondary small text-secondary">
+                                    <strong>Explanation:</strong> {{ q.explanation }}
+                                </div>
+                            </div>
+                        </div>
+                        {% empty %}
+                        <p class="text-muted">No quiz questions configured for this lesson yet.</p>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+
+            <!-- Footer Pagination Navigation -->
+            <div class="d-flex align-items-center justify-content-between pt-3 border-top border-accent mb-4">
+                {% if prev_lesson %}
+                <a href="{% url 'academy:lesson_reader' course.slug prev_lesson.slug %}" class="btn btn-outline-secondary text-light">
+                    <i class="fa-solid fa-arrow-left me-2"></i>Previous: L{{ prev_lesson.lesson_number }}
+                </a>
+                {% else %}
+                <a href="{% url 'academy:course_detail' course.slug %}" class="btn btn-outline-secondary text-light">
+                    <i class="fa-solid fa-arrow-left me-2"></i>Course Syllabus
+                </a>
+                {% endif %}
+
+                {% if next_lesson %}
+                <a href="{% url 'academy:lesson_reader' course.slug next_lesson.slug %}" class="btn btn-primary-blue">
+                    Next: L{{ next_lesson.lesson_number }} ({{ next_lesson.title|truncatechars:25 }}) <i class="fa-solid fa-arrow-right ms-2"></i>
+                </a>
+                {% else %}
+                <a href="{% url 'academy:certificate' course.slug %}" class="btn btn-success">
+                    <i class="fa-solid fa-certificate me-2"></i>Claim Certificate
+                </a>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Sticky Right Navigation (Table of Contents) -->
+        <div class="col-lg-3 d-none d-lg-block">
+            <div class="sticky-top" style="top: 80px;">
+                <div class="card bg-card border-accent mb-3">
+                    <div class="card-header bg-card-secondary border-accent py-2 small fw-bold text-white">
+                        <i class="fa-solid fa-list me-2 text-info"></i>Lesson Sections
+                    </div>
+                    <div class="list-group list-group-flush small">
+                        <a href="#section-a" class="list-group-item bg-card text-secondary border-accent hover-text-white">
+                            <span class="badge bg-primary me-2">A</span> Introduction
+                        </a>
+                        <a href="#section-b" class="list-group-item bg-card text-secondary border-accent hover-text-white">
+                            <span class="badge bg-info me-2">B</span> How It Works
+                        </a>
+                        <a href="#section-c" class="list-group-item bg-card text-secondary border-accent hover-text-white">
+                            <span class="badge bg-warning text-dark me-2">C</span> Device Connection
+                        </a>
+                        <a href="#section-d" class="list-group-item bg-card text-secondary border-accent hover-text-white">
+                            <span class="badge bg-success me-2">D</span> Configuration
+                        </a>
+                        <a href="#section-e" class="list-group-item bg-card text-secondary border-accent hover-text-white">
+                            <span class="badge bg-danger me-2">E</span> Command Training
+                        </a>
+                        <a href="#section-f" class="list-group-item bg-card text-secondary border-accent hover-text-white">
+                            <span class="badge bg-primary me-2">F</span> Practical Lab
+                        </a>
+                        <a href="#section-g" class="list-group-item bg-card text-secondary border-accent hover-text-white">
+                            <span class="badge bg-warning text-dark me-2">G</span> Troubleshooting
+                        </a>
+                        <a href="#section-h" class="list-group-item bg-card text-secondary border-accent hover-text-white">
+                            <span class="badge bg-success me-2">H</span> Assessment Quiz
+                        </a>
+                    </div>
+                </div>
+
+                <!-- Lab Fast Launch Card -->
+                {% if lesson.has_practical_lab %}
+                <div class="card bg-card border-accent p-3 text-center">
+                    <div class="text-info fs-3 mb-2"><i class="fa-solid fa-flask"></i></div>
+                    <h6 class="text-white fw-bold mb-1">Integrated Lab</h6>
+                    <p class="small text-secondary mb-3">Jump straight into configuring the devices on the simulator canvas.</p>
+                    <a href="{% url 'academy:practical_lab' course.slug lesson.slug %}" class="btn btn-sm btn-primary-blue w-100">
+                        Launch Lab
+                    </a>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function checkQuizAnswer(btn) {
+    const card = btn.closest('.quiz-question-card');
+    const selected = card.querySelector('input[type="radio"]:checked');
+    if (!selected) {
+        alert('Please select an answer first.');
+        return;
+    }
+    const correct = card.getAttribute('data-correct');
+    const feedbackBox = card.querySelector('.quiz-feedback-box');
+    const msg = card.querySelector('.feedback-msg');
+
+    feedbackBox.classList.remove('d-none');
+    if (selected.value.trim().toLowerCase() === correct.trim().toLowerCase()) {
+        msg.className = 'feedback-msg alert alert-success py-2 px-3 small mb-2';
+        msg.innerHTML = '<i class="fa-solid fa-circle-check me-1"></i> Correct! Excellent understanding.';
+    } else {
+        msg.className = 'feedback-msg alert alert-danger py-2 px-3 small mb-2';
+        msg.innerHTML = `<i class="fa-solid fa-circle-xmark me-1"></i> Incorrect. The correct answer is <strong>${correct}</strong>.`;
+    }
+    btn.disabled = true;
+}
+</script>
+{% endblock %}

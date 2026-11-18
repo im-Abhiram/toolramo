@@ -1,0 +1,189 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Packet Flow Visualizer | Ramonet{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-0">
+    <div class="d-flex align-items-center justify-content-between mb-4">
+        <div>
+            <h4 class="text-white fw-bold mb-1">
+                <i class="fa-solid fa-route text-info me-2"></i>Packet Flow Visualizer & Tracer
+            </h4>
+            <p class="text-secondary small mb-0">Trace Layer 2 through Layer 7 packet decisions across simulated networks</p>
+        </div>
+        <a href="{% url 'topology:designer' %}" class="btn btn-outline-cyan btn-sm">
+            <i class="fa-solid fa-diagram-project me-1"></i> Open in Designer
+        </a>
+    </div>
+
+    <!-- Packet Simulation Control Card -->
+    <div class="ramonet-card mb-4">
+        <div class="ramonet-card-header">
+            <span class="text-white fw-bold small"><i class="fa-solid fa-sliders text-info me-2"></i>Configure Simulated Packet Flow</span>
+        </div>
+        <div class="ramonet-card-body">
+            <div class="row g-3">
+                <div class="col-md-3">
+                    <label class="form-label small text-muted">Source Device</label>
+                    <select class="form-select form-select-sm" id="sim-source-dev">
+                        <option value="pc1">PC1 (192.168.1.10)</option>
+                        <option value="srv1">WebServer (10.0.0.100)</option>
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label small text-muted">Destination IP</label>
+                    <input type="text" class="form-control form-control-sm" id="sim-dest-ip" value="10.0.0.100" placeholder="e.g. 10.0.0.100">
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label small text-muted">Protocol</label>
+                    <select class="form-select form-select-sm" id="sim-proto">
+                        <option value="ICMP" selected>ICMP (Ping)</option>
+                        <option value="TCP">TCP</option>
+                        <option value="UDP">UDP</option>
+                        <option value="HTTP">HTTP (Port 80)</option>
+                        <option value="DNS">DNS (Port 53)</option>
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label small text-muted">Dest Port</label>
+                    <input type="number" class="form-control form-control-sm" id="sim-port" value="80">
+                </div>
+                <div class="col-md-2 d-flex align-items-end">
+                    <button class="btn btn-primary-blue btn-sm w-100" id="btn-run-standalone-trace">
+                        <i class="fa-solid fa-paper-plane me-1"></i> Simulate Packet
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Simulation Output Hop Breakdown -->
+    <div class="row g-3">
+        <div class="col-lg-8">
+            <div class="ramonet-card">
+                <div class="ramonet-card-header d-flex justify-content-between align-items-center">
+                    <span class="text-white fw-bold small"><i class="fa-solid fa-timeline text-info me-2"></i>Hop Execution Trace</span>
+                    <span id="sim-status-badge" class="badge bg-secondary">Idle</span>
+                </div>
+                <div class="ramonet-card-body" id="sim-hops-container">
+                    <div class="p-5 text-center text-muted">
+                        <i class="fa-solid fa-route fa-3x mb-3 text-secondary opacity-50"></i>
+                        <h6>Ready for Simulation</h6>
+                        <p class="small text-secondary">Click "Simulate Packet" above to watch forwarding and filtering decisions step-by-step.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Failure Diagnosis & Learning Panel -->
+        <div class="col-lg-4">
+            <div class="ramonet-card mb-3">
+                <div class="ramonet-card-header">
+                    <span class="text-white small fw-bold"><i class="fa-solid fa-triangle-exclamation text-warning me-2"></i>Inspection Diagnostics</span>
+                </div>
+                <div class="ramonet-card-body" id="sim-diagnostics-body">
+                    <p class="small text-muted mb-0">Run a packet simulation to view detailed firewall, routing, ARP, and subnet diagnostics here.</p>
+                </div>
+            </div>
+
+            <div class="ramonet-card">
+                <div class="ramonet-card-header">
+                    <span class="text-white small fw-bold"><i class="fa-solid fa-circle-question text-info me-2"></i>Common Drop Causes</span>
+                </div>
+                <div class="ramonet-card-body small text-secondary">
+                    <ul class="ps-3 mb-0">
+                        <li class="mb-1"><strong class="text-danger">NO_ROUTE_TO_HOST:</strong> Router missing static route or gateway.</li>
+                        <li class="mb-1"><strong class="text-danger">FIREWALL_DENY:</strong> Stateful rule blocked destination port.</li>
+                        <li class="mb-1"><strong class="text-danger">VLAN_ISOLATION:</strong> Devices belong to different broadcast domains without inter-VLAN routing.</li>
+                        <li class="mb-1"><strong class="text-danger">GATEWAY_MISSING:</strong> Client workstation has no default gateway set.</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.getElementById('btn-run-standalone-trace')?.addEventListener('click', async () => {
+    const srcId = document.getElementById('sim-source-dev').value;
+    const destIp = document.getElementById('sim-dest-ip').value;
+    const proto = document.getElementById('sim-proto').value;
+    const port = document.getElementById('sim-port').value;
+
+    const hopsContainer = document.getElementById('sim-hops-container');
+    const diagBody = document.getElementById('sim-diagnostics-body');
+    const statusBadge = document.getElementById('sim-status-badge');
+
+    hopsContainer.innerHTML = '<div class="p-4 text-center text-muted"><i class="fa-solid fa-spinner fa-spin fa-2x text-info mb-2"></i><p>Executing packet simulation...</p></div>';
+
+    // Build sample topology
+    const sampleTopology = {
+        devices: [
+            { id: 'pc1', name: 'PC1', category: 'computers', ip: '192.168.1.10', subnet_mask: '255.255.255.0', gateway: '192.168.1.1', interfaces: [{ name: 'eth0', status: 'up' }] },
+            { id: 'sw1', name: 'Switch1', category: 'switches', interfaces: [{ name: 'Fa0/1', status: 'up' }, { name: 'Gi0/1', status: 'up' }] },
+            { id: 'r1', name: 'Router1', category: 'routers', ip: '192.168.1.1', interfaces: [{ name: 'Gi0/0', ip: '192.168.1.1', mask: '255.255.255.0', status: 'up' }, { name: 'Gi0/1', ip: '10.0.0.1', mask: '255.255.255.0', status: 'up' }] },
+            { id: 'srv1', name: 'WebServer', category: 'servers', ip: '10.0.0.100', subnet_mask: '255.255.255.0', gateway: '10.0.0.1', interfaces: [{ name: 'eth0', status: 'up' }] }
+        ],
+        connections: [
+            { source_device: 'pc1', source_port: 'eth0', target_device: 'sw1', target_port: 'Fa0/1', status: 'connected' },
+            { source_device: 'sw1', source_port: 'Gi0/1', target_device: 'r1', target_port: 'Gi0/0', status: 'connected' },
+            { source_device: 'r1', source_port: 'Gi0/1', target_device: 'srv1', target_port: 'eth0', status: 'connected' }
+        ]
+    };
+
+    try {
+        const resp = await fetch('/api/simulation/trace/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                src_dev_id: srcId,
+                dest_ip: destIp,
+                protocol: proto,
+                dest_port: parseInt(port),
+                topology: sampleTopology
+            })
+        });
+
+        const data = await resp.json();
+
+        if (data.success) {
+            statusBadge.className = 'badge bg-success';
+            statusBadge.textContent = 'Delivered (100%)';
+            diagBody.innerHTML = `
+                <div class="text-success mb-2"><i class="fa-solid fa-circle-check me-2"></i><strong>Packet Flow Validated</strong></div>
+                <div class="small text-secondary">All hops resolved via direct routing and ARP. Round-trip simulated latency: 2.4 ms.</div>
+            `;
+        } else {
+            statusBadge.className = 'badge bg-danger';
+            statusBadge.textContent = `Dropped: ${data.drop_reason}`;
+            diagBody.innerHTML = `
+                <div class="text-danger mb-2"><i class="fa-solid fa-circle-xmark me-2"></i><strong>${data.drop_reason}</strong></div>
+                <div class="small text-secondary">${data.details || 'Destination unreachable.'}</div>
+            `;
+        }
+
+        let hopsHtml = '';
+        (data.hops || []).forEach(h => {
+            hopsHtml += `
+                <div class="p-3 mb-2 rounded bg-sidebar border border-secondary border-opacity-25">
+                    <div class="d-flex align-items-center justify-content-between mb-1">
+                        <span class="badge bg-info text-dark">Step ${h.step}</span>
+                        <strong class="text-white">${h.device_name || 'Node'}</strong>
+                        <span class="text-muted small">${h.action || ''}</span>
+                    </div>
+                    <div class="small font-monospace text-secondary">${h.details || ''}</div>
+                </div>
+            `;
+        });
+        hopsContainer.innerHTML = hopsHtml;
+    } catch (e) {
+        hopsContainer.innerHTML = `<div class="p-3 text-danger">Simulation API Error: ${e.message}</div>`;
+    }
+});
+</script>
+{% endblock %}

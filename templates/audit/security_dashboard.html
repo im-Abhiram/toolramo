@@ -1,0 +1,248 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Security Operations & Audit Center — Ramonet{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-0">
+    <!-- Header -->
+    <div class="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-4">
+        <div>
+            <h4 class="text-white fw-bold mb-1">
+                <i class="fa-solid fa-shield-halved text-cyan me-2"></i>Security Operations & Audit Center
+            </h4>
+            <p class="text-secondary small mb-0">
+                Real-time security telemetry, brute-force mitigation, defensive audit logs, and OWASP Top 10 compliance scorecard.
+            </p>
+        </div>
+        <div class="d-flex align-items-center gap-2">
+            <span class="badge bg-success-subtle text-success border border-success px-3 py-2">
+                <i class="fa-solid fa-circle-check me-1"></i>Defensive Hardening Active
+            </span>
+            <a href="{% url 'audit:storage' %}" class="btn btn-sm btn-outline-secondary">
+                <i class="fa-solid fa-hard-drive me-1"></i>Storage Manager
+            </a>
+        </div>
+    </div>
+
+    <!-- Top Security Metrics Cards -->
+    <div class="row g-3 mb-4">
+        <div class="col-xl-3 col-md-6">
+            <div class="ramonet-card p-3">
+                <div class="d-flex align-items-center justify-content-between mb-2">
+                    <span class="text-secondary small">Total Audit Events</span>
+                    <i class="fa-solid fa-list-check text-info"></i>
+                </div>
+                <h3 class="text-white fw-bold mb-0">{{ total_events }}</h3>
+                <small class="text-muted d-block mt-1">Recorded security operations</small>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6">
+            <div class="ramonet-card p-3">
+                <div class="d-flex align-items-center justify-content-between mb-2">
+                    <span class="text-secondary small">Failed Login Attempts</span>
+                    <i class="fa-solid fa-user-xmark text-warning"></i>
+                </div>
+                <h3 class="text-warning fw-bold mb-0">{{ failed_logins }}</h3>
+                <small class="text-muted d-block mt-1">Monitored for credential stuffing</small>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6">
+            <div class="ramonet-card p-3">
+                <div class="d-flex align-items-center justify-content-between mb-2">
+                    <span class="text-secondary small">Blocked (Rate Limited)</span>
+                    <i class="fa-solid fa-ban text-danger"></i>
+                </div>
+                <h3 class="text-danger fw-bold mb-0">{{ blocked_attempts }}</h3>
+                <small class="text-muted d-block mt-1">Sliding-window lockout active</small>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6">
+            <div class="ramonet-card p-3">
+                <div class="d-flex align-items-center justify-content-between mb-2">
+                    <span class="text-secondary small">Documentation Exports</span>
+                    <i class="fa-solid fa-file-export text-success"></i>
+                </div>
+                <h3 class="text-success fw-bold mb-0">{{ exports_count }}</h3>
+                <small class="text-muted d-block mt-1">CWE-1236 Formula sanitized</small>
+            </div>
+        </div>
+    </div>
+
+    <!-- OWASP Top 10 Hardening Scorecard -->
+    <div class="row g-4 mb-4">
+        <div class="col-lg-6">
+            <div class="ramonet-card h-100">
+                <div class="ramonet-card-header d-flex justify-content-between align-items-center">
+                    <span class="text-white fw-bold small"><i class="fa-solid fa-clipboard-check text-cyan me-2"></i>OWASP Top 10 Hardening Scorecard</span>
+                    <span class="badge bg-success-subtle text-success">All 10 Categories Assessed</span>
+                </div>
+                <div class="ramonet-card-body p-3">
+                    <div class="d-flex flex-column gap-2 small">
+                        <div class="d-flex align-items-center justify-content-between p-2 rounded bg-card-secondary border border-accent">
+                            <div><i class="fa-solid fa-lock text-success me-2"></i><strong>A01: Broken Access Control</strong></div>
+                            <span class="badge bg-success">Object-Level Ownership Scoped</span>
+                        </div>
+                        <div class="d-flex align-items-center justify-content-between p-2 rounded bg-card-secondary border border-accent">
+                            <div><i class="fa-solid fa-key text-success me-2"></i><strong>A02: Cryptographic Failures</strong></div>
+                            <span class="badge bg-success">Secret Key & Cookie Encryption Enforced</span>
+                        </div>
+                        <div class="d-flex align-items-center justify-content-between p-2 rounded bg-card-secondary border border-accent">
+                            <div><i class="fa-solid fa-syringe text-success me-2"></i><strong>A03: Injection (SQLi/XSS/CSV)</strong></div>
+                            <span class="badge bg-success">Formula Defenses & JSON Scripting</span>
+                        </div>
+                        <div class="d-flex align-items-center justify-content-between p-2 rounded bg-card-secondary border border-accent">
+                            <div><i class="fa-solid fa-compass-drafting text-success me-2"></i><strong>A04: Insecure Design & DoS</strong></div>
+                            <span class="badge bg-success">Bounded Rack U & Input Validations</span>
+                        </div>
+                        <div class="d-flex align-items-center justify-content-between p-2 rounded bg-card-secondary border border-accent">
+                            <div><i class="fa-solid fa-sliders text-success me-2"></i><strong>A05: Security Misconfiguration</strong></div>
+                            <span class="badge bg-success">CSP & Strict Security Headers</span>
+                        </div>
+                        <div class="d-flex align-items-center justify-content-between p-2 rounded bg-card-secondary border border-accent">
+                            <div><i class="fa-solid fa-cubes text-success me-2"></i><strong>A06: Vulnerable Components</strong></div>
+                            <span class="badge bg-success">Python 3.14 & Django 6.0 Verified</span>
+                        </div>
+                        <div class="d-flex align-items-center justify-content-between p-2 rounded bg-card-secondary border border-accent">
+                            <div><i class="fa-solid fa-user-shield text-success me-2"></i><strong>A07: Identification & Auth</strong></div>
+                            <span class="badge bg-success">Sliding-Window Login Rate Limiter</span>
+                        </div>
+                        <div class="d-flex align-items-center justify-content-between p-2 rounded bg-card-secondary border border-accent">
+                            <div><i class="fa-solid fa-file-shield text-success me-2"></i><strong>A08: Software & Data Integrity</strong></div>
+                            <span class="badge bg-success">Strict Schema & Payload Bounds</span>
+                        </div>
+                        <div class="d-flex align-items-center justify-content-between p-2 rounded bg-card-secondary border border-accent">
+                            <div><i class="fa-solid fa-clock-rotate-left text-success me-2"></i><strong>A09: Logging & Monitoring</strong></div>
+                            <span class="badge bg-success">SecurityLogger Event Stream</span>
+                        </div>
+                        <div class="d-flex align-items-center justify-content-between p-2 rounded bg-card-secondary border border-accent">
+                            <div><i class="fa-solid fa-globe text-success me-2"></i><strong>A10: SSRF Defense</strong></div>
+                            <span class="badge bg-success">Zero Outgoing Request Footprint</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Deployment Environment & Checks -->
+        <div class="col-lg-6">
+            <div class="ramonet-card h-100">
+                <div class="ramonet-card-header">
+                    <span class="text-white fw-bold small"><i class="fa-solid fa-server text-cyan me-2"></i>PythonAnywhere & Environment Parameters</span>
+                </div>
+                <div class="ramonet-card-body p-3">
+                    <div class="table-responsive">
+                        <table class="table table-sm table-ramonet mb-0 small">
+                            <tbody>
+                                <tr>
+                                    <td class="text-secondary">DEBUG Flag</td>
+                                    <td class="text-end">
+                                        {% if debug_status %}
+                                        <span class="badge bg-warning text-dark"><i class="fa-solid fa-triangle-exclamation me-1"></i>True (Development)</span>
+                                        {% else %}
+                                        <span class="badge bg-success"><i class="fa-solid fa-check me-1"></i>False (Production Hardened)</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td class="text-secondary">Host Restrictions (ALLOWED_HOSTS)</td>
+                                    <td class="text-end font-monospace text-info" style="font-size:0.7rem;">
+                                        {{ allowed_hosts|join:", " }}
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td class="text-secondary">Session Cookie Security</td>
+                                    <td class="text-end">
+                                        <span class="badge bg-dark border border-secondary text-light">HttpOnly: Yes</span>
+                                        <span class="badge bg-dark border border-secondary text-light">SameSite: Lax</span>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td class="text-secondary">CSRF Cookie Protection</td>
+                                    <td class="text-end">
+                                        <span class="badge bg-dark border border-secondary text-light">SameSite: Lax</span>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td class="text-secondary">X-Frame-Options</td>
+                                    <td class="text-end"><span class="badge bg-success">DENY</span></td>
+                                </tr>
+                                <tr>
+                                    <td class="text-secondary">Content-Security-Policy (CSP)</td>
+                                    <td class="text-end"><span class="badge bg-success">Enforced via Middleware</span></td>
+                                </tr>
+                                <tr>
+                                    <td class="text-secondary">Session Timeout</td>
+                                    <td class="text-end"><span class="badge bg-info text-dark">3600 seconds (1 hr)</span></td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Recent Security Audit Event Log -->
+    <div class="ramonet-card">
+        <div class="ramonet-card-header d-flex justify-content-between align-items-center">
+            <span class="text-white fw-bold small"><i class="fa-solid fa-clock-rotate-left text-cyan me-2"></i>Recent Security Audit Trail (Last 50 Events)</span>
+            <span class="text-muted small">Updated in Real-Time</span>
+        </div>
+        <div class="table-responsive">
+            <table class="table table-ramonet table-hover mb-0 small">
+                <thead>
+                    <tr>
+                        <th style="width: 170px;">Timestamp</th>
+                        <th style="width: 140px;">Module</th>
+                        <th style="width: 220px;">Action</th>
+                        <th style="width: 130px;">User</th>
+                        <th style="width: 130px;">IP Address</th>
+                        <th>Audit Details</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for ev in recent_events %}
+                    <tr>
+                        <td class="text-secondary font-monospace" style="font-size:0.75rem;">{{ ev.created_at|date:"Y-m-d H:i:s" }}</td>
+                        <td><span class="badge bg-dark border border-secondary border-opacity-25 text-info font-monospace">{{ ev.module }}</span></td>
+                        <td>
+                            {% if 'BLOCKED' in ev.action or 'DENIED' in ev.action %}
+                            <span class="badge bg-danger text-white"><i class="fa-solid fa-ban me-1"></i>{{ ev.action }}</span>
+                            {% elif 'FAILED' in ev.action %}
+                            <span class="badge bg-warning text-dark"><i class="fa-solid fa-triangle-exclamation me-1"></i>{{ ev.action }}</span>
+                            {% elif 'SUCCESS' in ev.action %}
+                            <span class="badge bg-success text-white"><i class="fa-solid fa-check me-1"></i>{{ ev.action }}</span>
+                            {% else %}
+                            <span class="badge bg-secondary text-white">{{ ev.action }}</span>
+                            {% endif %}
+                        </td>
+                        <td class="text-white">
+                            {% if ev.user %}
+                            <i class="fa-solid fa-circle-user text-cyan me-1"></i>{{ ev.user.username }}
+                            {% else %}
+                            <span class="text-muted">Anonymous</span>
+                            {% endif %}
+                        </td>
+                        <td class="font-monospace text-secondary" style="font-size:0.75rem;">{{ ev.ip_address|default:"127.0.0.1" }}</td>
+                        <td class="font-monospace text-muted" style="font-size:0.75rem;">
+                            {{ ev.details|default:"{}" }}
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="6" class="text-center py-4 text-muted">
+                            <i class="fa-solid fa-shield-check fa-2x mb-2 text-secondary opacity-50"></i>
+                            <p class="mb-0">No security events logged yet. Audit logger is ready.</p>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

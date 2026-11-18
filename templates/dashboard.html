@@ -1,0 +1,412 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Operations Dashboard — RAMONET{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-0">
+    <!-- Breadcrumb Navigation -->
+    <div class="ramonet-breadcrumb">
+        <i class="fa-solid fa-house text-cyan"></i>
+        <span>/</span>
+        <span>Workspace</span>
+        <span>/</span>
+        <span class="text-white">Dashboard</span>
+    </div>
+
+    <!-- Welcome Hero Banner -->
+    <div class="ramonet-card p-4 mb-4" style="background: linear-gradient(135deg, rgba(26, 39, 64, 0.95), rgba(32, 47, 75, 0.75)); border-color: rgba(56, 189, 248, 0.25);">
+        <div class="d-flex flex-wrap align-items-center justify-content-between gap-3">
+            <div>
+                <div class="d-flex align-items-center gap-2 mb-1">
+                    <span class="badge bg-success bg-opacity-15 text-success border border-success border-opacity-25" style="font-size:0.75rem;">
+                        <span class="status-dot green me-1"></span> Simulation Engine: Operational
+                    </span>
+                    <span class="badge-pill-cyan">
+                        <i class="fa-solid fa-fire text-warning me-1"></i> 5-Day Learning Streak
+                    </span>
+                </div>
+                <h3 class="text-white fw-bold mb-1">
+                    Welcome to RAMONET Network Operations
+                </h3>
+                <p class="text-secondary small mb-0">
+                    Design infrastructure, configure multi-vendor devices, simulate hop-by-hop packet flows, and master enterprise networking.
+                </p>
+            </div>
+            <div class="d-flex flex-wrap gap-2">
+                <a href="{% url 'topology:designer' %}" class="btn btn-primary-blue btn-sm">
+                    <i class="fa-solid fa-plus me-1"></i> New Topology Canvas
+                </a>
+                <a href="{% url 'academy:dashboard' %}" class="btn btn-purple btn-sm">
+                    <i class="fa-solid fa-graduation-cap me-1"></i> Continue Academy
+                </a>
+                <button class="btn btn-outline-cyan btn-sm" data-bs-toggle="modal" data-bs-target="#ramonetTourModal">
+                    <i class="fa-solid fa-compass me-1"></i> Quick Tour
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Top KPI Row -->
+    <div class="row g-3 mb-4">
+        <div class="col-xl-3 col-sm-6">
+            <div class="stat-card-modern">
+                <div class="stat-icon-wrap cyan">
+                    <i class="fa-solid fa-heart-pulse"></i>
+                </div>
+                <div class="overflow-hidden">
+                    <div class="d-flex align-items-baseline gap-2">
+                        <h3 class="text-white fw-bold mb-0">98.4%</h3>
+                        <span class="badge bg-success text-dark" style="font-size:0.65rem;">HEALTHY</span>
+                    </div>
+                    <div class="text-secondary small">Network Health Score</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-sm-6">
+            <div class="stat-card-modern">
+                <div class="stat-icon-wrap green">
+                    <i class="fa-solid fa-server"></i>
+                </div>
+                <div class="overflow-hidden">
+                    <div class="d-flex align-items-baseline gap-2">
+                        <h3 class="text-white fw-bold mb-0">24 / 24</h3>
+                        <span class="badge bg-info text-dark" style="font-size:0.65rem;">ONLINE</span>
+                    </div>
+                    <div class="text-secondary small">Active Managed Nodes</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-sm-6">
+            <div class="stat-card-modern">
+                <div class="stat-icon-wrap purple">
+                    <i class="fa-solid fa-network-wired"></i>
+                </div>
+                <div class="overflow-hidden">
+                    <div class="d-flex align-items-baseline gap-2">
+                        <h3 class="text-white fw-bold mb-0">{{ devices_count }}</h3>
+                        <span class="badge bg-secondary" style="font-size:0.65rem;">CATALOG</span>
+                    </div>
+                    <div class="text-secondary small">Hardware Device Models</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-sm-6">
+            <div class="stat-card-modern">
+                <div class="stat-icon-wrap amber">
+                    <i class="fa-solid fa-terminal"></i>
+                </div>
+                <div class="overflow-hidden">
+                    <div class="d-flex align-items-baseline gap-2">
+                        <h3 class="text-white fw-bold mb-0">{{ commands_count }}+</h3>
+                        <span class="badge bg-warning text-dark" style="font-size:0.65rem;">IOS & CLI</span>
+                    </div>
+                    <div class="text-secondary small">Verified Commands Library</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Interactive Network Overview & Learning Progress Row -->
+    <div class="row g-4 mb-4">
+        <!-- Interactive Network Overview Playground -->
+        <div class="col-lg-8">
+            <div class="ramonet-card h-100">
+                <div class="ramonet-card-header d-flex justify-content-between align-items-center">
+                    <div class="d-flex align-items-center gap-2">
+                        <i class="fa-solid fa-diagram-project text-cyan"></i>
+                        <span class="text-white fw-bold small">Live Interactive Campus Topology Overview</span>
+                    </div>
+                    <div class="d-flex gap-2">
+                        <button class="btn btn-xs btn-outline-cyan" id="btn-dashboard-ping">
+                            <i class="fa-solid fa-paper-plane me-1"></i> Send Ping Probe
+                        </button>
+                        <a href="{% url 'topology:designer' %}" class="btn btn-xs btn-primary-blue">
+                            Open Designer
+                        </a>
+                    </div>
+                </div>
+                <div class="ramonet-card-body p-0 position-relative" style="height: 330px; background: radial-gradient(circle at center, rgba(32, 47, 75, 0.4) 0%, rgba(11, 16, 32, 0.95) 100%);">
+                    
+                    <!-- SVG Connection Lines -->
+                    <svg id="dashboard-topology-svg" style="position: absolute; top:0; left:0; width:100%; height:100%; z-index: 1;">
+                        <defs>
+                            <linearGradient id="linkGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+                                <stop offset="0%" stop-color="#38BDF8" stop-opacity="0.8"/>
+                                <stop offset="100%" stop-color="#34D399" stop-opacity="0.8"/>
+                            </linearGradient>
+                        </defs>
+                        <!-- Connection Links -->
+                        <line x1="120" y1="165" x2="250" y2="165" stroke="url(#linkGrad)" stroke-width="2" stroke-dasharray="4,4" id="link-pc-sw"/>
+                        <line x1="250" y1="165" x2="400" y2="90" stroke="url(#linkGrad)" stroke-width="2" stroke-dasharray="4,4" id="link-sw-rtr"/>
+                        <line x1="400" y1="90" x2="560" y2="90" stroke="url(#linkGrad)" stroke-width="2" stroke-dasharray="4,4" id="link-rtr-fw"/>
+                        <line x1="560" y1="90" x2="700" y2="90" stroke="#FB7185" stroke-width="2" stroke-dasharray="2,2"/>
+                        <line x1="250" y1="165" x2="400" y2="240" stroke="url(#linkGrad)" stroke-width="2" stroke-dasharray="4,4" id="link-sw-srv"/>
+                        <line x1="250" y1="165" x2="120" y2="250" stroke="url(#linkGrad)" stroke-width="2" stroke-dasharray="4,4" id="link-sw-cam"/>
+                    </svg>
+
+                    <!-- Interactive Topology Nodes (Positioned HTML elements) -->
+                    <div style="position: absolute; top:0; left:0; width:100%; height:100%; z-index: 2;">
+                        <!-- Node 1: Workstation -->
+                        <div class="dash-node cursor-pointer" style="position: absolute; left: 80px; top: 135px;" onclick="inspectDashNode('Eng-Workstation-01', 'PC Workstation', '192.168.10.15', 'Active / Up')">
+                            <div class="node-avatar bg-surface border border-info text-info"><i class="fa-solid fa-desktop"></i></div>
+                            <span class="node-label">Eng-Workstation</span>
+                        </div>
+
+                        <!-- Node 2: Core Switch -->
+                        <div class="dash-node cursor-pointer" style="position: absolute; left: 220px; top: 135px;" onclick="inspectDashNode('Core-Switch-01', 'Catalyst 3850 L3 Switch', '192.168.1.3', 'VLAN 10, 20, 50 Active')">
+                            <div class="node-avatar bg-surface border border-info text-cyan"><i class="fa-solid fa-network-wired"></i></div>
+                            <span class="node-label">Core-Switch-01</span>
+                        </div>
+
+                        <!-- Node 3: Core Router -->
+                        <div class="dash-node cursor-pointer" style="position: absolute; left: 370px; top: 60px;" onclick="inspectDashNode('Edge-Router-01', 'Cisco ISR 4331 Gigabit', '192.168.1.1', 'OSPF Area 0 Converged')">
+                            <div class="node-avatar bg-surface border border-warning text-warning"><i class="fa-solid fa-route"></i></div>
+                            <span class="node-label">Edge-Router-01</span>
+                        </div>
+
+                        <!-- Node 4: Firewall -->
+                        <div class="dash-node cursor-pointer" style="position: absolute; left: 530px; top: 60px;" onclick="inspectDashNode('Corp-Firewall-01', 'FortiGate 60F NGFW', '192.168.1.2', 'Stateful Inspection Active')">
+                            <div class="node-avatar bg-surface border border-danger text-danger"><i class="fa-solid fa-shield-halved"></i></div>
+                            <span class="node-label">Corp-Firewall</span>
+                        </div>
+
+                        <!-- Node 5: Internet Cloud -->
+                        <div class="dash-node cursor-pointer" style="position: absolute; left: 670px; top: 60px;" onclick="inspectDashNode('ISP-Gateway-WAN', 'Tier-1 ISP Uplink', '203.0.113.1', 'External WAN Cloud')">
+                            <div class="node-avatar bg-surface border border-secondary text-secondary"><i class="fa-solid fa-cloud"></i></div>
+                            <span class="node-label">WAN / Internet</span>
+                        </div>
+
+                        <!-- Node 6: Server -->
+                        <div class="dash-node cursor-pointer" style="position: absolute; left: 370px; top: 210px;" onclick="inspectDashNode('AD-DNS-DHCP-Server', 'Dell PowerEdge R650', '192.168.20.5', 'Port 53, 67, 80 Listening')">
+                            <div class="node-avatar bg-surface border border-success text-success"><i class="fa-solid fa-server"></i></div>
+                            <span class="node-label">Enterprise-Server</span>
+                        </div>
+
+                        <!-- Node 7: IP Camera -->
+                        <div class="dash-node cursor-pointer" style="position: absolute; left: 80px; top: 220px;" onclick="inspectDashNode('Surveillance-Dome-01', '4K PTZ Camera (PoE)', '192.168.50.11', 'RTSP Stream 4.5 Mbps')">
+                            <div class="node-avatar bg-surface border border-warning text-warning"><i class="fa-solid fa-video"></i></div>
+                            <span class="node-label">AXIS-CCTV-Dome</span>
+                        </div>
+                    </div>
+
+                    <!-- Bottom Live Status Toast / Inspector -->
+                    <div id="dash-inspector-box" class="position-absolute bottom-0 start-0 end-0 p-2 px-3 bg-sidebar border-top border-secondary border-opacity-25 d-flex align-items-center justify-content-between small text-secondary" style="z-index: 3;">
+                        <div>
+                            <span class="status-dot green me-1"></span>
+                            <strong class="text-white" id="dash-inspect-name">Eng-Workstation-01</strong>
+                            <span class="text-muted ms-2" id="dash-inspect-detail">192.168.10.15 · GigabitEthernet Link Up</span>
+                        </div>
+                        <span class="badge bg-secondary font-monospace" style="font-size:0.7rem;">Click node to inspect</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Right: Academy Gamification & Learning Progress -->
+        <div class="col-lg-4">
+            <div class="ramonet-card h-100 d-flex flex-column">
+                <div class="ramonet-card-header d-flex justify-content-between align-items-center">
+                    <span class="text-white fw-bold small">
+                        <i class="fa-solid fa-graduation-cap text-purple me-2"></i>RAMONET Academy Progress
+                    </span>
+                    <span class="badge bg-purple font-monospace" style="font-size:0.7rem;">Level 3 Engineer</span>
+                </div>
+                <div class="ramonet-card-body flex-grow-1">
+                    <div class="d-flex align-items-center justify-content-between mb-2">
+                        <span class="text-secondary small">Total Experience (XP)</span>
+                        <strong class="text-white font-monospace">450 / 600 XP</strong>
+                    </div>
+                    <div class="progress mb-3" style="height: 8px; background: rgba(255,255,255,0.06);">
+                        <div class="progress-bar bg-purple" style="width: 75%;"></div>
+                    </div>
+
+                    <div class="p-3 bg-sidebar rounded border border-secondary border-opacity-25 mb-3">
+                        <div class="d-flex align-items-center justify-content-between mb-1">
+                            <strong class="text-white small">Current Track: Intermediate</strong>
+                            <span class="badge bg-info text-dark" style="font-size:0.65rem;">VLANs & Routing</span>
+                        </div>
+                        <p class="text-secondary small mb-2" style="font-size:0.78rem;">
+                            Master 802.1Q trunking, router sub-interfaces, and inter-VLAN packet routing.
+                        </p>
+                        <a href="{% url 'academy:dashboard' %}" class="btn btn-xs btn-purple w-100">
+                            <i class="fa-solid fa-play me-1"></i> Continue Practical Lab
+                        </a>
+                    </div>
+
+                    <div class="fw-bold text-white small mb-2">Recent Skill Badges</div>
+                    <div class="d-flex gap-2">
+                        <div class="p-2 bg-sidebar rounded text-center border border-secondary border-opacity-25 flex-grow-1" title="Completed OSPF routed multi-branch challenge">
+                            <i class="fa-solid fa-route text-warning fs-5"></i>
+                            <div class="text-white fw-semibold mt-1" style="font-size:0.68rem;">OSPF Master</div>
+                        </div>
+                        <div class="p-2 bg-sidebar rounded text-center border border-secondary border-opacity-25 flex-grow-1" title="Configured VLAN segmentation">
+                            <i class="fa-solid fa-layer-group text-info fs-5"></i>
+                            <div class="text-white fw-semibold mt-1" style="font-size:0.68rem;">VLAN Architect</div>
+                        </div>
+                        <div class="p-2 bg-sidebar rounded text-center border border-secondary border-opacity-25 flex-grow-1" title="100% Packet Tracer verification">
+                            <i class="fa-solid fa-shield-check text-success fs-5"></i>
+                            <div class="text-white fw-semibold mt-1" style="font-size:0.68rem;">Security Audit</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scenarios Grid & Operations Row -->
+    <div class="row g-4 mb-4">
+        <!-- Prebuilt 1-Click Launch Scenarios -->
+        <div class="col-lg-8">
+            <div class="ramonet-card h-100">
+                <div class="ramonet-card-header d-flex justify-content-between align-items-center">
+                    <span class="text-white fw-bold small">
+                        <i class="fa-solid fa-shapes text-warning me-2"></i>Featured Network Scenarios (1-Click Launch)
+                    </span>
+                    <a href="{% url 'projects:scenarios' %}" class="text-cyan small text-decoration-none">
+                        View All 16 Scenarios →
+                    </a>
+                </div>
+                <div class="ramonet-card-body">
+                    <div class="row g-3">
+                        {% for t in templates %}
+                        <div class="col-md-6">
+                            <div class="p-3 bg-sidebar rounded border border-secondary border-opacity-25 h-100 d-flex flex-column justify-content-between hover-border-info transition-all">
+                                <div>
+                                    <div class="d-flex align-items-center justify-content-between mb-2">
+                                        <h6 class="text-white fw-bold mb-0 small">{{ t.name }}</h6>
+                                        <span class="badge bg-secondary font-monospace" style="font-size:0.65rem;">{{ t.template_category|default:"Enterprise" }}</span>
+                                    </div>
+                                    <p class="text-secondary small mb-3" style="font-size:0.8rem;">{{ t.description }}</p>
+                                </div>
+                                <div class="d-flex align-items-center justify-content-between pt-2 border-top border-secondary border-opacity-25">
+                                    <span class="text-muted small" style="font-size:0.75rem;">
+                                        <i class="fa-solid fa-server me-1"></i>{{ t.device_count }} Nodes
+                                    </span>
+                                    <a href="{% url 'topology:designer' %}?template={{ t.name|urlencode }}" class="btn btn-xs btn-outline-cyan">
+                                        <i class="fa-solid fa-play me-1"></i> Launch Lab
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                        {% empty %}
+                        <div class="col-12 text-center text-muted py-4">No prebuilt scenarios loaded.</div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Recent Network Events & Activity -->
+        <div class="col-lg-4">
+            <div class="ramonet-card h-100 d-flex flex-column">
+                <div class="ramonet-card-header d-flex justify-content-between align-items-center">
+                    <span class="text-white fw-bold small">
+                        <i class="fa-solid fa-clock-rotate-left text-info me-2"></i>Network Operations Feed
+                    </span>
+                    <a href="{% url 'monitoring:alerts' %}" class="badge bg-danger text-white text-decoration-none" style="font-size:0.65rem;">
+                        View Alert Centre
+                    </a>
+                </div>
+                <div class="p-3 flex-grow-1 d-flex flex-column gap-2" style="max-height: 380px; overflow-y: auto;">
+                    <div class="p-2 bg-sidebar rounded border border-secondary border-opacity-25 small">
+                        <div class="d-flex align-items-center justify-content-between mb-1">
+                            <span class="badge bg-success bg-opacity-25 text-success">LINK UP</span>
+                            <span class="text-muted" style="font-size:0.7rem;">2 mins ago</span>
+                        </div>
+                        <div class="text-white fw-semibold">Interface GigabitEthernet1/0/1 UP/UP</div>
+                        <div class="text-secondary" style="font-size:0.75rem;">Auto-negotiation completed at 1000 Mbps Full Duplex.</div>
+                    </div>
+
+                    <div class="p-2 bg-sidebar rounded border border-secondary border-opacity-25 small">
+                        <div class="d-flex align-items-center justify-content-between mb-1">
+                            <span class="badge bg-info bg-opacity-25 text-info">OSPF ADJACENCY</span>
+                            <span class="text-muted" style="font-size:0.7rem;">8 mins ago</span>
+                        </div>
+                        <div class="text-white fw-semibold">Neighbor 192.168.1.1 on Gig0/0: FULL</div>
+                        <div class="text-secondary" style="font-size:0.75rem;">Area 0 topology database synchronized.</div>
+                    </div>
+
+                    <div class="p-2 bg-sidebar rounded border border-secondary border-opacity-25 small">
+                        <div class="d-flex align-items-center justify-content-between mb-1">
+                            <span class="badge bg-warning bg-opacity-25 text-warning">POE THRESHOLD</span>
+                            <span class="text-muted" style="font-size:0.7rem;">25 mins ago</span>
+                        </div>
+                        <div class="text-white fw-semibold">Surveillance Switch PoE: 325W (88%)</div>
+                        <div class="text-secondary" style="font-size:0.75rem;">Total consumption within 370W safe power budget.</div>
+                    </div>
+
+                    <div class="p-2 bg-sidebar rounded border border-secondary border-opacity-25 small">
+                        <div class="d-flex align-items-center justify-content-between mb-1">
+                            <span class="badge bg-secondary">CONFIG AUDIT</span>
+                            <span class="text-muted" style="font-size:0.7rem;">1 hour ago</span>
+                        </div>
+                        <div class="text-white fw-semibold">VLAN 50 Created on Core-Switch-01</div>
+                        <div class="text-secondary" style="font-size:0.75rem;">Authoritative state updated by admin.</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<style>
+.dash-node {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    transition: transform 0.2s ease;
+}
+.dash-node:hover {
+    transform: scale(1.1);
+}
+.node-avatar {
+    width: 38px;
+    height: 38px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.1rem;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.4);
+}
+.node-label {
+    font-size: 0.72rem;
+    font-weight: 600;
+    color: #F1F5F9;
+    text-shadow: 0 2px 4px rgba(0,0,0,0.8);
+}
+.cursor-pointer { cursor: pointer; }
+.hover-border-info:hover {
+    border-color: var(--primary-accent) !important;
+    box-shadow: 0 4px 16px var(--primary-glow);
+}
+.transition-all { transition: all 0.2s ease; }
+</style>
+
+<script>
+function inspectDashNode(name, type, ip, detail) {
+    document.getElementById('dash-inspect-name').textContent = name;
+    document.getElementById('dash-inspect-detail').textContent = `${type} · IP: ${ip} · ${detail}`;
+}
+
+document.getElementById('btn-dashboard-ping')?.addEventListener('click', () => {
+    const link = document.getElementById('link-pc-sw');
+    if (link) {
+        link.setAttribute('stroke', '#FBBF24');
+        link.setAttribute('stroke-width', '4');
+        setTimeout(() => {
+            link.setAttribute('stroke', 'url(#linkGrad)');
+            link.setAttribute('stroke-width', '2');
+            alert('Ping Probe: ICMP Echo Request & Reply verified between Eng-Workstation and Core Router (0% Packet Loss).');
+        }, 600);
+    }
+});
+</script>
+{% endblock %}

@@ -1,0 +1,142 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Storage Management & Quota Monitor | Ramonet{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-0" id="storage-manager-screen">
+    <div class="d-flex align-items-center justify-content-between mb-4">
+        <div>
+            <h4 class="text-white fw-bold mb-1">
+                <i class="fa-solid fa-hard-drive text-warning me-2"></i>Hybrid Storage Management & Quota Monitor
+            </h4>
+            <p class="text-secondary small mb-0">Transparent tracking of PythonAnywhere 512 MB server storage limits versus client-side browser IndexedDB allocation.</p>
+        </div>
+        <div class="d-flex gap-2">
+            <button class="btn btn-outline-cyan btn-sm" id="btn-export-all-backup">
+                <i class="fa-solid fa-download me-1"></i> Export Complete Backup
+            </button>
+            <a href="{% url 'topology:designer' %}" class="btn btn-primary-blue btn-sm">
+                <i class="fa-solid fa-diagram-project me-1"></i> Open Designer
+            </a>
+        </div>
+    </div>
+
+    <!-- Storage Architecture Education Notice -->
+    <div class="p-3 mb-4 bg-sidebar rounded border border-info border-opacity-25 small text-secondary">
+        <h6 class="text-white fw-bold mb-2"><i class="fa-solid fa-circle-info text-info me-2"></i>Hybrid Architecture Overview</h6>
+        <p class="mb-1">To ensure smooth operation within PythonAnywhere's <strong>512 MB free hosting limit</strong>, Ramonet separates data across two independent tiers:</p>
+        <ul class="mb-0 ps-3">
+            <li><strong>Server Tier (SQLite):</strong> Holds only core users, metadata catalogs, and static tutorials. Consumes <strong>&lt; 5 MB</strong> total disk space.</li>
+            <li><strong>Client Tier (Browser IndexedDB):</strong> Holds all large network topologies, device configs, cable matrices, and simulation snapshots. <em>Browser storage does NOT consume or affect your PythonAnywhere server quota.</em></li>
+        </ul>
+    </div>
+
+    <!-- Storage Metrics Cards -->
+    <div class="row g-3 mb-4">
+        <!-- Card 1: Server SQLite -->
+        <div class="col-xl-3 col-md-6">
+            <div class="ramonet-card stat-card">
+                <div class="stat-icon green">
+                    <i class="fa-solid fa-database"></i>
+                </div>
+                <div>
+                    <div class="stat-value text-white" id="stat-sqlite-size">{{ db_size_kb }} KB</div>
+                    <div class="stat-label">SQLite Database Footprint</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Card 2: Static Assets -->
+        <div class="col-xl-3 col-md-6">
+            <div class="ramonet-card stat-card">
+                <div class="stat-icon blue">
+                    <i class="fa-solid fa-file-code"></i>
+                </div>
+                <div>
+                    <div class="stat-value text-white" id="stat-static-size">{{ static_size_mb }} MB</div>
+                    <div class="stat-label">Static Offline Assets</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Card 3: IndexedDB Local Projects -->
+        <div class="col-xl-3 col-md-6">
+            <div class="ramonet-card stat-card">
+                <div class="stat-icon amber">
+                    <i class="fa-solid fa-boxes-stacked"></i>
+                </div>
+                <div>
+                    <div class="stat-value text-white" id="stat-local-projects-count">0</div>
+                    <div class="stat-label">IndexedDB Saved Projects</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Card 4: Browser Storage Usage -->
+        <div class="col-xl-3 col-md-6">
+            <div class="ramonet-card stat-card">
+                <div class="stat-icon red">
+                    <i class="fa-solid fa-chart-pie"></i>
+                </div>
+                <div>
+                    <div class="stat-value text-white" id="stat-browser-usage" style="font-size: 1.15rem;">Calculating...</div>
+                    <div class="stat-label">Browser IndexedDB Usage</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Storage Management Operations -->
+    <div class="row g-4 mb-4">
+        <div class="col-lg-6">
+            <div class="ramonet-card h-100">
+                <div class="ramonet-card-header">
+                    <span class="text-white fw-bold small"><i class="fa-solid fa-server text-info me-2"></i>PythonAnywhere Server Quota Allocation</span>
+                </div>
+                <div class="ramonet-card-body">
+                    <div class="d-flex justify-content-between text-secondary small mb-1">
+                        <span>PythonAnywhere Free Tier Quota:</span>
+                        <strong class="text-white">512 MB</strong>
+                    </div>
+                    <div class="d-flex justify-content-between text-secondary small mb-2">
+                        <span>Ramonet Total Server Disk Utilization:</span>
+                        <strong class="text-success">&lt; 3.0 MB (0.6%)</strong>
+                    </div>
+                    <div class="progress bg-sidebar mb-3" style="height: 8px;">
+                        <div class="progress-bar bg-success" style="width: 1%;"></div>
+                    </div>
+                    <div class="p-3 bg-sidebar rounded small text-secondary border border-secondary border-opacity-25">
+                        <i class="fa-solid fa-check text-success me-1"></i> <strong>Zero bloat guarantee:</strong> No video files, raw packet captures, or heavy OS disk images are ever stored on the server filesystem.
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-6">
+            <div class="ramonet-card h-100">
+                <div class="ramonet-card-header">
+                    <span class="text-white fw-bold small"><i class="fa-solid fa-broom text-warning me-2"></i>Client Cache Cleanup & Purge Tools</span>
+                </div>
+                <div class="ramonet-card-body">
+                    <p class="text-secondary small mb-3">Reclaim browser storage or reset temporary simulation logs without affecting physical database migrations.</p>
+                    <div class="d-flex flex-column gap-2">
+                        <button class="btn btn-sm btn-outline-secondary d-flex justify-content-between align-items-center" id="btn-clear-sim-logs">
+                            <span><i class="fa-solid fa-clock-rotate-left me-2"></i>Clear Packet Simulation History</span>
+                            <span class="badge bg-secondary">Safe to clear</span>
+                        </button>
+                        <button class="btn btn-sm btn-outline-danger d-flex justify-content-between align-items-center" id="btn-clear-all-projects">
+                            <span><i class="fa-solid fa-trash-can me-2"></i>Purge All IndexedDB Local Projects</span>
+                            <span class="badge bg-danger">Permanent</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'js/storage/storage-manager.js' %}"></script>
+{% endblock %}

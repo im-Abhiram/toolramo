@@ -1,0 +1,96 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Module {{ topic.topic_number }}: {{ topic.title }} | Ramonet{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-0" style="max-width: 960px;">
+    <!-- Breadcrumb & Back -->
+    <div class="d-flex align-items-center justify-content-between mb-4">
+        <a href="{% url 'learning:center' %}" class="btn btn-sm btn-outline-secondary">
+            ← Back to Learning Center
+        </a>
+        <div class="d-flex gap-2">
+            {% if prev_topic %}
+            <a href="{% url 'learning:topic_detail' prev_topic.slug %}" class="btn btn-sm btn-outline-cyan">
+                ← Prev: Module {{ prev_topic.topic_number }}
+            </a>
+            {% endif %}
+            {% if next_topic %}
+            <a href="{% url 'learning:topic_detail' next_topic.slug %}" class="btn btn-sm btn-primary-blue">
+                Next: Module {{ next_topic.topic_number }} →
+            </a>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Article Header -->
+    <div class="ramonet-card p-4 mb-4">
+        <div class="d-flex align-items-center gap-2 mb-2">
+            <span class="badge bg-secondary font-monospace">Topic #{{ topic.topic_number }}</span>
+            <span class="badge {% if topic.level == 'beginner' %}bg-success{% elif topic.level == 'intermediate' %}bg-warning text-dark{% else %}bg-danger{% endif %}">{{ topic.get_level_display }}</span>
+            <span class="badge bg-info-subtle text-info">{{ topic.category }}</span>
+        </div>
+        <h3 class="text-white fw-bold mb-3">{{ topic.title }}</h3>
+
+        <!-- Real-World Metaphor / Simple Explanation -->
+        <div class="p-3 mb-4 bg-info-subtle text-info-emphasis rounded border border-info border-opacity-25">
+            <h6 class="fw-bold mb-1"><i class="fa-solid fa-lightbulb me-2"></i>Intuitive Metaphor (Simple Explanation)</h6>
+            <div class="small">{{ topic.simple_explanation }}</div>
+        </div>
+
+        <!-- Technical Engineering Breakdown -->
+        <div class="mb-4">
+            <h5 class="text-white fw-bold mb-2"><i class="fa-solid fa-gears text-info me-2"></i>Technical Engineering Breakdown</h5>
+            <p class="text-secondary leading-relaxed">{{ topic.technical_explanation }}</p>
+        </div>
+
+        <!-- Practical Enterprise Use-Case Scenario -->
+        <div class="p-3 mb-4 bg-sidebar rounded border border-secondary border-opacity-25">
+            <h6 class="text-white fw-bold mb-1"><i class="fa-solid fa-briefcase text-success me-2"></i>Enterprise Practical Scenario</h6>
+            <div class="text-secondary small">{{ topic.practical_example }}</div>
+        </div>
+
+        <!-- Relevant Commands & Devices -->
+        <div class="row g-3 mb-4">
+            <div class="col-md-6">
+                <div class="p-3 bg-sidebar rounded border border-secondary border-opacity-25 h-100">
+                    <strong class="text-white small d-block mb-2"><i class="fa-solid fa-terminal text-info me-1"></i>Core Configuration Commands:</strong>
+                    <div class="d-flex flex-wrap gap-1">
+                        {% for cmd in topic.relevant_commands %}
+                        <span class="badge bg-dark font-monospace text-info border border-secondary border-opacity-25">{{ cmd }}</span>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="p-3 bg-sidebar rounded border border-secondary border-opacity-25 h-100">
+                    <strong class="text-white small d-block mb-2"><i class="fa-solid fa-microchip text-warning me-1"></i>Applicable Devices:</strong>
+                    <div class="d-flex flex-wrap gap-1">
+                        {% for dev in topic.relevant_devices %}
+                        <span class="badge bg-dark text-white border border-secondary border-opacity-25">{{ dev }}</span>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Common Mistakes & Pitfalls -->
+        <div class="p-3 mb-4 bg-warning-subtle text-warning-emphasis rounded border border-warning border-opacity-25">
+            <strong class="d-block mb-1"><i class="fa-solid fa-triangle-exclamation me-1"></i>Common Engineering Mistakes:</strong>
+            <div class="small">{{ topic.common_mistakes }}</div>
+        </div>
+
+        <!-- Hands-On Practice Exercise -->
+        <div class="p-3 bg-sidebar rounded border border-info border-opacity-25 d-flex align-items-center justify-content-between">
+            <div>
+                <strong class="text-white d-block small"><i class="fa-solid fa-dumbbell text-info me-2"></i>Hands-On Practice Exercise:</strong>
+                <span class="text-secondary small">{{ topic.practice_exercise }}</span>
+            </div>
+            <a href="{% url 'topology:designer' %}" class="btn btn-sm btn-outline-cyan ms-3 text-nowrap">
+                Open in Designer →
+            </a>
+        </div>
+    </div>
+</div>
+{% endblock %}

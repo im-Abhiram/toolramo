@@ -1,0 +1,217 @@
+# RAMONET 2.0 — PythonAnywhere WSGI Production Deployment Guide
+
+This guide provides complete, production-tested, step-by-step instructions for deploying **RAMONET** to PythonAnywhere under the account **`ramonet`**.
+
+- **Production Domain:** `https://ramonet.pythonanywhere.com`
+- **Application Directory:** `/home/ramonet/ramonet`
+- **Virtualenv Directory:** `/home/ramonet/.virtualenvs/ramonet-env`
+- **WSGI Configuration File:** `/var/www/ramonet_pythonanywhere_com_wsgi.py`
+- **GitHub Repository:** `https://github.com/im-Abhiram/toolramo.git`
+
+---
+
+## 1. Architecture & Platform Prerequisites
+
+- PythonAnywhere account username: **`ramonet`**
+- Python version: **Python 3.10** or **Python 3.11**
+- Storage footprint: Ultra-lightweight (~600 KB SQLite database, zero external runtime CDNs) — well within PythonAnywhere's 512 MB free tier quota.
+- Client storage: Heavy topologies and simulation states reside in browser IndexedDB.
+
+---
+
+## 2. Step 1: Open a Bash Console on PythonAnywhere
+
+1. Log into your dashboard at [pythonanywhere.com](https://www.pythonanywhere.com).
+2. Go to the **Consoles** tab.
+3. Click on **Bash** to open a new terminal session in `/home/ramonet`.
+
+---
+
+## 3. Step 2: Set Up Virtual Environment
+
+In the Bash terminal, run:
+
+```bash
+# Create a dedicated virtualenv with Python 3.10
+mkvirtualenv --python=/usr/bin/python3.10 ramonet-env
+
+# Verify the virtual environment is active (prompt shows (ramonet-env))
+which python
+python --version
+```
+
+*(If returning to an existing session in the future, activate it with `workon ramonet-env`)*
+
+---
+
+## 4. Step 3: Clone the GitHub Repository
+
+Clone the repository into `/home/ramonet/ramonet`:
+
+```bash
+cd /home/ramonet
+
+# Clone repo into a folder named 'ramonet'
+git clone https://github.com/im-Abhiram/toolramo.git ramonet
+
+# Change to project root
+cd /home/ramonet/ramonet
+```
+
+---
+
+## 5. Step 4: Install Dependencies
+
+With `(ramonet-env)` active:
+
+```bash
+cd /home/ramonet/ramonet
+pip install --upgrade pip
+pip install -r requirements.txt
+```
+
+*RAMONET uses only `Django>=6.0` and `djangorestframework>=3.18`, keeping the footprint minimal and fast.*
+
+---
+
+## 6. Step 5: Run Database Migrations & Seed Initial Data
+
+Initialize the SQLite database schema and populate the device library, command syntax, learning center, and Academy courses:
+
+```bash
+cd /home/ramonet/ramonet
+
+# 1. Apply database migrations
+python manage.py migrate
+
+# 2. Seed device models, command reference, templates & learning topics
+python manage.py seed_data
+
+# 3. Seed 14 RAMONET Academy courses and 27 device practical guides
+python manage.py seed_academy
+```
+
+This creates:
+- Default Admin Account: `admin` / `admin123`
+- Default Student Account: `student` / `student123`
+- 10 Device Categories & 13+ Hardware Models
+- 18 Prebuilt Production Network Templates
+- 14 RAMONET Academy Courses & Practical Lab Scenarios
+- 27 Device Configuration Guides
+- Central CLI Command Library (Cisco IOS, Linux, Windows, MikroTik, iptables)
+
+---
+
+## 7. Step 6: Collect Production Static Assets
+
+Compile all offline local CSS, JS, Bootstrap 5, FontAwesome, and Chart.js files into the production `staticfiles/` directory:
+
+```bash
+cd /home/ramonet/ramonet
+python manage.py collectstatic --noinput
+```
+
+---
+
+## 8. Step 7: Configure the Web App in PythonAnywhere Dashboard
+
+1. Navigate to the **Web** tab in the PythonAnywhere top navigation.
+2. If you haven't created a web app yet:
+   - Click **Add a new web app**.
+   - Domain will be: **`ramonet.pythonanywhere.com`**.
+   - Choose **Manual configuration** (select **Python 3.10**).
+3. If the web app already exists, configure the sections below:
+
+### A. Paths Configuration
+- **Source code:** `/home/ramonet/ramonet`
+- **Working directory:** `/home/ramonet/ramonet`
+
+### B. Virtualenv Configuration
+In the **Virtualenv** section:
+- Path: `/home/ramonet/.virtualenvs/ramonet-env`
+
+### C. Static Files Mapping
+In the **Static files** table, add the following URL-to-Directory mapping:
+
+| URL | Directory |
+| :--- | :--- |
+| `/static/` | `/home/ramonet/ramonet/staticfiles` |
+
+*(Leave the Media files section blank or set `/media/` to `/home/ramonet/ramonet/media`)*
+
+### D. WSGI Configuration File
+Click on the link for the **WSGI configuration file** (`/var/www/ramonet_pythonanywhere_com_wsgi.py`).
+
+Replace the entire content of that file with the following production-hardened script:
+
+```python
+import os
+import sys
+
+# 1. Set application directory path
+path = '/home/ramonet/ramonet'
+if path not in sys.path:
+    sys.path.insert(0, path)
+
+# 2. Production Environment Settings & Security Hardening
+os.environ['DJANGO_SETTINGS_MODULE'] = 'ramonet.settings'
+os.environ['DJANGO_DEBUG'] = 'False'
+os.environ['DJANGO_ALLOWED_HOSTS'] = 'ramonet.pythonanywhere.com,localhost,127.0.0.1'
+
+# Generate a unique production secret key (or set a 64+ char random string)
+os.environ['DJANGO_SECRET_KEY'] = 'ramonet-prod-sec-key-x9q8v7w6p5m4k3j2h1-9876543210-abcdef'
+
+# Enforce HTTPS redirect and HSTS
+os.environ['SECURE_SSL_REDIRECT'] = 'True'
+os.environ['ENABLE_HSTS'] = 'True'
+
+# 3. WSGI Application Handler
+from django.core.wsgi import get_wsgi_application
+application = get_wsgi_application()
+```
+
+Click the green **Save** button (top right).
+
+---
+
+## 9. Step 8: Reload and Verify the Web Application
+
+1. Return to the **Web** tab.
+2. Click the big green **Reload ramonet.pythonanywhere.com** button.
+3. Open your browser and navigate to:
+   **[https://ramonet.pythonanywhere.com](https://ramonet.pythonanywhere.com)**
+
+### Verification Checklist:
+- [ ] **Home Dashboard:** Page loads with dark theme, real-time clock, and navigation cards.
+- [ ] **Network Designer:** Accessible at `/topology/designer/`, canvas drag-and-drop renders.
+- [ ] **RAMONET Academy:** Accessible at `/academy/`, 14 courses listed.
+- [ ] **Security Operations Center:** Accessible at `/storage/security/` (log in as `admin`).
+- [ ] **Static Assets:** CSS, fonts, and FontAwesome icons load without 404s.
+
+---
+
+## 10. Production Security Best Practices
+
+1. **Change Default Passwords:**
+   Once logged in, navigate to `/admin/` or `/accounts/settings/` and change the default `admin` and `student` passwords.
+2. **Secret Key Rotation:**
+   You can generate a cryptographically strong secret key anytime in the Bash console:
+   ```bash
+   python -c "import secrets; print(secrets.token_urlsafe(50))"
+   ```
+   Paste the output into `os.environ['DJANGO_SECRET_KEY']` inside `/var/www/ramonet_pythonanywhere_com_wsgi.py`.
+3. **Database Backups:**
+   Download `/home/ramonet/ramonet/db.sqlite3` from the **Files** tab periodically or use the built-in JSON backup tool at `/projects/backups/`.
+
+---
+
+## 11. Troubleshooting Guide
+
+| Issue | Root Cause | Exact Solution |
+| :--- | :--- | :--- |
+| **500 Internal Server Error** | Missing virtualenv or unmigrated tables | Check the Error Log linked at the bottom of the Web tab (`/var/log/ramonet.pythonanywhere.com.error.log`). Run `python manage.py migrate`. |
+| **ImproperlyConfigured (Secret Key)** | Default key used with `DEBUG=False` | Ensure `os.environ['DJANGO_SECRET_KEY']` is set in the WSGI file. |
+| **CSS/Icons Missing (Unstyled HTML)** | Static files mapping incorrect | Ensure `/static/` maps to `/home/ramonet/ramonet/staticfiles` and run `python manage.py collectstatic --noinput`. |
+| **DisallowedHost Error** | Domain not in `ALLOWED_HOSTS` | Ensure `DJANGO_ALLOWED_HOSTS` in WSGI file includes `ramonet.pythonanywhere.com`. |
+| **429 Too Many Requests on Login** | Rate limiter triggered (5 failed attempts) | Wait 5 minutes for the lockout window to expire, or restart the web app from the Web tab. |
+| **Database Locked Error** | File permission conflict | Ensure `db.sqlite3` is writable (`chmod 664 /home/ramonet/ramonet/db.sqlite3`). |

@@ -1,0 +1,638 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Central IP Address Management (IPAM) — Ramonet{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-0">
+    <!-- Header -->
+    <div class="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-4">
+        <div>
+            <h4 class="text-white fw-bold mb-1">
+                <i class="fa-solid fa-sitemap text-info me-2"></i>Central IP Address Management (IPAM)
+            </h4>
+            <p class="text-secondary small mb-0">
+                Subnet Hierarchy, Variable Length Subnet Masking (VLSM), Live Duplicate IP Conflict Detection, and Address Allocations.
+            </p>
+        </div>
+        <div class="d-flex gap-2">
+            <button class="btn btn-outline-warning btn-sm" id="btn-scan-conflicts">
+                <i class="fa-solid fa-triangle-exclamation me-1"></i> Scan IP Conflicts
+            </button>
+            <button class="btn btn-outline-cyan btn-sm" data-bs-toggle="modal" data-bs-target="#addSubnetModal">
+                <i class="fa-solid fa-plus me-1"></i> Add Subnet
+            </button>
+            <button class="btn btn-outline-secondary btn-sm" id="btn-export-ipam">
+                <i class="fa-solid fa-file-export me-1"></i> Export IPAM JSON
+            </button>
+            <a href="{% url 'topology:designer' %}" class="btn btn-primary-blue btn-sm">
+                <i class="fa-solid fa-diagram-project me-1"></i> Open in Designer
+            </a>
+        </div>
+    </div>
+
+    <!-- Live Conflict Notification Banner -->
+    <div id="ipam-alerts-banner" class="mb-4"></div>
+
+    <!-- Top KPI Grid -->
+    <div class="row g-3 mb-4">
+        <div class="col-md-3 col-sm-6">
+            <div class="ramonet-card p-3">
+                <div class="d-flex align-items-center justify-content-between mb-2">
+                    <span class="text-secondary small">Managed Subnets</span>
+                    <i class="fa-solid fa-network-wired text-info"></i>
+                </div>
+                <div class="d-flex align-items-baseline gap-2">
+                    <h3 class="text-white fw-bold mb-0" id="kpi-subnets-count">5</h3>
+                    <span class="text-secondary small">Prefixes</span>
+                </div>
+                <small class="text-muted d-block mt-2">VLAN 1, 10, 20, 50, WAN</small>
+            </div>
+        </div>
+
+        <div class="col-md-3 col-sm-6">
+            <div class="ramonet-card p-3">
+                <div class="d-flex align-items-center justify-content-between mb-2">
+                    <span class="text-secondary small">Total Usable Capacity</span>
+                    <i class="fa-solid fa-server text-cyan"></i>
+                </div>
+                <div class="d-flex align-items-baseline gap-2">
+                    <h3 class="text-cyan fw-bold mb-0" id="kpi-total-capacity">1,018</h3>
+                    <span class="text-secondary small">Hosts</span>
+                </div>
+                <small class="text-muted d-block mt-2">Across 5 subnets</small>
+            </div>
+        </div>
+
+        <div class="col-md-3 col-sm-6">
+            <div class="ramonet-card p-3">
+                <div class="d-flex align-items-center justify-content-between mb-2">
+                    <span class="text-secondary small">Allocated Device IPs</span>
+                    <i class="fa-solid fa-desktop text-success"></i>
+                </div>
+                <div class="d-flex align-items-baseline gap-2">
+                    <h3 class="text-success fw-bold mb-0" id="kpi-assigned-count">14</h3>
+                    <span class="text-secondary small">Assigned</span>
+                </div>
+                <div class="progress mt-2" style="height: 4px; background: rgba(255,255,255,0.06);">
+                    <div id="prog-total-util" class="progress-bar bg-success" style="width: 1.4%;"></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-3 col-sm-6">
+            <div class="ramonet-card p-3">
+                <div class="d-flex align-items-center justify-content-between mb-2">
+                    <span class="text-secondary small">IP Conflict Status</span>
+                    <i class="fa-solid fa-shield-halved text-success" id="kpi-conflict-icon"></i>
+                </div>
+                <div class="d-flex align-items-baseline gap-2">
+                    <h3 class="text-success fw-bold mb-0" id="kpi-conflict-count">0</h3>
+                    <span class="text-secondary small" id="kpi-conflict-label">Conflicts</span>
+                </div>
+                <small class="text-success d-block mt-2" id="kpi-conflict-status">
+                    <i class="fa-solid fa-circle-check me-1"></i>All IP assignments unique
+                </small>
+            </div>
+        </div>
+    </div>
+
+    <!-- Subnet Hierarchy & VLSM Table -->
+    <div class="ramonet-card mb-4">
+        <div class="ramonet-card-header d-flex justify-content-between align-items-center">
+            <span class="text-white fw-bold small">
+                <i class="fa-solid fa-layer-group text-primary-cyan me-2"></i>IPv4 Subnet Hierarchy & VLAN Matrix
+            </span>
+            <span class="badge bg-secondary font-monospace" id="badge-active-subnets">5 Subnets Configured</span>
+        </div>
+        <div class="table-responsive">
+            <table class="table table-ramonet table-hover mb-0">
+                <thead>
+                    <tr>
+                        <th>Subnet Name / Purpose</th>
+                        <th>VLAN</th>
+                        <th>Subnet / CIDR</th>
+                        <th>Subnet Mask</th>
+                        <th>Default Gateway</th>
+                        <th>Usable IP Range</th>
+                        <th>Capacity</th>
+                        <th>Allocated</th>
+                        <th>Utilization</th>
+                        <th class="text-end">Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="subnets-table-body">
+                    <!-- Populated by JavaScript -->
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Detailed IP Allocation Matrix & Device Bindings -->
+    <div class="row g-4 mb-4">
+        <!-- Device IP Mappings -->
+        <div class="col-lg-8">
+            <div class="ramonet-card h-100">
+                <div class="ramonet-card-header d-flex justify-content-between align-items-center">
+                    <span class="text-white fw-bold small">
+                        <i class="fa-solid fa-list-ol text-cyan me-2"></i>Active Device IP Address Allocations
+                    </span>
+                    <div class="d-flex gap-2">
+                        <select class="form-select form-select-xs bg-dark border-secondary text-white" id="filter-subnet-select" style="width: auto;">
+                            <option value="all">All Subnets</option>
+                        </select>
+                        <button class="btn btn-xs btn-outline-cyan" data-bs-toggle="modal" data-bs-target="#assignIpModal">
+                            <i class="fa-solid fa-plus me-1"></i> Assign Device IP
+                        </button>
+                    </div>
+                </div>
+                <div class="table-responsive" style="max-height: 400px; overflow-y: auto;">
+                    <table class="table table-ramonet table-hover mb-0">
+                        <thead class="sticky-top bg-surface">
+                            <tr>
+                                <th>Device Name</th>
+                                <th>Role / Type</th>
+                                <th>Interface</th>
+                                <th>Assigned IP</th>
+                                <th>VLAN</th>
+                                <th>Type</th>
+                                <th class="text-end">Action</th>
+                            </tr>
+                        </thead>
+                        <tbody id="device-allocations-body">
+                            <!-- Populated dynamically -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Quick Subnet Calculator Tool -->
+        <div class="col-lg-4">
+            <div class="ramonet-card h-100">
+                <div class="ramonet-card-header">
+                    <span class="text-white fw-bold small">
+                        <i class="fa-solid fa-calculator text-warning me-2"></i>Subnet & CIDR Quick Calculator
+                    </span>
+                </div>
+                <div class="ramonet-card-body">
+                    <div class="mb-3">
+                        <label class="form-label text-secondary small fw-semibold">IP Address</label>
+                        <input type="text" class="form-control form-control-sm bg-dark border-secondary text-white font-monospace" id="calc-ip" value="192.168.1.100">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label text-secondary small fw-semibold">Subnet Mask / Prefix</label>
+                        <select class="form-select form-select-sm bg-dark border-secondary text-white font-monospace" id="calc-prefix">
+                            <option value="24" selected>/24 - 255.255.255.0 (254 Hosts)</option>
+                            <option value="25">/25 - 255.255.255.128 (126 Hosts)</option>
+                            <option value="26">/26 - 255.255.255.192 (62 Hosts)</option>
+                            <option value="27">/27 - 255.255.255.224 (30 Hosts)</option>
+                            <option value="28">/28 - 255.255.255.240 (14 Hosts)</option>
+                            <option value="29">/29 - 255.255.255.248 (6 Hosts)</option>
+                            <option value="30">/30 - 255.255.255.252 (2 Point-to-Point Hosts)</option>
+                            <option value="16">/16 - 255.255.0.0 (65,534 Hosts)</option>
+                        </select>
+                    </div>
+
+                    <!-- Calculated Details -->
+                    <div class="p-3 bg-sidebar rounded border border-secondary border-opacity-25 small font-monospace">
+                        <div class="d-flex justify-content-between mb-1">
+                            <span class="text-secondary">Network ID:</span>
+                            <span class="text-white fw-bold" id="res-net-id">192.168.1.0</span>
+                        </div>
+                        <div class="d-flex justify-content-between mb-1">
+                            <span class="text-secondary">Broadcast IP:</span>
+                            <span class="text-warning fw-bold" id="res-bcast">192.168.1.255</span>
+                        </div>
+                        <div class="d-flex justify-content-between mb-1">
+                            <span class="text-secondary">First Usable Host:</span>
+                            <span class="text-cyan fw-bold" id="res-first-host">192.168.1.1</span>
+                        </div>
+                        <div class="d-flex justify-content-between mb-1">
+                            <span class="text-secondary">Last Usable Host:</span>
+                            <span class="text-cyan fw-bold" id="res-last-host">192.168.1.254</span>
+                        </div>
+                        <div class="d-flex justify-content-between">
+                            <span class="text-secondary">Usable Addresses:</span>
+                            <span class="text-success fw-bold" id="res-total-hosts">254</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal: Add Subnet -->
+<div class="modal fade" id="addSubnetModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content bg-surface border-secondary text-white">
+            <div class="modal-header border-secondary">
+                <h5 class="modal-title fs-6 fw-bold">
+                    <i class="fa-solid fa-plus text-info me-2"></i>Add IPv4 Subnet
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="form-add-subnet">
+                    <div class="mb-3">
+                        <label class="form-label small text-secondary">Subnet Name / Purpose</label>
+                        <input type="text" class="form-control form-control-sm bg-dark border-secondary text-white" id="sub-name" placeholder="e.g. Guest Wi-Fi" required>
+                    </div>
+                    <div class="row g-2 mb-3">
+                        <div class="col-8">
+                            <label class="form-label small text-secondary">Network IP</label>
+                            <input type="text" class="form-control form-control-sm bg-dark border-secondary text-white font-monospace" id="sub-network" placeholder="192.168.60.0" required>
+                        </div>
+                        <div class="col-4">
+                            <label class="form-label small text-secondary">Prefix</label>
+                            <select class="form-select form-select-sm bg-dark border-secondary text-white font-monospace" id="sub-prefix">
+                                <option value="24" selected>/24</option>
+                                <option value="25">/25</option>
+                                <option value="26">/26</option>
+                                <option value="27">/27</option>
+                                <option value="28">/28</option>
+                                <option value="29">/29</option>
+                                <option value="30">/30</option>
+                                <option value="16">/16</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="row g-2 mb-3">
+                        <div class="col-6">
+                            <label class="form-label small text-secondary">VLAN ID</label>
+                            <input type="number" class="form-control form-control-sm bg-dark border-secondary text-white" id="sub-vlan" value="60" min="1" max="4094">
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label small text-secondary">Default Gateway</label>
+                            <input type="text" class="form-control form-control-sm bg-dark border-secondary text-white font-monospace" id="sub-gateway" placeholder="192.168.60.1" required>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer border-secondary">
+                <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary-blue btn-sm" id="btn-save-subnet">Create Subnet</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal: Assign Device IP -->
+<div class="modal fade" id="assignIpModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content bg-surface border-secondary text-white">
+            <div class="modal-header border-secondary">
+                <h5 class="modal-title fs-6 fw-bold">
+                    <i class="fa-solid fa-desktop text-cyan me-2"></i>Assign Device IP
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="form-assign-ip">
+                    <div class="mb-3">
+                        <label class="form-label small text-secondary">Device Name</label>
+                        <input type="text" class="form-control form-control-sm bg-dark border-secondary text-white" id="dev-name" placeholder="e.g. Sales-Workstation-02" required>
+                    </div>
+                    <div class="row g-2 mb-3">
+                        <div class="col-6">
+                            <label class="form-label small text-secondary">Device Type</label>
+                            <select class="form-select form-select-sm bg-dark border-secondary text-white" id="dev-type">
+                                <option value="PC">PC / Workstation</option>
+                                <option value="Server">Server</option>
+                                <option value="Switch">Switch</option>
+                                <option value="Router">Router</option>
+                                <option value="Printer">Network Printer</option>
+                                <option value="AP">Access Point</option>
+                                <option value="Camera">IP Camera</option>
+                            </select>
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label small text-secondary">Interface</label>
+                            <input type="text" class="form-control form-control-sm bg-dark border-secondary text-white font-monospace" id="dev-iface" value="eth0" required>
+                        </div>
+                    </div>
+                    <div class="row g-2 mb-3">
+                        <div class="col-7">
+                            <label class="form-label small text-secondary">Assigned IP</label>
+                            <input type="text" class="form-control form-control-sm bg-dark border-secondary text-white font-monospace" id="dev-ip" placeholder="192.168.10.15" required>
+                        </div>
+                        <div class="col-5">
+                            <label class="form-label small text-secondary">VLAN</label>
+                            <input type="number" class="form-control form-control-sm bg-dark border-secondary text-white" id="dev-vlan" value="10">
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label small text-secondary">Allocation Type</label>
+                        <select class="form-select form-select-sm bg-dark border-secondary text-white" id="dev-alloc-type">
+                            <option value="Static Reservation">Static Reservation</option>
+                            <option value="DHCP Dynamic">DHCP Dynamic</option>
+                        </select>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer border-secondary">
+                <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary-blue btn-sm" id="btn-save-device-ip">Assign Address</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    // Initial Subnets State
+    let subnets = [
+        { name: 'Management VLAN', vlan: 1, network: '192.168.1.0', prefix: 24, mask: '255.255.255.0', gateway: '192.168.1.1', first: '192.168.1.1', last: '192.168.1.254', capacity: 254 },
+        { name: 'Corporate LAN / Workstations', vlan: 10, network: '192.168.10.0', prefix: 24, mask: '255.255.255.0', gateway: '192.168.10.1', first: '192.168.10.1', last: '192.168.10.254', capacity: 254 },
+        { name: 'Data Center & Servers', vlan: 20, network: '192.168.20.0', prefix: 24, mask: '255.255.255.0', gateway: '192.168.20.1', first: '192.168.20.1', last: '192.168.20.254', capacity: 254 },
+        { name: 'Surveillance & CCTV', vlan: 50, network: '192.168.50.0', prefix: 24, mask: '255.255.255.0', gateway: '192.168.50.1', first: '192.168.50.1', last: '192.168.50.254', capacity: 254 },
+        { name: 'WAN ISP Uplink', vlan: 0, network: '10.0.0.0', prefix: 30, mask: '255.255.255.252', gateway: '10.0.0.1', first: '10.0.0.1', last: '10.0.0.2', capacity: 2 }
+    ];
+
+    // Initial Device IP allocations
+    let deviceAllocations = [
+        { name: 'Core-Router-01', type: 'Router', iface: 'Gig0/0', ip: '10.0.0.2', vlan: 0, alloc: 'Static' },
+        { name: 'Core-Router-01', type: 'Router', iface: 'Gig0/1.10', ip: '192.168.10.1', vlan: 10, alloc: 'Static' },
+        { name: 'Core-Router-01', type: 'Router', iface: 'Gig0/1.20', ip: '192.168.20.1', vlan: 20, alloc: 'Static' },
+        { name: 'Core-Switch-01', type: 'Switch', iface: 'Vlan1', ip: '192.168.1.2', vlan: 1, alloc: 'Static' },
+        { name: 'DNS-DHCP-Server', type: 'Server', iface: 'eth0', ip: '192.168.20.5', vlan: 20, alloc: 'Static' },
+        { name: 'Corporate-NVR-01', type: 'Server', iface: 'eth0', ip: '192.168.50.2', vlan: 50, alloc: 'Static' },
+        { name: 'Entrance-Camera-01', type: 'Camera', iface: 'eth0', ip: '192.168.50.11', vlan: 50, alloc: 'DHCP Dynamic' },
+        { name: 'Lobby-PTZ-Camera', type: 'Camera', iface: 'eth0', ip: '192.168.50.12', vlan: 50, alloc: 'DHCP Dynamic' },
+        { name: 'Executive-PC-01', type: 'PC', iface: 'eth0', ip: '192.168.10.101', vlan: 10, alloc: 'DHCP Dynamic' },
+        { name: 'Finance-PC-02', type: 'PC', iface: 'eth0', ip: '192.168.10.102', vlan: 10, alloc: 'DHCP Dynamic' },
+        { name: 'HR-Printer-Color', type: 'Printer', iface: 'eth0', ip: '192.168.10.50', vlan: 10, alloc: 'Static' }
+    ];
+
+    const subnetsTable = document.getElementById('subnets-table-body');
+    const deviceTable = document.getElementById('device-allocations-body');
+    const filterSubnetSelect = document.getElementById('filter-subnet-select');
+    const alertsBanner = document.getElementById('ipam-alerts-banner');
+
+    function prefixToMask(p) {
+        let mask = [];
+        for (let i = 0; i < 4; i++) {
+            let n = Math.min(p, 8);
+            mask.push(256 - Math.pow(2, 8 - n));
+            p -= n;
+        }
+        return mask.join('.');
+    }
+
+    function renderSubnets() {
+        subnetsTable.innerHTML = '';
+        filterSubnetSelect.innerHTML = '<option value="all">All Subnets</option>';
+
+        let totalCap = 0;
+        subnets.forEach((sub, idx) => {
+            totalCap += sub.capacity;
+
+            // Count devices in this subnet (simple match prefix or vlan)
+            const count = deviceAllocations.filter(d => d.vlan === sub.vlan || d.ip.startsWith(sub.network.split('.').slice(0, 3).join('.'))).length;
+            const pct = Math.min(100, Math.round((count / sub.capacity) * 100));
+
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td>
+                    <div class="fw-bold text-white small">${sub.name}</div>
+                </td>
+                <td><span class="badge ${sub.vlan === 0 ? 'bg-danger' : 'bg-info text-dark'} font-monospace">${sub.vlan === 0 ? 'WAN' : 'VLAN ' + sub.vlan}</span></td>
+                <td><span class="font-monospace text-white fw-bold">${sub.network}/${sub.prefix}</span></td>
+                <td class="font-monospace text-secondary small">${sub.mask}</td>
+                <td class="font-monospace text-cyan small">${sub.gateway}</td>
+                <td class="font-monospace text-muted small">${sub.first} - ${sub.last}</td>
+                <td class="font-monospace text-white small">${sub.capacity}</td>
+                <td class="font-monospace text-warning small">${count}</td>
+                <td>
+                    <div class="d-flex align-items-center gap-2">
+                        <div class="progress bg-sidebar flex-grow-1" style="height: 6px;">
+                            <div class="progress-bar ${pct > 80 ? 'bg-danger' : pct > 50 ? 'bg-warning' : 'bg-success'}" style="width: ${Math.max(4, pct)}%;"></div>
+                        </div>
+                        <span class="small font-monospace text-muted">${pct}%</span>
+                    </div>
+                </td>
+                <td class="text-end">
+                    <button class="btn btn-xs btn-outline-danger btn-delete-subnet" data-index="${idx}" title="Delete Subnet">
+                        <i class="fa-solid fa-trash"></i>
+                    </button>
+                </td>
+            `;
+            subnetsTable.appendChild(tr);
+
+            // Add to filter dropdown
+            const opt = document.createElement('option');
+            opt.value = sub.vlan;
+            opt.textContent = `${sub.name} (VLAN ${sub.vlan})`;
+            filterSubnetSelect.appendChild(opt);
+        });
+
+        // KPIs
+        document.getElementById('kpi-subnets-count').textContent = subnets.length;
+        document.getElementById('kpi-total-capacity').textContent = totalCap.toLocaleString();
+        document.getElementById('kpi-assigned-count').textContent = deviceAllocations.length;
+        const totalPct = ((deviceAllocations.length / Math.max(1, totalCap)) * 100).toFixed(1);
+        document.getElementById('prog-total-util').style.width = `${Math.max(2, totalPct)}%`;
+        document.getElementById('badge-active-subnets').textContent = `${subnets.length} Subnets Configured`;
+
+        document.querySelectorAll('.btn-delete-subnet').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const idx = parseInt(btn.getAttribute('data-index'), 10);
+                subnets.splice(idx, 1);
+                renderSubnets();
+            });
+        });
+    }
+
+    function renderDevices() {
+        const selectedVlan = filterSubnetSelect.value;
+        deviceTable.innerHTML = '';
+
+        const filtered = selectedVlan === 'all'
+            ? deviceAllocations
+            : deviceAllocations.filter(d => String(d.vlan) === selectedVlan);
+
+        filtered.forEach((dev, idx) => {
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td>
+                    <div class="fw-bold text-white small">${dev.name}</div>
+                </td>
+                <td><span class="badge bg-secondary">${dev.type}</span></td>
+                <td><span class="font-monospace text-muted small">${dev.iface}</span></td>
+                <td><span class="font-monospace text-cyan fw-bold">${dev.ip}</span></td>
+                <td><span class="badge bg-dark border border-secondary font-monospace">VLAN ${dev.vlan}</span></td>
+                <td><span class="badge ${dev.alloc.includes('Static') ? 'bg-primary-blue' : 'bg-secondary'}">${dev.alloc}</span></td>
+                <td class="text-end">
+                    <button class="btn btn-xs btn-outline-danger btn-delete-dev" data-index="${idx}" title="Remove Allocation">
+                        <i class="fa-solid fa-trash"></i>
+                    </button>
+                </td>
+            `;
+            deviceTable.appendChild(tr);
+        });
+
+        document.querySelectorAll('.btn-delete-dev').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const idx = parseInt(btn.getAttribute('data-index'), 10);
+                deviceAllocations.splice(idx, 1);
+                renderDevices();
+                renderSubnets();
+                scanConflicts();
+            });
+        });
+    }
+
+    async function scanConflicts() {
+        alertsBanner.innerHTML = '';
+
+        // Prepare device payload for backend IPAM validation API
+        const payload = {
+            devices: deviceAllocations.map(d => ({
+                id: d.name,
+                name: d.name,
+                ip: d.ip,
+                gateway: subnets.find(s => s.vlan === d.vlan)?.gateway || ''
+            }))
+        };
+
+        try {
+            const res = await fetch('/configuration/api/ipam-validate/', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+
+            if (res.ok) {
+                const data = await res.json();
+                const conflictCount = data.duplicates.length;
+                document.getElementById('kpi-conflict-count').textContent = conflictCount;
+
+                if (conflictCount > 0) {
+                    document.getElementById('kpi-conflict-icon').className = 'fa-solid fa-triangle-exclamation text-danger';
+                    document.getElementById('kpi-conflict-count').className = 'text-danger fw-bold mb-0';
+                    document.getElementById('kpi-conflict-status').className = 'text-danger d-block mt-2';
+                    document.getElementById('kpi-conflict-status').innerHTML = `<i class="fa-solid fa-circle-exclamation me-1"></i>${conflictCount} Duplicate IP Conflicts!`;
+
+                    data.duplicates.forEach(dup => {
+                        const alertDiv = document.createElement('div');
+                        alertDiv.className = 'alert alert-danger d-flex align-items-center small py-2 px-3 mb-2';
+                        alertDiv.innerHTML = `<i class="fa-solid fa-triangle-exclamation me-2 fs-6"></i><div><strong>IP Conflict Detected:</strong> IP <code>${dup.ip}</code> is assigned to multiple devices: <strong>${dup.device1}</strong> and <strong>${dup.device2}</strong>!</div>`;
+                        alertsBanner.appendChild(alertDiv);
+                    });
+                } else {
+                    document.getElementById('kpi-conflict-icon').className = 'fa-solid fa-shield-halved text-success';
+                    document.getElementById('kpi-conflict-count').className = 'text-success fw-bold mb-0';
+                    document.getElementById('kpi-conflict-status').className = 'text-success d-block mt-2';
+                    document.getElementById('kpi-conflict-status').innerHTML = `<i class="fa-solid fa-circle-check me-1"></i>All IP assignments unique`;
+                }
+            }
+        } catch (err) {
+            console.error('IPAM validate error:', err);
+        }
+    }
+
+    // Modal Subnet Creation
+    document.getElementById('btn-save-subnet').addEventListener('click', () => {
+        const name = document.getElementById('sub-name').value.trim();
+        const network = document.getElementById('sub-network').value.trim();
+        const prefix = parseInt(document.getElementById('sub-prefix').value, 10);
+        const vlan = parseInt(document.getElementById('sub-vlan').value, 10);
+        const gateway = document.getElementById('sub-gateway').value.trim();
+
+        if (!name || !network || !gateway) {
+            alert('Please fill all required subnet fields.');
+            return;
+        }
+
+        const mask = prefixToMask(prefix);
+        const capacity = Math.pow(2, 32 - prefix) - 2;
+        const parts = network.split('.');
+        const first = `${parts[0]}.${parts[1]}.${parts[2]}.1`;
+        const last = `${parts[0]}.${parts[1]}.${parts[2]}.${capacity}`;
+
+        subnets.push({ name, vlan, network, prefix, mask, gateway, first, last, capacity });
+        const modal = bootstrap.Modal.getInstance(document.getElementById('addSubnetModal'));
+        modal.hide();
+
+        document.getElementById('form-add-subnet').reset();
+        renderSubnets();
+    });
+
+    // Modal Device Allocation
+    document.getElementById('btn-save-device-ip').addEventListener('click', () => {
+        const name = document.getElementById('dev-name').value.trim();
+        const type = document.getElementById('dev-type').value;
+        const iface = document.getElementById('dev-iface').value.trim();
+        const ip = document.getElementById('dev-ip').value.trim();
+        const vlan = parseInt(document.getElementById('dev-vlan').value, 10) || 0;
+        const alloc = document.getElementById('dev-alloc-type').value;
+
+        if (!name || !ip) {
+            alert('Please provide device name and IP.');
+            return;
+        }
+
+        deviceAllocations.push({ name, type, iface, ip, vlan, alloc });
+        const modal = bootstrap.Modal.getInstance(document.getElementById('assignIpModal'));
+        modal.hide();
+
+        document.getElementById('form-assign-ip').reset();
+        renderDevices();
+        renderSubnets();
+        scanConflicts();
+    });
+
+    // Quick Calculator
+    function updateCalc() {
+        const ipStr = document.getElementById('calc-ip').value.trim();
+        const prefix = parseInt(document.getElementById('calc-prefix').value, 10);
+        const parts = ipStr.split('.').map(p => parseInt(p, 10));
+
+        if (parts.length === 4 && parts.every(p => !isNaN(p) && p >= 0 && p <= 255)) {
+            const hostBits = 32 - prefix;
+            const hosts = Math.pow(2, hostBits) - 2;
+            const netParts = [...parts];
+            // Simple /24 calculation for UI demo
+            netParts[3] = 0;
+            const bcastParts = [...parts];
+            bcastParts[3] = Math.min(255, Math.pow(2, hostBits) - 1);
+
+            document.getElementById('res-net-id').textContent = netParts.join('.');
+            document.getElementById('res-bcast').textContent = bcastParts.join('.');
+            document.getElementById('res-first-host').textContent = `${netParts[0]}.${netParts[1]}.${netParts[2]}.1`;
+            document.getElementById('res-last-host').textContent = `${bcastParts[0]}.${bcastParts[1]}.${bcastParts[2]}.${Math.max(1, bcastParts[3] - 1)}`;
+            document.getElementById('res-total-hosts').textContent = hosts;
+        }
+    }
+
+    document.getElementById('calc-ip').addEventListener('input', updateCalc);
+    document.getElementById('calc-prefix').addEventListener('change', updateCalc);
+
+    filterSubnetSelect.addEventListener('change', renderDevices);
+    document.getElementById('btn-scan-conflicts').addEventListener('click', scanConflicts);
+
+    document.getElementById('btn-export-ipam').addEventListener('click', () => {
+        const exportData = {
+            export_date: new Date().toISOString(),
+            subnets: subnets,
+            allocations: deviceAllocations
+        };
+        const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `ramonet-ipam-plan-${new Date().toISOString().slice(0, 10)}.json`;
+        a.click();
+        URL.revokeObjectURL(url);
+    });
+
+    // Initial render
+    renderSubnets();
+    renderDevices();
+    scanConflicts();
+});
+</script>
+{% endblock %}

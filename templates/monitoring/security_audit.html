@@ -1,0 +1,163 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Network Security Assessment — Ramonet{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-0">
+    <!-- Header -->
+    <div class="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-4">
+        <div>
+            <h4 class="text-white fw-bold mb-1">
+                <i class="fa-solid fa-shield-halved text-danger me-2"></i>Network Security Assessment & Defensive Audit
+            </h4>
+            <p class="text-secondary small mb-0">
+                Automated vulnerability and configuration checks across switches, routers, and firewalls with hardening recommendations.
+            </p>
+        </div>
+        <div class="d-flex gap-2">
+            <button class="btn btn-outline-cyan btn-sm" id="btn-export-audit">
+                <i class="fa-solid fa-file-export me-1"></i> Export Audit Report
+            </button>
+            <button class="btn btn-primary-blue btn-sm" id="btn-run-audit">
+                <i class="fa-solid fa-play me-1"></i> Run Security Scan
+            </button>
+        </div>
+    </div>
+
+    <!-- Security Posture Score & KPI Cards -->
+    <div class="row g-3 mb-4">
+        <div class="col-lg-3 col-sm-6">
+            <div class="ramonet-card p-3">
+                <div class="d-flex align-items-center justify-content-between mb-2">
+                    <span class="text-secondary small">Security Health Score</span>
+                    <i class="fa-solid fa-gauge-high text-warning"></i>
+                </div>
+                <div class="d-flex align-items-baseline gap-2">
+                    <h3 class="text-warning fw-bold mb-0" id="kpi-audit-score">68</h3>
+                    <span class="text-muted small">/ 100</span>
+                </div>
+                <div class="progress mt-2" style="height: 6px; background: rgba(255,255,255,0.06);">
+                    <div id="prog-audit-score" class="progress-bar bg-warning" style="width: 68%;"></div>
+                </div>
+                <small class="text-warning d-block mt-2" id="kpi-audit-posture">
+                    <i class="fa-solid fa-triangle-exclamation me-1"></i>Posture: Needs Hardening
+                </small>
+            </div>
+        </div>
+
+        <div class="col-lg-3 col-sm-6">
+            <div class="ramonet-card p-3">
+                <div class="d-flex align-items-center justify-content-between mb-2">
+                    <span class="text-secondary small">Critical Findings</span>
+                    <i class="fa-solid fa-circle-exclamation text-danger"></i>
+                </div>
+                <h3 class="text-danger fw-bold mb-0" id="kpi-critical-count">1</h3>
+                <small class="text-muted d-block mt-2">Immediate remediation required</small>
+            </div>
+        </div>
+
+        <div class="col-lg-3 col-sm-6">
+            <div class="ramonet-card p-3">
+                <div class="d-flex align-items-center justify-content-between mb-2">
+                    <span class="text-secondary small">High Severity</span>
+                    <i class="fa-solid fa-triangle-exclamation text-warning"></i>
+                </div>
+                <h3 class="text-warning fw-bold mb-0" id="kpi-high-count">2</h3>
+                <small class="text-muted d-block mt-2">Vulnerabilities & misconfigurations</small>
+            </div>
+        </div>
+
+        <div class="col-lg-3 col-sm-6">
+            <div class="ramonet-card p-3">
+                <div class="d-flex align-items-center justify-content-between mb-2">
+                    <span class="text-secondary small">Medium & Low</span>
+                    <i class="fa-solid fa-circle-info text-info"></i>
+                </div>
+                <h3 class="text-info fw-bold mb-0" id="kpi-med-low-count">2</h3>
+                <small class="text-muted d-block mt-2">Compliance best practices</small>
+            </div>
+        </div>
+    </div>
+
+    <!-- Security Findings Table -->
+    <div class="ramonet-card">
+        <div class="ramonet-card-header d-flex justify-content-between align-items-center">
+            <span class="text-white fw-bold small">
+                <i class="fa-solid fa-list-check text-cyan me-2"></i>Security Audit Findings & Remediation Guidance
+            </span>
+            <span class="badge bg-secondary font-monospace" id="findings-count-badge">5 Findings Identified</span>
+        </div>
+        <div class="p-3">
+            <div class="d-flex flex-column gap-3" id="findings-container">
+                <!-- Dynamically rendered findings -->
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    const container = document.getElementById('findings-container');
+
+    async function loadAudit() {
+        try {
+            const res = await fetch('/monitoring/api/security-audit/', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({})
+            });
+
+            if (res.ok) {
+                const data = await res.json();
+                document.getElementById('kpi-audit-score').textContent = data.security_score;
+                document.getElementById('prog-audit-score').style.width = `${data.security_score}%`;
+                document.getElementById('kpi-critical-count').textContent = data.critical_count;
+                document.getElementById('kpi-high-count').textContent = data.high_count;
+                document.getElementById('kpi-med-low-count').textContent = data.medium_count + data.low_count;
+                document.getElementById('findings-count-badge').textContent = `${data.total_findings} Findings Identified`;
+
+                container.innerHTML = '';
+                data.findings.forEach(f => {
+                    const card = document.createElement('div');
+                    const badgeClass = f.severity === 'critical' ? 'bg-danger' : f.severity === 'high' ? 'bg-warning text-dark' : 'bg-info text-dark';
+                    card.className = 'p-3 bg-sidebar rounded border border-secondary border-opacity-25';
+
+                    card.innerHTML = `
+                        <div class="d-flex flex-wrap justify-content-between align-items-start gap-2 mb-2">
+                            <div class="d-flex align-items-center gap-2">
+                                <span class="badge ${badgeClass} text-uppercase font-monospace">${f.severity}</span>
+                                <span class="badge bg-secondary font-monospace">${f.id}</span>
+                                <span class="text-white fw-bold small">${f.title}</span>
+                            </div>
+                            <span class="text-secondary small font-monospace"><i class="fa-solid fa-server me-1"></i>${f.device}</span>
+                        </div>
+                        <div class="text-secondary small mb-2">
+                            <strong class="text-muted">Security Impact:</strong> ${f.impact}
+                        </div>
+                        <div class="p-2 bg-dark rounded border border-secondary border-opacity-25 font-monospace small text-cyan d-flex justify-content-between align-items-center">
+                            <span><i class="fa-solid fa-wrench text-warning me-2"></i>${f.remediation}</span>
+                            <button class="btn btn-xs btn-outline-secondary" onclick="navigator.clipboard.writeText('${f.remediation.replace(/'/g, "\\'")}'); alert('Remediation command copied!')">
+                                <i class="fa-solid fa-copy"></i>
+                            </button>
+                        </div>
+                    `;
+                    container.appendChild(card);
+                });
+            }
+        } catch (err) {
+            console.error('Audit fetch error:', err);
+        }
+    }
+
+    document.getElementById('btn-run-audit').addEventListener('click', loadAudit);
+    document.getElementById('btn-export-audit').addEventListener('click', () => {
+        alert('Audit summary exported to clipboard!');
+    });
+
+    loadAudit();
+});
+</script>
+{% endblock %}

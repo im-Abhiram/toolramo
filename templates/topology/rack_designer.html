@@ -1,0 +1,334 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Physical Network Rack Designer — Ramonet{% endblock %}
+
+{% block extra_head %}
+<style>
+    .rack-workspace {
+        display: flex;
+        height: calc(100vh - 56px);
+        background-color: var(--color-bg-primary);
+        overflow: hidden;
+    }
+    .rack-sidebar-left {
+        width: 320px;
+        background-color: var(--color-bg-card);
+        border-right: 1px solid var(--color-border);
+        display: flex;
+        flex-direction: column;
+        overflow-y: auto;
+        flex-shrink: 0;
+    }
+    .rack-canvas-center {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        background-color: #070d19;
+        overflow-y: auto;
+        position: relative;
+        padding: 24px;
+        align-items: center;
+    }
+    .rack-sidebar-right {
+        width: 340px;
+        background-color: var(--color-bg-card);
+        border-left: 1px solid var(--color-border);
+        display: flex;
+        flex-direction: column;
+        overflow-y: auto;
+        flex-shrink: 0;
+    }
+    /* 19-inch Server Rack Elevation Frame */
+    .rack-frame {
+        width: 440px;
+        background: #111827;
+        border: 12px solid #1f2937;
+        border-radius: 6px;
+        box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.7), inset 0 0 10px rgba(0,0,0,0.8);
+        position: relative;
+        display: flex;
+        flex-direction: column;
+        padding: 6px;
+    }
+    .rack-unit-slot {
+        height: 28px;
+        display: flex;
+        align-items: center;
+        border-bottom: 1px dashed #243044;
+        position: relative;
+        transition: background-color 0.15s ease;
+    }
+    .rack-unit-slot:hover {
+        background-color: rgba(56, 189, 248, 0.08);
+    }
+    .rack-unit-number {
+        width: 36px;
+        font-family: monospace;
+        font-size: 0.72rem;
+        color: #64748b;
+        text-align: center;
+        border-right: 1px solid #1f2937;
+        user-select: none;
+    }
+    .rack-slot-content {
+        flex: 1;
+        height: 100%;
+        display: flex;
+        align-items: center;
+        padding: 0 8px;
+    }
+    /* Mounted Equipment styling */
+    .rack-mounted-device {
+        background: linear-gradient(180deg, #1e293b 0%, #0f172a 100%);
+        border: 1px solid #38bdf8;
+        border-radius: 4px;
+        width: 100%;
+        height: 100%;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 0 10px;
+        color: #f8fafc;
+        cursor: pointer;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.5);
+    }
+    .rack-mounted-device.selected {
+        outline: 2px solid #f59e0b;
+        border-color: #f59e0b;
+    }
+    .rack-mounted-device.overlap-error {
+        border-color: #ef4444;
+        background: linear-gradient(180deg, rgba(239, 68, 68, 0.2) 0%, #0f172a 100%);
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="rack-workspace">
+    <!-- LEFT SIDEBAR: Rack Selection & Equipment Palette -->
+    <aside class="rack-sidebar-left p-3">
+        <div class="d-flex align-items-center justify-content-between mb-3 border-bottom border-accent pb-2">
+            <h6 class="text-white fw-bold mb-0 small"><i class="fa-solid fa-server text-info me-2"></i>Rack Manager</h6>
+            <button type="button" class="btn btn-xs btn-primary-blue" onclick="promptCreateNewRack()">
+                <i class="fa-solid fa-plus me-1"></i> New Rack
+            </button>
+        </div>
+
+        <!-- Active Rack Selector -->
+        <div class="mb-3">
+            <label class="small text-muted mb-1">Select Physical Rack:</label>
+            <select class="form-select form-select-sm bg-dark text-light border-secondary" id="active-rack-select" onchange="switchActiveRack()">
+                <option value="rack_a">Rack A — Server Room Main (42U)</option>
+                <option value="rack_b">Rack B — Network Distribution (24U)</option>
+            </select>
+        </div>
+
+        <div class="row g-2 mb-3">
+            <div class="col-6">
+                <label class="small text-muted mb-1">Height Units:</label>
+                <select class="form-select form-select-sm bg-dark text-light border-secondary" id="rack-height-select" onchange="updateRackHeight()">
+                    <option value="12">12U Wall Mount</option>
+                    <option value="24">24U Mid Cabinet</option>
+                    <option value="42" selected>42U Standard Full</option>
+                    <option value="48">48U Datacenter Tall</option>
+                </select>
+            </div>
+            <div class="col-6">
+                <label class="small text-muted mb-1">Elevation View:</label>
+                <div class="btn-group btn-group-sm w-100" role="group">
+                    <button type="button" class="btn btn-xs btn-outline-info active view-btn" data-view="front" onclick="setRackView('front')">Front</button>
+                    <button type="button" class="btn btn-xs btn-outline-secondary text-secondary view-btn" data-view="rear" onclick="setRackView('rear')">Rear</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Overlap Alert Warning -->
+        <div id="rack-overlap-alert" class="alert alert-danger py-2 px-3 small d-none mb-3 border-danger">
+            <div class="fw-bold"><i class="fa-solid fa-triangle-exclamation me-1"></i> Equipment Collision!</div>
+            <div id="rack-overlap-text" style="font-size: 0.75rem;"></div>
+        </div>
+
+        <!-- Mountable Equipment Palette -->
+        <div class="border-top border-accent pt-3">
+            <h6 class="text-white fw-bold mb-2 small"><i class="fa-solid fa-microchip text-primary me-2"></i>Mountable Equipment</h6>
+            <p class="small text-secondary mb-3" style="font-size: 0.75rem;">Click an appliance to mount it into the lowest available rack unit slot.</p>
+
+            <div class="d-flex flex-column gap-2" id="equipment-palette-list">
+                <!-- Switches -->
+                <div class="bg-card-secondary p-2 rounded border border-accent d-flex align-items-center justify-content-between cursor-pointer hover-border-info" onclick="mountEquipmentToRack('Cisco Catalyst 2960-X 24P', 'layer2_switch', 1, 35.0)">
+                    <div class="d-flex align-items-center gap-2">
+                        <i class="fa-solid fa-network-wired text-info"></i>
+                        <div>
+                            <div class="small text-white fw-semibold">Catalyst 2960-X (1U)</div>
+                            <div class="text-muted" style="font-size: 0.68rem;">24-Port Switch · 35W</div>
+                        </div>
+                    </div>
+                    <span class="badge bg-primary">1U</span>
+                </div>
+
+                <!-- PoE Switch -->
+                <div class="bg-card-secondary p-2 rounded border border-accent d-flex align-items-center justify-content-between cursor-pointer hover-border-info" onclick="mountEquipmentToRack('PoE+ Surveillance Switch', 'poe_switch', 1, 65.0)">
+                    <div class="d-flex align-items-center gap-2">
+                        <i class="fa-solid fa-bolt text-warning"></i>
+                        <div>
+                            <div class="small text-white fw-semibold">PoE+ Switch (1U)</div>
+                            <div class="text-muted" style="font-size: 0.68rem;">370W PoE Budget · 65W</div>
+                        </div>
+                    </div>
+                    <span class="badge bg-warning text-dark">1U</span>
+                </div>
+
+                <!-- Router -->
+                <div class="bg-card-secondary p-2 rounded border border-accent d-flex align-items-center justify-content-between cursor-pointer hover-border-info" onclick="mountEquipmentToRack('Cisco ISR 4331 Router', 'router', 1, 60.0)">
+                    <div class="d-flex align-items-center gap-2">
+                        <i class="fa-solid fa-route text-primary"></i>
+                        <div>
+                            <div class="small text-white fw-semibold">Cisco ISR 4331 (1U)</div>
+                            <div class="text-muted" style="font-size: 0.68rem;">Gigabit Router · 60W</div>
+                        </div>
+                    </div>
+                    <span class="badge bg-primary">1U</span>
+                </div>
+
+                <!-- Firewall -->
+                <div class="bg-card-secondary p-2 rounded border border-accent d-flex align-items-center justify-content-between cursor-pointer hover-border-info" onclick="mountEquipmentToRack('FortiGate 100F Firewall', 'firewall', 1, 75.0)">
+                    <div class="d-flex align-items-center gap-2">
+                        <i class="fa-solid fa-shield-halved text-danger"></i>
+                        <div>
+                            <div class="small text-white fw-semibold">FortiGate 100F (1U)</div>
+                            <div class="text-muted" style="font-size: 0.68rem;">Perimeter Firewall · 75W</div>
+                        </div>
+                    </div>
+                    <span class="badge bg-danger">1U</span>
+                </div>
+
+                <!-- Servers -->
+                <div class="bg-card-secondary p-2 rounded border border-accent d-flex align-items-center justify-content-between cursor-pointer hover-border-info" onclick="mountEquipmentToRack('Dell PowerEdge R740 Server', 'windows_server', 2, 250.0)">
+                    <div class="d-flex align-items-center gap-2">
+                        <i class="fa-solid fa-server text-success"></i>
+                        <div>
+                            <div class="small text-white fw-semibold">Dell PowerEdge R740 (2U)</div>
+                            <div class="text-muted" style="font-size: 0.68rem;">Windows/Linux Host · 250W</div>
+                        </div>
+                    </div>
+                    <span class="badge bg-success">2U</span>
+                </div>
+
+                <!-- Patch Panel -->
+                <div class="bg-card-secondary p-2 rounded border border-accent d-flex align-items-center justify-content-between cursor-pointer hover-border-info" onclick="mountEquipmentToRack('Cat6 24-Port Patch Panel', 'patch_panel', 1, 0.0)">
+                    <div class="d-flex align-items-center gap-2">
+                        <i class="fa-solid fa-bars-staggered text-secondary"></i>
+                        <div>
+                            <div class="small text-white fw-semibold">Cat6 Patch Panel (1U)</div>
+                            <div class="text-muted" style="font-size: 0.68rem;">24-Port Keystone · Passive</div>
+                        </div>
+                    </div>
+                    <span class="badge bg-secondary">1U</span>
+                </div>
+
+                <!-- NVR -->
+                <div class="bg-card-secondary p-2 rounded border border-accent d-flex align-items-center justify-content-between cursor-pointer hover-border-info" onclick="mountEquipmentToRack('16-Channel Surveillance NVR', 'nvr_recorder', 2, 90.0)">
+                    <div class="d-flex align-items-center gap-2">
+                        <i class="fa-solid fa-video text-warning"></i>
+                        <div>
+                            <div class="small text-white fw-semibold">Surveillance NVR (2U)</div>
+                            <div class="text-muted" style="font-size: 0.68rem;">16-Channel Storage · 90W</div>
+                        </div>
+                    </div>
+                    <span class="badge bg-warning text-dark">2U</span>
+                </div>
+
+                <!-- UPS -->
+                <div class="bg-card-secondary p-2 rounded border border-accent d-flex align-items-center justify-content-between cursor-pointer hover-border-info" onclick="mountEquipmentToRack('APC Smart-UPS 3000VA', 'ups_power', 2, 0.0)">
+                    <div class="d-flex align-items-center gap-2">
+                        <i class="fa-solid fa-car-battery text-info"></i>
+                        <div>
+                            <div class="small text-white fw-semibold">APC Smart-UPS (2U)</div>
+                            <div class="text-muted" style="font-size: 0.68rem;">2700W Battery Backup · 2U</div>
+                        </div>
+                    </div>
+                    <span class="badge bg-info text-dark">2U</span>
+                </div>
+            </div>
+        </div>
+    </aside>
+
+    <!-- CENTER AREA: Rack Elevation Elevation Canvas -->
+    <main class="rack-canvas-center" id="rack-canvas-center">
+        <!-- Top Quick Bar -->
+        <div class="d-flex align-items-center justify-content-between w-100 max-w-440 mb-3" style="max-width: 440px;">
+            <div class="d-flex align-items-center gap-2">
+                <span class="badge bg-dark text-info border border-info p-2" id="rack-status-badge">
+                    Rack A (42U) — Front Elevation
+                </span>
+            </div>
+            <div class="d-flex gap-2">
+                <button type="button" class="btn btn-sm btn-outline-danger" onclick="clearActiveRack()">
+                    <i class="fa-solid fa-trash me-1"></i> Clear Rack
+                </button>
+            </div>
+        </div>
+
+        <!-- 19-inch Standard Server Rack Frame -->
+        <div class="rack-frame" id="rack-frame-container">
+            <!-- Dynamically populated U units (from 42 down to 1) -->
+        </div>
+    </main>
+
+    <!-- RIGHT SIDEBAR: Selected Item Inspector, Power Metrics & Port Patching -->
+    <aside class="rack-sidebar-right p-3">
+        <div class="d-flex align-items-center justify-content-between mb-3 border-bottom border-accent pb-2">
+            <h6 class="text-white fw-bold mb-0 small"><i class="fa-solid fa-sliders text-info me-2"></i>Unit Details & Patching</h6>
+            <span class="badge bg-card text-light border border-accent" id="selected-u-badge">No Unit Selected</span>
+        </div>
+
+        <!-- Power & Utilization Summary -->
+        <div class="card bg-card-secondary border-accent mb-3">
+            <div class="card-header bg-card border-accent py-2 small fw-bold text-white">
+                <i class="fa-solid fa-bolt text-warning me-1"></i> Power & Utilization
+            </div>
+            <div class="card-body p-3">
+                <div class="d-flex justify-content-between small text-secondary mb-1">
+                    <span>Occupied Space:</span>
+                    <strong class="text-light" id="rack-occupied-text">0 / 42 U (0%)</strong>
+                </div>
+                <div class="progress bg-dark mb-3" style="height: 6px;">
+                    <div class="progress-bar bg-info" id="rack-occupied-bar" style="width: 0%;"></div>
+                </div>
+
+                <div class="d-flex justify-content-between small text-secondary mb-1">
+                    <span>Total Power Consumption:</span>
+                    <strong class="text-warning" id="rack-power-text">0 Watts</strong>
+                </div>
+                <div class="small text-muted" style="font-size: 0.72rem;">
+                    Estimated heat output: <span id="rack-btu-text">0 BTU/hr</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Selected Rack Device Inspector -->
+        <div class="card bg-card-secondary border-accent mb-3">
+            <div class="card-header bg-card border-accent py-2 small fw-bold text-white">
+                <i class="fa-solid fa-server text-info me-1"></i> Mounted Appliance
+            </div>
+            <div class="card-body p-3" id="rack-inspector-body">
+                <div class="small text-muted text-center py-3">Click on any equipment mounted in the rack to view details and map to logical topology.</div>
+            </div>
+        </div>
+
+        <!-- Cable Management & Patch Panel Mapping -->
+        <div class="card bg-card-secondary border-accent mb-3">
+            <div class="card-header bg-card border-accent py-2 small fw-bold text-white d-flex align-items-center justify-content-between">
+                <span><i class="fa-solid fa-diagram-project text-success me-1"></i> Port Patching Map</span>
+                <span class="badge bg-dark text-muted" style="font-size: 0.65rem;">L1 Demarcation</span>
+            </div>
+            <div class="card-body p-2" id="rack-patching-container">
+                <div class="small text-muted text-center py-2">Select a switch or patch panel to inspect port-to-port cable links.</div>
+            </div>
+        </div>
+    </aside>
+</div>
+
+<script src="{% static 'js/topology/rack-designer.js' %}"></script>
+{% endblock %}

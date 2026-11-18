@@ -1,0 +1,224 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Server Manager | Ramonet{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-0">
+    <div class="d-flex align-items-center justify-content-between mb-4">
+        <div>
+            <h4 class="text-white fw-bold mb-1">
+                <i class="fa-solid fa-server text-success me-2"></i>Infrastructure Server & Services Manager
+            </h4>
+            <p class="text-secondary small mb-0">DNS Zones & Records, DHCP Server Pools, Nginx Web Services, SMB File Shares, and Service Daemons.</p>
+        </div>
+        <a href="{% url 'topology:designer' %}" class="btn btn-primary-blue btn-sm">
+            <i class="fa-solid fa-diagram-project me-1"></i> Open Designer
+        </a>
+    </div>
+
+    <!-- Services Status Row -->
+    <div class="row g-3 mb-4">
+        <div class="col-md-3">
+            <div class="ramonet-card p-3">
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <strong class="text-white small"><i class="fa-solid fa-globe text-info me-1"></i>DNS Server (BIND)</strong>
+                    <span class="badge bg-success" id="stat-dns-badge">Running</span>
+                </div>
+                <div class="small text-muted mb-2">Port 53 UDP/TCP</div>
+                <button class="btn btn-sm btn-outline-secondary py-0 w-100" onclick="toggleService('dns')">Toggle Service</button>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="ramonet-card p-3">
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <strong class="text-white small"><i class="fa-solid fa-network-wired text-warning me-1"></i>DHCP Server</strong>
+                    <span class="badge bg-success" id="stat-dhcp-badge">Running</span>
+                </div>
+                <div class="small text-muted mb-2">Ports 67/68 UDP</div>
+                <button class="btn btn-sm btn-outline-secondary py-0 w-100" onclick="toggleService('dhcp')">Toggle Service</button>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="ramonet-card p-3">
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <strong class="text-white small"><i class="fa-solid fa-window-maximize text-success me-1"></i>Web Server (Nginx)</strong>
+                    <span class="badge bg-success" id="stat-web-badge">Running</span>
+                </div>
+                <div class="small text-muted mb-2">Ports 80/443 TCP</div>
+                <button class="btn btn-sm btn-outline-secondary py-0 w-100" onclick="toggleService('web')">Toggle Service</button>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="ramonet-card p-3">
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <strong class="text-white small"><i class="fa-solid fa-folder-tree text-secondary me-1"></i>File Share (SMB)</strong>
+                    <span class="badge bg-success" id="stat-smb-badge">Running</span>
+                </div>
+                <div class="small text-muted mb-2">Port 445 TCP</div>
+                <button class="btn btn-sm btn-outline-secondary py-0 w-100" onclick="toggleService('smb')">Toggle Service</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Manager Tabs -->
+    <ul class="nav nav-pills mb-4 border-bottom border-secondary border-opacity-25 pb-2" id="serverTabs" role="tablist">
+        <li class="nav-item">
+            <button class="nav-link active btn-sm" data-bs-toggle="pill" data-bs-target="#tab-dns-records">
+                <i class="fa-solid fa-globe me-1"></i> DNS Records Table
+            </button>
+        </li>
+        <li class="nav-item">
+            <button class="nav-link btn-sm" data-bs-toggle="pill" data-bs-target="#tab-dhcp-pools">
+                <i class="fa-solid fa-network-wired me-1"></i> DHCP Scopes & Pools
+            </button>
+        </li>
+    </ul>
+
+    <div class="tab-content" id="serverTabContent">
+        <!-- Tab 1: DNS -->
+        <div class="tab-pane fade show active" id="tab-dns-records">
+            <div class="ramonet-card">
+                <div class="ramonet-card-header d-flex justify-content-between align-items-center">
+                    <span class="text-white fw-bold small"><i class="fa-solid fa-list text-info me-2"></i>Authoritative Forward Lookup Zone (localdomain)</span>
+                    <button class="btn btn-sm btn-primary-blue py-0 px-2" id="btn-add-dns"><i class="fa-solid fa-plus me-1"></i> Add Record</button>
+                </div>
+                <div class="table-responsive">
+                    <table class="table table-ramonet mb-0" id="dns-records-table">
+                        <thead>
+                            <tr>
+                                <th>Hostname / FQDN</th>
+                                <th>Record Type</th>
+                                <th>IP Address / Target</th>
+                                <th>TTL</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td class="text-white fw-bold font-monospace">gateway.localdomain</td>
+                                <td><span class="badge bg-info text-dark">A</span></td>
+                                <td class="font-monospace text-info">192.168.1.1</td>
+                                <td class="text-muted">3600s</td>
+                                <td><span class="badge bg-success">Active</span></td>
+                            </tr>
+                            <tr>
+                                <td class="text-white fw-bold font-monospace">web.localdomain</td>
+                                <td><span class="badge bg-info text-dark">A</span></td>
+                                <td class="font-monospace text-info">10.0.0.100</td>
+                                <td class="text-muted">3600s</td>
+                                <td><span class="badge bg-success">Active</span></td>
+                            </tr>
+                            <tr>
+                                <td class="text-white fw-bold font-monospace">nas.localdomain</td>
+                                <td><span class="badge bg-info text-dark">A</span></td>
+                                <td class="font-monospace text-info">192.168.1.20</td>
+                                <td class="text-muted">3600s</td>
+                                <td><span class="badge bg-success">Active</span></td>
+                            </tr>
+                            <tr>
+                                <td class="text-white fw-bold font-monospace">www.localdomain</td>
+                                <td><span class="badge bg-secondary">CNAME</span></td>
+                                <td class="font-monospace text-secondary">web.localdomain</td>
+                                <td class="text-muted">3600s</td>
+                                <td><span class="badge bg-success">Active</span></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tab 2: DHCP -->
+        <div class="tab-pane fade" id="tab-dhcp-pools">
+            <div class="row g-4">
+                <div class="col-lg-5">
+                    <div class="ramonet-card">
+                        <div class="ramonet-card-header">
+                            <span class="text-white fw-bold small"><i class="fa-solid fa-sliders text-info me-2"></i>Configure DHCP Scope</span>
+                        </div>
+                        <div class="ramonet-card-body">
+                            <div class="mb-3">
+                                <label class="form-label small text-muted">Scope Name</label>
+                                <input type="text" class="form-control form-control-sm" value="LAN_Users_Pool">
+                            </div>
+                            <div class="row g-2 mb-3">
+                                <div class="col-6">
+                                    <label class="form-label small text-muted">Start IP</label>
+                                    <input type="text" class="form-control form-control-sm" value="192.168.1.100">
+                                </div>
+                                <div class="col-6">
+                                    <label class="form-label small text-muted">End IP</label>
+                                    <input type="text" class="form-control form-control-sm" value="192.168.1.200">
+                                </div>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label small text-muted">Default Gateway (Option 3)</label>
+                                <input type="text" class="form-control form-control-sm" value="192.168.1.1">
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label small text-muted">DNS Server (Option 6)</label>
+                                <input type="text" class="form-control form-control-sm" value="192.168.1.100">
+                            </div>
+                            <button class="btn btn-primary-blue btn-sm w-100">Save DHCP Scope</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-lg-7">
+                    <div class="ramonet-card">
+                        <div class="ramonet-card-header">
+                            <span class="text-white fw-bold small"><i class="fa-solid fa-clipboard-check text-info me-2"></i>Active DHCP Leases</span>
+                        </div>
+                        <div class="table-responsive">
+                            <table class="table table-ramonet mb-0">
+                                <thead>
+                                    <tr>
+                                        <th>IP Address</th>
+                                        <th>MAC Address</th>
+                                        <th>Hostname</th>
+                                        <th>Lease Expiration</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <td class="font-monospace text-info">192.168.1.101</td>
+                                        <td class="font-monospace small">00:15:5D:82:11:44</td>
+                                        <td class="text-white">PC1-Workstation</td>
+                                        <td class="text-muted small">23 hrs 42 mins</td>
+                                    </tr>
+                                    <tr>
+                                        <td class="font-monospace text-info">192.168.1.102</td>
+                                        <td class="font-monospace small">00:15:5D:82:90:72</td>
+                                        <td class="text-white">PC2-Executive</td>
+                                        <td class="text-muted small">21 hrs 15 mins</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function toggleService(service) {
+    const badge = document.getElementById(`stat-${service}-badge`);
+    if (badge) {
+        if (badge.textContent === 'Running') {
+            badge.textContent = 'Stopped';
+            badge.className = 'badge bg-danger';
+            window.ramonetUI?.showToast('Service Stopped', `${service.toUpperCase()} service halted.`, 'warning');
+        } else {
+            badge.textContent = 'Running';
+            badge.className = 'badge bg-success';
+            window.ramonetUI?.showToast('Service Started', `${service.toUpperCase()} service operational.`, 'success');
+        }
+    }
+}
+</script>
+{% endblock %}

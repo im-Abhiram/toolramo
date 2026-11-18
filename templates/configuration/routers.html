@@ -1,0 +1,284 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Router Configuration Manager | Ramonet{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-0">
+    <div class="d-flex align-items-center justify-content-between mb-4">
+        <div>
+            <h4 class="text-white fw-bold mb-1">
+                <i class="fa-solid fa-arrows-split-up-and-left text-primary me-2"></i>Router Configuration & Routing Table Manager
+            </h4>
+            <p class="text-secondary small mb-0">Static Routes, Default Gateways, Dynamic OSPF/RIP, NAT/PAT, and Access Control Lists (ACLs).</p>
+        </div>
+        <div class="d-flex gap-2">
+            <button class="btn btn-outline-cyan btn-sm" onclick="window.ramonetAssistant.openConfigWizard({name: 'Router1', category: 'routers', ip: '192.168.1.1'})">
+                <i class="fa-solid fa-wand-magic-sparkles me-1"></i> Router Wizard
+            </button>
+            <a href="{% url 'topology:designer' %}" class="btn btn-primary-blue btn-sm">
+                <i class="fa-solid fa-diagram-project me-1"></i> Open Designer
+            </a>
+        </div>
+    </div>
+
+    <!-- Manager Tabs -->
+    <ul class="nav nav-pills mb-4 border-bottom border-secondary border-opacity-25 pb-2" id="routerTabs" role="tablist">
+        <li class="nav-item">
+            <button class="nav-link active btn-sm" data-bs-toggle="pill" data-bs-target="#tab-routes">
+                <i class="fa-solid fa-route me-1"></i> Routing Table (IPv4)
+            </button>
+        </li>
+        <li class="nav-item">
+            <button class="nav-link btn-sm" data-bs-toggle="pill" data-bs-target="#tab-static">
+                <i class="fa-solid fa-plus me-1"></i> Add Static Route
+            </button>
+        </li>
+        <li class="nav-item">
+            <button class="nav-link btn-sm" data-bs-toggle="pill" data-bs-target="#tab-nat">
+                <i class="fa-solid fa-arrows-rotate me-1"></i> NAT & PAT
+            </button>
+        </li>
+        <li class="nav-item">
+            <button class="nav-link btn-sm" data-bs-toggle="pill" data-bs-target="#tab-acl">
+                <i class="fa-solid fa-shield-halved me-1"></i> Access Control Lists (ACL)
+            </button>
+        </li>
+    </ul>
+
+    <!-- Tab Contents -->
+    <div class="tab-content" id="routerTabContent">
+        <!-- Tab 1: Routing Table -->
+        <div class="tab-pane fade show active" id="tab-routes">
+            <div class="ramonet-card">
+                <div class="ramonet-card-header d-flex justify-content-between align-items-center">
+                    <span class="text-white fw-bold small"><i class="fa-solid fa-list-ol text-info me-2"></i>Active Forwarding Information Base (FIB)</span>
+                    <span class="badge bg-secondary font-monospace">Gateway of last resort: 203.0.113.1</span>
+                </div>
+                <div class="table-responsive">
+                    <table class="table table-ramonet mb-0" id="routing-table-active">
+                        <thead>
+                            <tr>
+                                <th>Type</th>
+                                <th>Destination Network</th>
+                                <th>Prefix / Mask</th>
+                                <th>Administrative Distance / Metric</th>
+                                <th>Next Hop Gateway</th>
+                                <th>Exit Interface</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td><span class="badge bg-success">C (Connected)</span></td>
+                                <td class="text-white font-monospace">192.168.1.0</td>
+                                <td class="font-monospace">/24 (255.255.255.0)</td>
+                                <td class="font-monospace">0 / 0</td>
+                                <td class="text-muted">Directly Connected</td>
+                                <td class="text-info font-monospace">GigabitEthernet0/0</td>
+                            </tr>
+                            <tr>
+                                <td><span class="badge bg-success">C (Connected)</span></td>
+                                <td class="text-white font-monospace">10.0.0.0</td>
+                                <td class="font-monospace">/24 (255.255.255.0)</td>
+                                <td class="font-monospace">0 / 0</td>
+                                <td class="text-muted">Directly Connected</td>
+                                <td class="text-info font-monospace">GigabitEthernet0/1</td>
+                            </tr>
+                            <tr>
+                                <td><span class="badge bg-primary">S* (Default)</span></td>
+                                <td class="text-white font-monospace">0.0.0.0</td>
+                                <td class="font-monospace">/0 (0.0.0.0)</td>
+                                <td class="font-monospace">1 / 0</td>
+                                <td class="text-warning font-monospace">203.0.113.1</td>
+                                <td class="text-info font-monospace">GigabitEthernet0/2</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tab 2: Add Static Route -->
+        <div class="tab-pane fade" id="tab-static">
+            <div class="row g-4">
+                <div class="col-lg-6">
+                    <div class="ramonet-card">
+                        <div class="ramonet-card-header">
+                            <span class="text-white fw-bold small"><i class="fa-solid fa-plus text-info me-2"></i>Install New Static Route</span>
+                        </div>
+                        <div class="ramonet-card-body">
+                            <div class="mb-3">
+                                <label class="form-label small text-muted">Destination Subnet</label>
+                                <input type="text" class="form-control form-control-sm" id="route-dest" value="172.16.1.0" placeholder="e.g. 172.16.1.0">
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label small text-muted">Subnet Mask</label>
+                                <input type="text" class="form-control form-control-sm" id="route-mask" value="255.255.255.0">
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label small text-muted">Next-Hop Gateway IP</label>
+                                <input type="text" class="form-control form-control-sm" id="route-gw" value="10.0.0.2">
+                            </div>
+                            <button class="btn btn-primary-blue btn-sm w-100" id="btn-add-route">
+                                <i class="fa-solid fa-download me-1"></i> Add Route to Table
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-lg-6">
+                    <div class="ramonet-card">
+                        <div class="ramonet-card-header">
+                            <span class="text-white fw-bold small"><i class="fa-solid fa-terminal text-info me-2"></i>Generated CLI Command</span>
+                        </div>
+                        <div class="ramonet-card-body">
+                            <p class="text-secondary small">Cisco IOS syntax executed on Router:</p>
+                            <pre class="p-3 bg-sidebar rounded text-success font-monospace small border border-secondary border-opacity-25" id="route-cli-preview">ip route 172.16.1.0 255.255.255.0 10.0.0.2</pre>
+                            <div class="p-2 bg-info-subtle text-info-emphasis rounded small">
+                                <i class="fa-solid fa-lightbulb me-1"></i> Static routes have a default Administrative Distance of 1.
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tab 3: NAT -->
+        <div class="tab-pane fade" id="tab-nat">
+            <div class="ramonet-card">
+                <div class="ramonet-card-header">
+                    <span class="text-white fw-bold small"><i class="fa-solid fa-arrows-rotate text-info me-2"></i>Network Address Translation (NAT / PAT Overload)</span>
+                </div>
+                <div class="ramonet-card-body">
+                    <div class="row g-3 mb-4">
+                        <div class="col-md-4">
+                            <div class="p-3 bg-sidebar rounded border border-secondary border-opacity-25">
+                                <small class="text-muted d-block">NAT Mode:</small>
+                                <strong class="text-white">PAT (Port Address Translation)</strong>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="p-3 bg-sidebar rounded border border-secondary border-opacity-25">
+                                <small class="text-muted d-block">Public Inside Global IP:</small>
+                                <strong class="text-info font-monospace">203.0.113.100</strong>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="p-3 bg-sidebar rounded border border-secondary border-opacity-25">
+                                <small class="text-muted d-block">Active Session Translations:</small>
+                                <strong class="text-success">14 Active Sessions</strong>
+                            </div>
+                        </div>
+                    </div>
+
+                    <h6 class="text-white small fw-bold mb-2">Active NAT Translation Table</h6>
+                    <div class="table-responsive">
+                        <table class="table table-ramonet mb-0">
+                            <thead>
+                                <tr>
+                                    <th>Protocol</th>
+                                    <th>Inside Local (Private)</th>
+                                    <th>Inside Global (Public Translated)</th>
+                                    <th>Outside Global (Destination)</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td><span class="badge bg-secondary">TCP</span></td>
+                                    <td class="font-monospace text-white">192.168.1.50:49210</td>
+                                    <td class="font-monospace text-info">203.0.113.100:49210</td>
+                                    <td class="font-monospace text-secondary">142.250.190.46:443</td>
+                                </tr>
+                                <tr>
+                                    <td><span class="badge bg-secondary">UDP</span></td>
+                                    <td class="font-monospace text-white">192.168.1.10:53288</td>
+                                    <td class="font-monospace text-info">203.0.113.100:53288</td>
+                                    <td class="font-monospace text-secondary">8.8.8.8:53</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tab 4: ACL -->
+        <div class="tab-pane fade" id="tab-acl">
+            <div class="ramonet-card">
+                <div class="ramonet-card-header">
+                    <span class="text-white fw-bold small"><i class="fa-solid fa-shield-halved text-info me-2"></i>Extended Access Control Lists (ACL 100-199)</span>
+                </div>
+                <div class="ramonet-card-body">
+                    <div class="table-responsive">
+                        <table class="table table-ramonet mb-0">
+                            <thead>
+                                <tr>
+                                    <th>ACL #</th>
+                                    <th>Action</th>
+                                    <th>Protocol</th>
+                                    <th>Source</th>
+                                    <th>Destination</th>
+                                    <th>Port</th>
+                                    <th>Hit Count</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td class="font-monospace">101</td>
+                                    <td><span class="badge bg-success">permit</span></td>
+                                    <td class="font-monospace">tcp</td>
+                                    <td class="font-monospace">192.168.1.0/24</td>
+                                    <td class="font-monospace">any</td>
+                                    <td class="font-monospace">eq 443</td>
+                                    <td class="font-monospace text-info">1,240 matches</td>
+                                </tr>
+                                <tr>
+                                    <td class="font-monospace">101</td>
+                                    <td><span class="badge bg-danger">deny</span></td>
+                                    <td class="font-monospace">ip</td>
+                                    <td class="font-monospace">any</td>
+                                    <td class="font-monospace">any</td>
+                                    <td class="font-monospace">--</td>
+                                    <td class="font-monospace text-warning">86 matches</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+['route-dest', 'route-mask', 'route-gw'].forEach(id => {
+    document.getElementById(id)?.addEventListener('input', () => {
+        const d = document.getElementById('route-dest').value;
+        const m = document.getElementById('route-mask').value;
+        const g = document.getElementById('route-gw').value;
+        document.getElementById('route-cli-preview').textContent = `ip route ${d} ${m} ${g}`;
+    });
+});
+
+document.getElementById('btn-add-route')?.addEventListener('click', () => {
+    const d = document.getElementById('route-dest').value;
+    const m = document.getElementById('route-mask').value;
+    const g = document.getElementById('route-gw').value;
+    if (!d || !m || !g) return;
+
+    const tbody = document.querySelector('#routing-table-active tbody');
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+        <td><span class="badge bg-primary">S (Static)</span></td>
+        <td class="text-white font-monospace">${d}</td>
+        <td class="font-monospace">${m}</td>
+        <td class="font-monospace">1 / 0</td>
+        <td class="text-warning font-monospace">${g}</td>
+        <td class="text-info font-monospace">GigabitEthernet0/1</td>
+    `;
+    tbody.appendChild(tr);
+    window.ramonetUI?.showToast('Route Added', `Added static route for ${d} via ${g}`, 'success');
+});
+</script>
+{% endblock %}

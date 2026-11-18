@@ -1,0 +1,42 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Sign In | Ramonet{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center pt-5">
+    <div class="col-md-5 col-lg-4">
+        <div class="ramonet-card p-4">
+            <div class="text-center mb-4">
+                <i class="fa-solid fa-network-wired text-info fa-3x mb-2"></i>
+                <h4 class="text-white fw-bold mb-1">Ramonet Operations</h4>
+                <p class="text-secondary small">Sign in to your network engineering account</p>
+            </div>
+
+            {% if messages %}
+            {% for m in messages %}
+            <div class="alert alert-{{ m.tags }} small py-2 mb-3">{{ m }}</div>
+            {% endfor %}
+            {% endif %}
+
+            <form method="POST" action="{% url 'accounts:login' %}">
+                {% csrf_token %}
+                <div class="mb-3">
+                    <label class="form-label small text-muted">Username</label>
+                    <input type="text" name="username" class="form-control" required autofocus>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label small text-muted">Password</label>
+                    <input type="password" name="password" class="form-control" required>
+                </div>
+                <button type="submit" class="btn btn-primary-blue w-100 mb-3">Sign In</button>
+            </form>
+
+            <div class="p-2 bg-sidebar rounded text-center small text-muted border border-secondary border-opacity-25">
+                Default Demo Credentials:<br>
+                <strong class="text-white">admin / admin123</strong> or <strong class="text-white">student / student123</strong>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,62 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Settings & Preferences | Ramonet{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-0" style="max-width: 800px;">
+    <div class="d-flex align-items-center justify-content-between mb-4">
+        <div>
+            <h4 class="text-white fw-bold mb-1">
+                <i class="fa-solid fa-sliders text-info me-2"></i>Settings & Preferences
+            </h4>
+            <p class="text-secondary small mb-0">Customize theme appearance, offline storage behavior, and user profile metadata.</p>
+        </div>
+        <a href="{% url 'dashboard' %}" class="btn btn-outline-cyan btn-sm">
+            ← Dashboard
+        </a>
+    </div>
+
+    {% if messages %}
+    {% for m in messages %}
+    <div class="alert alert-{{ m.tags }} small py-2 mb-3">{{ m }}</div>
+    {% endfor %}
+    {% endif %}
+
+    <div class="ramonet-card p-4">
+        <form method="POST" action="{% url 'accounts:settings' %}">
+            {% csrf_token %}
+            <h6 class="text-white fw-bold mb-3"><i class="fa-solid fa-palette text-info me-2"></i>Theme & UI Layout</h6>
+            
+            <div class="mb-3">
+                <label class="form-label small text-muted">Active Theme</label>
+                <select class="form-select" name="theme">
+                    <option value="dark-navy" selected>Enterprise Dark Navy (Deep Slate & Cyan - #0B1120)</option>
+                    <option value="dark-midnight">Midnight Black & Emerald</option>
+                </select>
+            </div>
+
+            <div class="form-check form-switch mb-4">
+                <input class="form-check-input" type="checkbox" name="offline_mode" id="offline-mode-switch" checked>
+                <label class="form-check-label text-white small" for="offline-mode-switch">
+                    Enable Offline IndexedDB Persistence (Recommended for PythonAnywhere)
+                </label>
+            </div>
+
+            <hr class="border-secondary border-opacity-25 my-4">
+
+            <h6 class="text-white fw-bold mb-3"><i class="fa-solid fa-circle-user text-info me-2"></i>Engineer Profile</h6>
+            <div class="mb-3">
+                <label class="form-label small text-muted">Username</label>
+                <input type="text" class="form-control" value="{{ request.user.username }}" disabled>
+            </div>
+            <div class="mb-3">
+                <label class="form-label small text-muted">Role</label>
+                <input type="text" class="form-control" value="{{ profile.get_role_display|default:'Network Engineer' }}" disabled>
+            </div>
+
+            <button type="submit" class="btn btn-primary-blue mt-2">Save Preferences</button>
+        </form>
+    </div>
+</div>
+{% endblock %}

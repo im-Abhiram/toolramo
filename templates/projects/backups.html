@@ -1,0 +1,222 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Configuration Backup & Restore — Ramonet{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-0">
+    <!-- Header -->
+    <div class="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-4">
+        <div>
+            <h4 class="text-white fw-bold mb-1">
+                <i class="fa-solid fa-floppy-disk text-cyan me-2"></i>Configuration Backup & Safe Restore
+            </h4>
+            <p class="text-secondary small mb-0">
+                Export encrypted or clean JSON network archives, validate untrusted configuration schemas, and safely restore states.
+            </p>
+        </div>
+        <div class="d-flex gap-2">
+            <button class="btn btn-outline-cyan btn-sm" id="btn-export-current-backup">
+                <i class="fa-solid fa-download me-1"></i> Export Active Workspace Backup
+            </button>
+        </div>
+    </div>
+
+    <!-- Validation Status Banner -->
+    <div id="restore-status-banner" class="mb-4"></div>
+
+    <div class="row g-4 mb-4">
+        <!-- Restore Upload / Paste Area -->
+        <div class="col-lg-7">
+            <div class="ramonet-card h-100">
+                <div class="ramonet-card-header d-flex justify-content-between align-items-center">
+                    <span class="text-white fw-bold small">
+                        <i class="fa-solid fa-upload text-info me-2"></i>Import & Restore Topology Archive
+                    </span>
+                    <button class="btn btn-xs btn-outline-secondary" id="btn-load-sample-backup">
+                        Load Sample Backup
+                    </button>
+                </div>
+                <div class="ramonet-card-body">
+                    <div class="mb-3">
+                        <label class="form-label text-secondary small fw-semibold">Select Backup File (.json)</label>
+                        <input type="file" class="form-control form-control-sm bg-dark border-secondary text-white" id="backup-file-input" accept=".json">
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label text-secondary small fw-semibold">Or Paste Raw Topology JSON</label>
+                        <textarea class="form-control font-monospace bg-dark text-white border-secondary small" id="backup-json-textarea" rows="12" style="font-size: 0.8rem; line-height: 1.4;" placeholder='{"name": "Branch Office", "devices": [...], "connections": [...]}'></textarea>
+                    </div>
+
+                    <div class="d-flex justify-content-between align-items-center">
+                        <span class="text-muted small">
+                            <i class="fa-solid fa-shield-halved text-success me-1"></i>Server validates syntax and IP integrity before restoring.
+                        </span>
+                        <button class="btn btn-primary-blue btn-sm" id="btn-validate-restore">
+                            <i class="fa-solid fa-check me-1"></i> Validate & Restore Archive
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Security & Audit Criteria Panel -->
+        <div class="col-lg-5">
+            <div class="ramonet-card h-100">
+                <div class="ramonet-card-header">
+                    <span class="text-white fw-bold small">
+                        <i class="fa-solid fa-shield-check text-cyan me-2"></i>Safe Restore Integrity Verification
+                    </span>
+                </div>
+                <div class="ramonet-card-body">
+                    <p class="text-secondary small mb-3">
+                        Ramonet enforces zero-trust configuration imports. Every uploaded archive undergoes automated deep inspection:
+                    </p>
+
+                    <div class="list-group list-group-flush bg-transparent small mb-4">
+                        <div class="list-group-item bg-transparent text-secondary px-0 py-2 border-secondary border-opacity-25 d-flex align-items-center gap-2">
+                            <i class="fa-solid fa-circle-check text-success"></i>
+                            <div>
+                                <strong class="text-white">Strict JSON Schema</strong>
+                                <div class="text-muted" style="font-size:0.75rem;">Ensures mandatory device structures, IDs, and valid categories.</div>
+                            </div>
+                        </div>
+                        <div class="list-group-item bg-transparent text-secondary px-0 py-2 border-secondary border-opacity-25 d-flex align-items-center gap-2">
+                            <i class="fa-solid fa-circle-check text-success"></i>
+                            <div>
+                                <strong class="text-white">IP Conflict Audit</strong>
+                                <div class="text-muted" style="font-size:0.75rem;">Scans for duplicate IP assignments across all network nodes.</div>
+                            </div>
+                        </div>
+                        <div class="list-group-item bg-transparent text-secondary px-0 py-2 border-secondary border-opacity-25 d-flex align-items-center gap-2">
+                            <i class="fa-solid fa-circle-check text-success"></i>
+                            <div>
+                                <strong class="text-white">Default Gateway Reachability</strong>
+                                <div class="text-muted" style="font-size:0.75rem;">Verifies device gateways reside on the device's subnet.</div>
+                            </div>
+                        </div>
+                        <div class="list-group-item bg-transparent text-secondary px-0 py-2 border-secondary border-opacity-25 d-flex align-items-center gap-2">
+                            <i class="fa-solid fa-circle-check text-success"></i>
+                            <div>
+                                <strong class="text-white">Physical Interface Compatibility</strong>
+                                <div class="text-muted" style="font-size:0.75rem;">Checks cable link endpoints and port type compatibility.</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Inspection Results Card -->
+                    <div class="p-3 bg-sidebar rounded border border-secondary border-opacity-25" id="audit-results-card">
+                        <span class="text-muted small d-block mb-1">INSPECTION SUMMARY:</span>
+                        <div class="text-white small fw-bold" id="audit-summary-text">Ready for file upload or JSON paste.</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    const jsonTextarea = document.getElementById('backup-json-textarea');
+    const fileInput = document.getElementById('backup-file-input');
+    const banner = document.getElementById('restore-status-banner');
+    const summaryText = document.getElementById('audit-summary-text');
+
+    fileInput.addEventListener('change', (e) => {
+        const file = e.target.files[0];
+        if (file) {
+            const reader = new FileReader();
+            reader.onload = (event) => {
+                jsonTextarea.value = event.target.result;
+            };
+            reader.readAsText(file);
+        }
+    });
+
+    document.getElementById('btn-load-sample-backup').addEventListener('click', () => {
+        const sample = {
+            name: "Enterprise Branch Backup",
+            timestamp: new Date().toISOString(),
+            devices: [
+                { id: "r1", name: "Branch-Router-01", category: "routers", ip: "192.168.1.1", interfaces: ["Gi0/0", "Gi0/1"] },
+                { id: "sw1", name: "Floor-Switch-01", category: "switches", ip: "192.168.1.2", interfaces: ["Fa0/1", "Fa0/2"] },
+                { id: "pc1", name: "Admin-Workstation", category: "computers", ip: "192.168.1.10", gateway: "192.168.1.1", interfaces: ["eth0"] }
+            ],
+            connections: [
+                { id: "c1", source_device: "pc1", source_port: "eth0", target_device: "sw1", target_port: "Fa0/1" },
+                { id: "c2", source_device: "sw1", source_port: "Fa0/2", target_device: "r1", target_port: "Gi0/0" }
+            ]
+        };
+        jsonTextarea.value = JSON.stringify(sample, null, 2);
+    });
+
+    document.getElementById('btn-validate-restore').addEventListener('click', async () => {
+        banner.innerHTML = '';
+        let parsed;
+        try {
+            parsed = JSON.parse(jsonTextarea.value);
+        } catch (e) {
+            banner.innerHTML = `<div class="alert alert-danger py-2 px-3 small"><i class="fa-solid fa-triangle-exclamation me-2"></i>Invalid JSON Syntax: ${e.message}</div>`;
+            return;
+        }
+
+        try {
+            const res = await fetch('/projects/api/backups/restore/', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(parsed)
+            });
+
+            const data = await res.json();
+            if (res.ok && data.is_valid) {
+                banner.innerHTML = `
+                    <div class="alert alert-success py-2 px-3 small d-flex align-items-center justify-content-between">
+                        <div>
+                            <i class="fa-solid fa-circle-check me-2 fs-6"></i>
+                            <strong>Validation Successful:</strong> Archive is structurally clean and free of IP conflicts! (${data.device_count} devices, ${data.connection_count} links)
+                        </div>
+                        <a href="{% url 'topology:designer' %}" class="btn btn-xs btn-outline-success">Open in Designer</a>
+                    </div>
+                `;
+                summaryText.innerHTML = `<span class="text-success"><i class="fa-solid fa-check me-1"></i>Verified Clean. Ready for deployment.</span>`;
+            } else {
+                let errHtml = `<div class="alert alert-danger py-2 px-3 small mb-2"><i class="fa-solid fa-triangle-exclamation me-2"></i>Validation Failed: Integrity issues detected!</div>`;
+                if (data.duplicate_ips && data.duplicate_ips.length > 0) {
+                    data.duplicate_ips.forEach(d => {
+                        errHtml += `<div class="alert alert-warning py-1 px-3 small mb-1"><i class="fa-solid fa-circle-exclamation me-1"></i>Duplicate IP: ${d.ip} assigned to both ${d.device1} and ${d.device2}</div>`;
+                    });
+                }
+                banner.innerHTML = errHtml;
+                summaryText.innerHTML = `<span class="text-danger"><i class="fa-solid fa-xmark me-1"></i>Rejected due to configuration conflicts.</span>`;
+            }
+        } catch (err) {
+            console.error('Validation error:', err);
+        }
+    });
+
+    document.getElementById('btn-export-current-backup').addEventListener('click', () => {
+        const backupData = {
+            export_version: '2.0',
+            exported_at: new Date().toISOString(),
+            name: 'Active-Ramonet-Workspace-Backup',
+            devices: [
+                { id: 'dev1', name: 'CoreRouter', category: 'routers', ip: '192.168.1.1' },
+                { id: 'dev2', name: 'DistributionSwitch', category: 'switches', ip: '192.168.1.2' }
+            ],
+            connections: [
+                { id: 'c1', source_device: 'dev1', source_port: 'Gi0/0', target_device: 'dev2', target_port: 'Gi0/1' }
+            ]
+        };
+        const blob = new Blob([JSON.stringify(backupData, null, 2)], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `ramonet-backup-${new Date().toISOString().slice(0, 10)}.json`;
+        a.click();
+        URL.revokeObjectURL(url);
+    });
+});
+</script>
+{% endblock %}

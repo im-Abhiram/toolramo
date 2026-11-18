@@ -1,0 +1,217 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Network Change Management & Diffs — Ramonet{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-0">
+    <!-- Header -->
+    <div class="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-4">
+        <div>
+            <h4 class="text-white fw-bold mb-1">
+                <i class="fa-solid fa-code-compare text-warning me-2"></i>Network Change Management & Snapshot Diffs
+            </h4>
+            <p class="text-secondary small mb-0">
+                Audit device configuration changes, compute unified textual diffs, verify planned maintenance, and generate rollback scripts.
+            </p>
+        </div>
+        <div class="d-flex gap-2">
+            <button class="btn btn-outline-cyan btn-sm" id="btn-load-sample-diff">
+                <i class="fa-solid fa-file-waveform me-1"></i> Load Sample Change
+            </button>
+            <button class="btn btn-primary-blue btn-sm" id="btn-run-diff">
+                <i class="fa-solid fa-play me-1"></i> Generate Diff
+            </button>
+        </div>
+    </div>
+
+    <!-- Summary Metrics -->
+    <div class="row g-3 mb-4">
+        <div class="col-md-3 col-6">
+            <div class="ramonet-card p-3">
+                <small class="text-secondary d-block">Lines Added (+)</small>
+                <h3 class="text-success fw-bold mb-0" id="stat-lines-added">4</h3>
+            </div>
+        </div>
+        <div class="col-md-3 col-6">
+            <div class="ramonet-card p-3">
+                <small class="text-secondary d-block">Lines Removed (-)</small>
+                <h3 class="text-danger fw-bold mb-0" id="stat-lines-removed">2</h3>
+            </div>
+        </div>
+        <div class="col-md-3 col-6">
+            <div class="ramonet-card p-3">
+                <small class="text-secondary d-block">Change Scope</small>
+                <h3 class="text-cyan fw-bold mb-0" id="stat-change-scope">VLAN 50 Addition</h3>
+            </div>
+        </div>
+        <div class="col-md-3 col-6">
+            <div class="ramonet-card p-3">
+                <small class="text-secondary d-block">Audit Status</small>
+                <h3 class="text-warning fw-bold mb-0" id="stat-audit-status">Pre-Approved</h3>
+            </div>
+        </div>
+    </div>
+
+    <!-- Editor Panels: Side-by-Side Snapshots -->
+    <div class="row g-4 mb-4">
+        <div class="col-lg-6">
+            <div class="ramonet-card h-100">
+                <div class="ramonet-card-header d-flex justify-content-between align-items-center">
+                    <span class="text-white fw-bold small">
+                        <i class="fa-solid fa-clock-rotate-left text-secondary me-2"></i>Snapshot 1: Baseline Running-Config (Before)
+                    </span>
+                    <span class="badge bg-secondary font-monospace">v1.0.0 Baseline</span>
+                </div>
+                <div class="p-2">
+                    <textarea class="form-control font-monospace bg-dark text-white border-secondary small" id="config-before" rows="12" style="font-size: 0.8rem; resize: vertical; line-height: 1.4;">! Baseline configuration for Core-Switch-01
+hostname Core-Switch-01
+!
+vlan 1
+ name default
+!
+vlan 10
+ name Corporate-LAN
+!
+interface GigabitEthernet1/0/1
+ switchport mode access
+ switchport access vlan 10
+!
+interface GigabitEthernet1/0/24
+ switchport mode trunk
+ switchport trunk allowed vlan 1,10
+!
+end</textarea>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-6">
+            <div class="ramonet-card h-100">
+                <div class="ramonet-card-header d-flex justify-content-between align-items-center">
+                    <span class="text-white fw-bold small">
+                        <i class="fa-solid fa-code text-cyan me-2"></i>Snapshot 2: Proposed / Current Config (After)
+                    </span>
+                    <span class="badge bg-info text-dark font-monospace">v1.1.0 Proposed</span>
+                </div>
+                <div class="p-2">
+                    <textarea class="form-control font-monospace bg-dark text-white border-secondary small" id="config-after" rows="12" style="font-size: 0.8rem; resize: vertical; line-height: 1.4;">! Proposed configuration for Core-Switch-01
+hostname Core-Switch-01
+!
+vlan 1
+ name default
+!
+vlan 10
+ name Corporate-LAN
+!
+vlan 50
+ name Surveillance-CCTV
+!
+interface GigabitEthernet1/0/1
+ switchport mode access
+ switchport access vlan 10
+!
+interface GigabitEthernet1/0/20
+ switchport mode access
+ switchport access vlan 50
+!
+interface GigabitEthernet1/0/24
+ switchport mode trunk
+ switchport trunk allowed vlan 1,10,50
+!
+end</textarea>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Unified Diff Output View -->
+    <div class="ramonet-card">
+        <div class="ramonet-card-header d-flex justify-content-between align-items-center">
+            <span class="text-white fw-bold small">
+                <i class="fa-solid fa-terminal text-info me-2"></i>Unified Textual Diff Output
+            </span>
+            <button class="btn btn-xs btn-outline-secondary" id="btn-copy-diff">
+                <i class="fa-solid fa-copy me-1"></i> Copy Diff
+            </button>
+        </div>
+        <div class="p-3 bg-dark font-monospace rounded-bottom" style="max-height: 350px; overflow-y: auto;">
+            <pre class="mb-0 text-white" id="diff-output-pre" style="font-size: 0.85rem; line-height: 1.5;"></pre>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    const configBeforeEl = document.getElementById('config-before');
+    const configAfterEl = document.getElementById('config-after');
+    const diffPre = document.getElementById('diff-output-pre');
+
+    async function executeDiff() {
+        const configBefore = configBeforeEl.value;
+        const configAfter = configAfterEl.value;
+
+        try {
+            const res = await fetch('/projects/api/changes/diff/', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    device_name: 'Core-Switch-01',
+                    config_before: configBefore,
+                    config_after: configAfter
+                })
+            });
+
+            if (res.ok) {
+                const data = await res.json();
+                document.getElementById('stat-lines-added').textContent = `+${data.lines_added}`;
+                document.getElementById('stat-lines-removed').textContent = `-${data.lines_removed}`;
+
+                diffPre.innerHTML = '';
+                if (data.is_identical) {
+                    diffPre.innerHTML = '<span class="text-secondary">// Both configuration snapshots are completely identical. No changes detected.</span>';
+                    document.getElementById('stat-change-scope').textContent = 'No Delta';
+                } else {
+                    document.getElementById('stat-change-scope').textContent = `${data.lines_added + data.lines_removed} Line Delta`;
+                    data.diff.forEach(line => {
+                        const span = document.createElement('div');
+                        if (line.startsWith('+') && !line.startsWith('+++')) {
+                            span.className = 'text-success bg-success bg-opacity-10 px-2 py-0';
+                        } else if (line.startsWith('-') && !line.startsWith('---')) {
+                            span.className = 'text-danger bg-danger bg-opacity-10 px-2 py-0';
+                        } else if (line.startsWith('@')) {
+                            span.className = 'text-cyan bg-info bg-opacity-10 px-2 py-0';
+                        } else {
+                            span.className = 'text-secondary px-2 py-0';
+                        }
+                        span.textContent = line;
+                        diffPre.appendChild(span);
+                    });
+                }
+            }
+        } catch (err) {
+            console.error('Diff calculation error:', err);
+        }
+    }
+
+    document.getElementById('btn-run-diff').addEventListener('click', executeDiff);
+
+    document.getElementById('btn-load-sample-diff').addEventListener('click', () => {
+        configBeforeEl.value = `hostname Edge-Router-01\n!\nip route 0.0.0.0 0.0.0.0 10.0.0.1\n!\ninterface GigabitEthernet0/0\n ip address 10.0.0.2 255.255.255.252\n!\nend`;
+        configAfterEl.value = `hostname Edge-Router-01\n!\nip route 0.0.0.0 0.0.0.0 10.0.0.1\nip route 192.168.100.0 255.255.255.0 192.168.1.5\n!\ninterface GigabitEthernet0/0\n ip address 10.0.0.2 255.255.255.252\n!\nend`;
+        executeDiff();
+    });
+
+    document.getElementById('btn-copy-diff').addEventListener('click', () => {
+        navigator.clipboard.writeText(diffPre.innerText).then(() => {
+            alert('Diff copied to clipboard!');
+        });
+    });
+
+    // Run initial diff
+    executeDiff();
+});
+</script>
+{% endblock %}

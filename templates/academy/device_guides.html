@@ -1,0 +1,106 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}27 Hardware Device Guides — Ramonet Academy{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <!-- Breadcrumb -->
+    <nav aria-label="breadcrumb" class="mb-3">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{% url 'academy:dashboard' %}" class="text-info text-decoration-none"><i class="fa-solid fa-graduation-cap me-1"></i>Academy</a></li>
+            <li class="breadcrumb-item active text-secondary" aria-current="page">Hardware Device Knowledge Guides</li>
+        </ol>
+    </nav>
+
+    <!-- Header Banner -->
+    <div class="card bg-card border-accent mb-4 shadow-sm">
+        <div class="card-body p-4">
+            <div class="d-flex align-items-center gap-2 mb-2">
+                <span class="badge bg-primary"><i class="fa-solid fa-server me-1"></i> Comprehensive Reference</span>
+                <span class="badge bg-dark text-info border border-info">27 Devices</span>
+            </div>
+            <h2 class="h3 text-white fw-bold mb-2">Hardware Device Engineering Guides</h2>
+            <p class="text-secondary mb-0" style="max-width: 750px;">
+                Deep practical reference guides for every standard enterprise networking device. Every single guide covers all 17 essential engineering sections: physical ports, interfaces, cable pinouts, PoE requirements, command syntax, common mistakes, and hands-on lab integration.
+            </p>
+        </div>
+    </div>
+
+    <!-- Search & Filters -->
+    <div class="card bg-card border-accent mb-4">
+        <div class="card-body p-3">
+            <form method="GET" action="{% url 'academy:device_guides' %}" class="row g-2 align-items-center">
+                <div class="col-md-5">
+                    <div class="input-group input-group-sm">
+                        <span class="input-group-text bg-card-secondary border-secondary text-secondary"><i class="fa-solid fa-magnifying-glass"></i></span>
+                        <input type="text" name="q" value="{{ query }}" class="form-control bg-dark text-light border-secondary" placeholder="Search devices by name or function...">
+                    </div>
+                </div>
+                <div class="col-md-5 d-flex flex-wrap gap-1">
+                    <a href="{% url 'academy:device_guides' %}" class="btn btn-xs {% if not selected_category %}btn-primary-blue{% else %}btn-outline-secondary text-secondary{% endif %}">
+                        All
+                    </a>
+                    {% for cat in categories %}
+                    <a href="{% url 'academy:device_guides' %}?category={{ cat }}" class="btn btn-xs {% if selected_category == cat %}btn-info{% else %}btn-outline-secondary text-secondary{% endif %}">
+                        {{ cat }}
+                    </a>
+                    {% endfor %}
+                </div>
+                <div class="col-md-2 text-end">
+                    <button type="submit" class="btn btn-sm btn-outline-info w-100">Filter</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Devices Grid (27 Devices) -->
+    <div class="row g-4 mb-5">
+        {% for dev in devices %}
+        <div class="col-md-6 col-lg-4 col-xl-3">
+            <div class="card bg-card border-accent h-100 transition-hover shadow-sm">
+                <div class="card-body p-3 d-flex flex-column">
+                    <div class="d-flex align-items-center justify-content-between mb-2">
+                        <span class="badge bg-card-secondary text-info border border-accent" style="font-size: 0.65rem;">
+                            {{ dev.category }}
+                        </span>
+                        <span class="badge bg-secondary-subtle text-light" style="font-size: 0.65rem;">
+                            17 Sections
+                        </span>
+                    </div>
+
+                    <div class="d-flex align-items-center gap-3 my-2">
+                        <div class="fs-2 text-info p-2 bg-card-secondary rounded border border-accent">
+                            <i class="fa-solid {{ dev.icon }}"></i>
+                        </div>
+                        <div>
+                            <h3 class="h6 text-white fw-bold mb-1">
+                                <a href="{% url 'academy:device_guide_detail' dev.slug %}" class="text-white text-decoration-none hover-primary">
+                                    {{ dev.name }}
+                                </a>
+                            </h3>
+                            <span class="text-muted font-monospace" style="font-size: 0.7rem;">{{ dev.device_type }}</span>
+                        </div>
+                    </div>
+
+                    <p class="small text-secondary mb-3 flex-grow-1" style="line-height: 1.4; font-size: 0.78rem;">
+                        {{ dev.summary|truncatewords:16 }}
+                    </p>
+
+                    <div class="pt-2 border-top border-accent text-end">
+                        <a href="{% url 'academy:device_guide_detail' dev.slug %}" class="btn btn-sm btn-outline-primary-blue w-100">
+                            Read 17 Sections <i class="fa-solid fa-arrow-right ms-1"></i>
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% empty %}
+        <div class="col-12 text-center py-5">
+            <h5 class="text-light">No devices match your search query.</h5>
+            <a href="{% url 'academy:device_guides' %}" class="btn btn-sm btn-outline-info mt-2">Reset Search</a>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}

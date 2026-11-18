@@ -1,0 +1,222 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Network Monitoring Dashboard | Ramonet{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-0">
+    <div class="d-flex align-items-center justify-content-between mb-4">
+        <div>
+            <h4 class="text-white fw-bold mb-1">
+                <i class="fa-solid fa-chart-line text-success me-2"></i>Network Operations Center (NOC) Monitoring
+            </h4>
+            <p class="text-secondary small mb-0">Live interface counters, simulated packet throughput, latency metrics, and firewall telemetry (Locally rendered Chart.js).</p>
+        </div>
+        <div class="d-flex align-items-center gap-2">
+            <span class="badge bg-success-subtle text-success border border-success border-opacity-25" id="poll-indicator">
+                <i class="fa-solid fa-circle-dot fa-fade me-1"></i> Telemetry Polling (Every 4s)
+            </span>
+            <a href="{% url 'topology:designer' %}" class="btn btn-primary-blue btn-sm">
+                <i class="fa-solid fa-diagram-project me-1"></i> Open Designer
+            </a>
+        </div>
+    </div>
+
+    <!-- Health & Metric KPI Cards -->
+    <div class="row g-3 mb-4">
+        <div class="col-xl-3 col-md-6">
+            <div class="ramonet-card stat-card">
+                <div class="stat-icon green">
+                    <i class="fa-solid fa-heart-pulse"></i>
+                </div>
+                <div>
+                    <div class="stat-value text-success" id="metric-health">98.4%</div>
+                    <div class="stat-label">Network Health Index</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-xl-3 col-md-6">
+            <div class="ramonet-card stat-card">
+                <div class="stat-icon blue">
+                    <i class="fa-solid fa-gauge"></i>
+                </div>
+                <div>
+                    <div class="stat-value" id="metric-bandwidth">58.4 Mbps</div>
+                    <div class="stat-label">Aggregate Bandwidth</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-xl-3 col-md-6">
+            <div class="ramonet-card stat-card">
+                <div class="stat-icon amber">
+                    <i class="fa-solid fa-shield-halved"></i>
+                </div>
+                <div>
+                    <div class="stat-value" id="metric-firewall">3,240 / 184</div>
+                    <div class="stat-label">Firewall Allows / Drops</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-xl-3 col-md-6">
+            <div class="ramonet-card stat-card">
+                <div class="stat-icon red">
+                    <i class="fa-solid fa-box-archive"></i>
+                </div>
+                <div>
+                    <div class="stat-value text-white" id="metric-packets">3,542</div>
+                    <div class="stat-label">Total Simulated Frames</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Charts Row -->
+    <div class="row g-4 mb-4">
+        <!-- Chart 1: Traffic Throughput Over Time -->
+        <div class="col-lg-8">
+            <div class="ramonet-card h-100">
+                <div class="ramonet-card-header">
+                    <span class="text-white fw-bold small"><i class="fa-solid fa-chart-area text-info me-2"></i>Simulated Network Traffic (Mbps Over Time)</span>
+                </div>
+                <div class="ramonet-card-body" style="height: 280px; position: relative;">
+                    <canvas id="chart-traffic"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- Chart 2: Packet Success vs Drops -->
+        <div class="col-lg-4">
+            <div class="ramonet-card h-100">
+                <div class="ramonet-card-header">
+                    <span class="text-white fw-bold small"><i class="fa-solid fa-chart-pie text-info me-2"></i>Packet Delivery Ratio</span>
+                </div>
+                <div class="ramonet-card-body d-flex align-items-center justify-content-center" style="height: 280px; position: relative;">
+                    <canvas id="chart-delivery-ratio"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- System Event Log Table -->
+    <div class="ramonet-card">
+        <div class="ramonet-card-header d-flex justify-content-between align-items-center">
+            <span class="text-white fw-bold small"><i class="fa-solid fa-list-ul text-info me-2"></i>Recent Network Events & Alerts</span>
+            <span class="badge bg-secondary font-monospace">Real-time Stream</span>
+        </div>
+        <div class="table-responsive">
+            <table class="table table-ramonet mb-0" id="monitoring-events-table">
+                <thead>
+                    <tr>
+                        <th>Time</th>
+                        <th>Severity</th>
+                        <th>Device</th>
+                        <th>Event Category</th>
+                        <th>Details</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td class="font-monospace small text-muted">Just now</td>
+                        <td><span class="badge bg-success">Normal</span></td>
+                        <td class="text-white fw-bold">Switch2960</td>
+                        <td>Link State</td>
+                        <td class="text-secondary small">Port GigabitEthernet0/1 link up, 1000 Mbps Full Duplex.</td>
+                    </tr>
+                    <tr>
+                        <td class="font-monospace small text-muted">1 min ago</td>
+                        <td><span class="badge bg-warning text-dark">Warning</span></td>
+                        <td class="text-white fw-bold">Firewall1</td>
+                        <td>Security Policy</td>
+                        <td class="text-secondary small">Dropped inbound TCP port 23 (Telnet) probe from 203.0.113.88.</td>
+                    </tr>
+                    <tr>
+                        <td class="font-monospace small text-muted">3 mins ago</td>
+                        <td><span class="badge bg-info text-dark">Info</span></td>
+                        <td class="text-white fw-bold">Ubuntu-Server</td>
+                        <td>DHCP Service</td>
+                        <td class="text-secondary small">Leased 192.168.1.101 to client 00:15:5D:82:11:44.</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    // 1. Initialize Chart.js Traffic Line Chart
+    const trafficCtx = document.getElementById('chart-traffic')?.getContext('2d');
+    const trafficChart = new Chart(trafficCtx, {
+        type: 'line',
+        data: {
+            labels: ['10:00', '10:05', '10:10', '10:15', '10:20', '10:25', '10:30', '10:35'],
+            datasets: [{
+                label: 'Inbound Throughput (Mbps)',
+                data: [35, 45, 62, 58, 72, 68, 85, 76],
+                borderColor: '#38BDF8',
+                backgroundColor: 'rgba(56, 189, 248, 0.1)',
+                fill: true,
+                tension: 0.35,
+                borderWidth: 2
+            }, {
+                label: 'Outbound Throughput (Mbps)',
+                data: [20, 28, 38, 42, 50, 44, 55, 48],
+                borderColor: '#22C55E',
+                backgroundColor: 'rgba(34, 197, 94, 0.05)',
+                fill: true,
+                tension: 0.35,
+                borderWidth: 2
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { labels: { color: '#94A3B8', font: { size: 11 } } }
+            },
+            scales: {
+                x: { grid: { color: 'rgba(51, 65, 85, 0.3)' }, ticks: { color: '#94A3B8' } },
+                y: { grid: { color: 'rgba(51, 65, 85, 0.3)' }, ticks: { color: '#94A3B8' } }
+            }
+        }
+    });
+
+    // 2. Initialize Chart.js Delivery Ratio Doughnut Chart
+    const ratioCtx = document.getElementById('chart-delivery-ratio')?.getContext('2d');
+    const ratioChart = new Chart(ratioCtx, {
+        type: 'doughnut',
+        data: {
+            labels: ['Delivered (98.4%)', 'Dropped (1.6%)'],
+            datasets: [{
+                data: [3542, 58],
+                backgroundColor: ['#22C55E', '#EF4444'],
+                borderWidth: 0
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { position: 'bottom', labels: { color: '#94A3B8', font: { size: 11 } } }
+            },
+            cutout: '72%'
+        }
+    });
+
+    // 3. Lightweight Polling (Every 4 seconds)
+    setInterval(async () => {
+        try {
+            const resp = await fetch('/monitoring/api/stats/');
+            if (resp.ok) {
+                const s = await resp.json();
+                document.getElementById('metric-bandwidth').textContent = `${s.bandwidth_mbps} Mbps`;
+                document.getElementById('metric-packets').textContent = s.total_packets;
+                document.getElementById('metric-firewall').textContent = `${s.firewall_allows} / ${s.firewall_denies}`;
+            }
+        } catch (e) {}
+    }, 4000);
+});
+</script>
+{% endblock %}

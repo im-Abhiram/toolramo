@@ -1,0 +1,175 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Wireless Network Manager | Ramonet{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-0">
+    <div class="d-flex align-items-center justify-content-between mb-4">
+        <div>
+            <h4 class="text-white fw-bold mb-1">
+                <i class="fa-solid fa-wifi text-warning me-2"></i>Wireless Network & Access Point Manager
+            </h4>
+            <p class="text-secondary small mb-0">Wi-Fi 6 (802.11ax), Dual-Band Radios, SSID-to-VLAN Mapping, WPA3-Personal/Enterprise, and Client Association.</p>
+        </div>
+        <a href="{% url 'topology:designer' %}" class="btn btn-primary-blue btn-sm">
+            <i class="fa-solid fa-diagram-project me-1"></i> Open Designer
+        </a>
+    </div>
+
+    <div class="row g-4 mb-4">
+        <!-- SSID Configuration Card -->
+        <div class="col-lg-6">
+            <div class="ramonet-card h-100">
+                <div class="ramonet-card-header">
+                    <span class="text-white fw-bold small"><i class="fa-solid fa-broadcast-tower text-info me-2"></i>Configure Wireless Networks (SSIDs)</span>
+                </div>
+                <div class="ramonet-card-body">
+                    <div class="mb-3">
+                        <label class="form-label small text-muted">Network Name (SSID)</label>
+                        <input type="text" class="form-control form-control-sm" id="wifi-ssid" value="Corporate-Enterprise">
+                    </div>
+                    <div class="row g-2 mb-3">
+                        <div class="col-6">
+                            <label class="form-label small text-muted">Security Mode</label>
+                            <select class="form-select form-select-sm" id="wifi-security">
+                                <option value="WPA3-Personal" selected>WPA3-Personal (SAE)</option>
+                                <option value="WPA2/WPA3-Mixed">WPA2/WPA3 Mixed</option>
+                                <option value="WPA3-Enterprise">WPA3-Enterprise (802.1X)</option>
+                                <option value="Open">Open (Guest Portal)</option>
+                            </select>
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label small text-muted">VLAN Mapping</label>
+                            <select class="form-select form-select-sm" id="wifi-vlan">
+                                <option value="10" selected>VLAN 10 (Corporate Staff)</option>
+                                <option value="50">VLAN 50 (Guest Network)</option>
+                                <option value="100">VLAN 100 (IoT Devices)</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label small text-muted">Passphrase</label>
+                        <input type="password" class="form-control form-control-sm" id="wifi-pass" value="EnterpriseWiFi2026!">
+                    </div>
+                    <button class="btn btn-primary-blue btn-sm w-100" id="btn-save-ssid">
+                        <i class="fa-solid fa-check me-1"></i> Save & Broadcast SSID
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Radio & Channel Configuration -->
+        <div class="col-lg-6">
+            <div class="ramonet-card h-100">
+                <div class="ramonet-card-header">
+                    <span class="text-white fw-bold small"><i class="fa-solid fa-signal text-info me-2"></i>Radio & Channel Frequency Settings</span>
+                </div>
+                <div class="ramonet-card-body">
+                    <div class="p-3 bg-sidebar rounded border border-secondary border-opacity-25 mb-3">
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <strong class="text-white small">2.4 GHz Radio (802.11b/g/n/ax)</strong>
+                            <span class="badge bg-success">Active</span>
+                        </div>
+                        <div class="row g-2">
+                            <div class="col-6">
+                                <label class="form-label small text-muted">Channel</label>
+                                <select class="form-select form-select-sm">
+                                    <option value="1">Channel 1 (2412 MHz)</option>
+                                    <option value="6" selected>Channel 6 (2437 MHz)</option>
+                                    <option value="11">Channel 11 (2462 MHz)</option>
+                                </select>
+                            </div>
+                            <div class="col-6">
+                                <label class="form-label small text-muted">Channel Width</label>
+                                <select class="form-select form-select-sm">
+                                    <option value="20" selected>20 MHz (Recommended)</option>
+                                    <option value="40">40 MHz</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="p-3 bg-sidebar rounded border border-secondary border-opacity-25">
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <strong class="text-white small">5 GHz Radio (802.11a/n/ac/ax)</strong>
+                            <span class="badge bg-success">Active</span>
+                        </div>
+                        <div class="row g-2">
+                            <div class="col-6">
+                                <label class="form-label small text-muted">Channel</label>
+                                <select class="form-select form-select-sm">
+                                    <option value="36" selected>Channel 36 (5180 MHz)</option>
+                                    <option value="44">Channel 44 (5220 MHz)</option>
+                                    <option value="149">Channel 149 (5745 MHz)</option>
+                                </select>
+                            </div>
+                            <div class="col-6">
+                                <label class="form-label small text-muted">Channel Width</label>
+                                <select class="form-select form-select-sm">
+                                    <option value="40">40 MHz</option>
+                                    <option value="80" selected>80 MHz (High Speed)</option>
+                                    <option value="160">160 MHz</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Connected Clients Table -->
+    <div class="ramonet-card">
+        <div class="ramonet-card-header d-flex justify-content-between align-items-center">
+            <span class="text-white fw-bold small"><i class="fa-solid fa-users text-info me-2"></i>Associated Wireless Clients</span>
+            <span class="badge bg-secondary font-monospace">3 Active Clients</span>
+        </div>
+        <div class="table-responsive">
+            <table class="table table-ramonet mb-0">
+                <thead>
+                    <tr>
+                        <th>Client Hostname</th>
+                        <th>MAC Address</th>
+                        <th>SSID</th>
+                        <th>Assigned IP</th>
+                        <th>Band</th>
+                        <th>Signal Strength (RSSI)</th>
+                        <th>Tx Rate</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td class="text-white fw-bold">Laptop-Executive</td>
+                        <td class="font-monospace small">3C:22:FB:41:82:11</td>
+                        <td><span class="badge bg-primary">Corporate-Enterprise</span></td>
+                        <td class="font-monospace text-info">192.168.10.45</td>
+                        <td>5 GHz</td>
+                        <td><span class="badge bg-success">-54 dBm (Excellent)</span></td>
+                        <td class="font-monospace text-secondary">866 Mbps</td>
+                    </tr>
+                    <tr>
+                        <td class="text-white fw-bold">iPhone-Guest</td>
+                        <td class="font-monospace small">A4:83:E7:09:B3:50</td>
+                        <td><span class="badge bg-secondary">Guest-WiFi</span></td>
+                        <td class="font-monospace text-info">192.168.50.22</td>
+                        <td>2.4 GHz</td>
+                        <td><span class="badge bg-success">-62 dBm (Good)</span></td>
+                        <td class="font-monospace text-secondary">144 Mbps</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.getElementById('btn-save-ssid')?.addEventListener('click', () => {
+    const ssid = document.getElementById('wifi-ssid').value;
+    const vlan = document.getElementById('wifi-vlan').value;
+    window.ramonetUI?.showToast('SSID Configured', `Broadcasting "${ssid}" on VLAN ${vlan}`, 'success');
+});
+</script>
+{% endblock %}

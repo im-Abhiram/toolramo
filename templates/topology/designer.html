@@ -1,0 +1,445 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Network Designer | Ramonet{% endblock %}
+
+{% block main_class %}full-screen{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/topology.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="topology-workspace-wrapper">
+    <!-- Left Device Palette Sidebar -->
+    <div class="device-palette-sidebar">
+        <div class="device-palette-header d-flex align-items-center justify-content-between">
+            <span class="text-white fw-bold small"><i class="fa-solid fa-boxes-stacked text-info me-2"></i>Device Library</span>
+            <span class="badge bg-secondary" style="font-size:0.65rem;">Drag & Drop</span>
+        </div>
+        <div class="device-palette-search">
+            <input type="text" class="form-control form-control-sm" id="palette-search-input" placeholder="Filter devices...">
+        </div>
+        <div class="device-palette-list" id="palette-device-list">
+            {% for cat in categories %}
+            <div class="palette-category-title">{{ cat.name }}</div>
+            {% for dev in cat.devices.all %}
+            <div class="palette-device-item" draggable="true" data-definition-id="{{ dev.id }}" data-json='{{ dev.to_palette_json|safe }}'>
+                <div class="palette-device-icon">
+                    <i class="fa-solid {{ dev.icon }}"></i>
+                </div>
+                <div class="overflow-hidden">
+                    <div class="palette-device-name" title="{{ dev.name }}">{{ dev.name }}</div>
+                    <div class="palette-device-desc">{{ dev.manufacturer }}</div>
+                </div>
+            </div>
+            {% endfor %}
+            {% endfor %}
+        </div>
+    </div>
+
+    <!-- Central Interactive Topology Canvas Area -->
+    <div class="canvas-container" id="topology-container">
+        <!-- Floating Canvas Toolbar -->
+        <div class="canvas-toolbar">
+            <button class="toolbar-btn active" id="btn-mode-select" title="Selection Mode"><i class="fa-solid fa-arrow-pointer"></i></button>
+            <button class="toolbar-btn" id="btn-mode-connect" title="Add Cable Connection"><i class="fa-solid fa-plug"></i></button>
+            <button class="toolbar-btn active" id="btn-toggle-grid" title="Toggle Grid Snapping"><i class="fa-solid fa-border-all"></i></button>
+            <div class="toolbar-divider"></div>
+            <button class="toolbar-btn" id="btn-zoom-in" title="Zoom In"><i class="fa-solid fa-magnifying-glass-plus"></i></button>
+            <button class="toolbar-btn" id="btn-zoom-out" title="Zoom Out"><i class="fa-solid fa-magnifying-glass-minus"></i></button>
+            <button class="toolbar-btn" id="btn-zoom-fit" title="Fit to Screen"><i class="fa-solid fa-expand"></i></button>
+            <button class="toolbar-btn" id="btn-zoom-reset" title="Reset Zoom (100%)"><i class="fa-solid fa-arrows-to-dot"></i></button>
+            <div class="toolbar-divider"></div>
+            <button class="toolbar-btn" id="btn-undo" title="Undo (Ctrl+Z)"><i class="fa-solid fa-rotate-left"></i></button>
+            <button class="toolbar-btn" id="btn-redo" title="Redo (Ctrl+Y)"><i class="fa-solid fa-rotate-right"></i></button>
+            <div class="toolbar-divider"></div>
+            <button class="toolbar-btn text-danger" id="btn-delete-selected" title="Delete Selected (Del)"><i class="fa-solid fa-trash-can"></i></button>
+            <button class="toolbar-btn text-info" id="btn-duplicate-selected" title="Duplicate Device (Ctrl+D)"><i class="fa-solid fa-clone"></i></button>
+            <div class="toolbar-divider"></div>
+            <button class="toolbar-btn text-warning" id="btn-run-packet-sim" title="Run Packet Simulation"><i class="fa-solid fa-paper-plane"></i></button>
+        </div>
+
+        <!-- SVG Layer for Cable Connections & Packets -->
+        <svg id="topology-svg">
+            <g class="transform-group">
+                <g class="connections-layer"></g>
+                <g class="packets-layer"></g>
+            </g>
+        </svg>
+
+        <!-- Dynamic HTML Nodes Container -->
+        <div id="topology-nodes-container" style="position: absolute; top:0; left:0; width:100%; height:100%; pointer-events:none;">
+            <!-- Nodes are rendered with pointer-events: auto -->
+        </div>
+
+        <!-- Minimap -->
+        <div class="canvas-minimap">
+            <canvas id="topology-minimap-canvas" width="180" height="120"></canvas>
+        </div>
+    </div>
+
+    <!-- Right Selected Device Inspector Panel -->
+    <div class="device-inspector-panel closed" id="device-inspector-panel">
+        <div class="inspector-header">
+            <div class="d-flex align-items-center gap-2">
+                <i class="fa-solid fa-server text-info" id="inspector-dev-icon"></i>
+                <div>
+                    <h6 class="text-white mb-0 fw-bold" id="inspector-dev-name">Device</h6>
+                    <small class="text-muted" id="inspector-dev-model">Model</small>
+                </div>
+            </div>
+            <button class="btn btn-sm text-secondary p-0" id="btn-close-inspector" title="Close Inspector"><i class="fa-solid fa-xmark fa-lg"></i></button>
+        </div>
+
+        <!-- Inspector Navigation Tabs -->
+        <div class="inspector-tabs-nav bg-dark border-bottom border-accent">
+            <ul class="nav nav-tabs nav-fill px-2 pt-2 border-0" id="inspectorNavTabs" role="tablist">
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link active small py-2 px-1 text-secondary" id="tab-insp-general" data-bs-toggle="tab" data-bs-target="#pane-insp-general" type="button" role="tab">
+                        <i class="fa-solid fa-circle-info me-1"></i>General
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link small py-2 px-1 text-secondary" id="tab-insp-ip" data-bs-toggle="tab" data-bs-target="#pane-insp-ip" type="button" role="tab">
+                        <i class="fa-solid fa-network-wired me-1"></i>IPv4
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link small py-2 px-1 text-secondary" id="tab-insp-interfaces" data-bs-toggle="tab" data-bs-target="#pane-insp-interfaces" type="button" role="tab">
+                        <i class="fa-solid fa-ethernet me-1"></i>Ports
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link small py-2 px-1 text-secondary" id="tab-insp-tools" data-bs-toggle="tab" data-bs-target="#pane-insp-tools" type="button" role="tab">
+                        <i class="fa-solid fa-terminal me-1"></i>CLI / Tools
+                    </button>
+                </li>
+            </ul>
+        </div>
+
+        <div class="tab-content inspector-body p-3 overflow-y-auto" id="inspectorTabContent">
+            <!-- Tab 1: General Info -->
+            <div class="tab-pane fade show active" id="pane-insp-general" role="tabpanel">
+                <div class="d-flex align-items-center justify-content-between p-2 rounded bg-card-secondary border border-accent mb-3">
+                    <span class="small text-muted">Status</span>
+                    <span class="badge bg-success-subtle text-success border border-success" id="inspector-dev-status"><i class="fa-solid fa-circle-check me-1"></i>Online / Active</span>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label small text-muted">Device Hostname</label>
+                    <input type="text" class="form-control form-control-sm" id="inspector-dev-hostname" placeholder="Device Name">
+                </div>
+                <div class="mb-3">
+                    <label class="form-label small text-muted">Category & Architecture</label>
+                    <input type="text" class="form-control form-control-sm bg-dark text-muted border-secondary" id="inspector-dev-category" readonly>
+                </div>
+                <div class="row g-2 mb-3">
+                    <div class="col-6">
+                        <div class="p-2 bg-card-secondary rounded border border-accent text-center">
+                            <small class="text-muted d-block" style="font-size:0.68rem;">Power Demand</small>
+                            <strong class="text-warning small" id="inspector-dev-power">25 W</strong>
+                        </div>
+                    </div>
+                    <div class="col-6">
+                        <div class="p-2 bg-card-secondary rounded border border-accent text-center">
+                            <small class="text-muted d-block" style="font-size:0.68rem;">PoE Budget</small>
+                            <strong class="text-cyan small" id="inspector-dev-poe">0 W</strong>
+                        </div>
+                    </div>
+                </div>
+                <div class="p-2 bg-sidebar rounded border border-secondary border-opacity-25 small text-secondary">
+                    <i class="fa-solid fa-lightbulb text-warning me-1"></i>
+                    <span>Double-click any device on the canvas to open this inspector directly.</span>
+                </div>
+            </div>
+
+            <!-- Tab 2: IPv4 & Subnet -->
+            <div class="tab-pane fade" id="pane-insp-ip" role="tabpanel">
+                <div class="mb-3">
+                    <label class="form-label small text-muted">IPv4 Address</label>
+                    <input type="text" class="form-control form-control-sm" id="inspector-dev-ip" placeholder="192.168.1.1">
+                </div>
+                <div class="mb-3">
+                    <label class="form-label small text-muted">Subnet Mask</label>
+                    <input type="text" class="form-control form-control-sm" id="inspector-dev-mask" value="255.255.255.0">
+                </div>
+                <div class="mb-3">
+                    <label class="form-label small text-muted">Default Gateway</label>
+                    <input type="text" class="form-control form-control-sm" id="inspector-dev-gw" placeholder="192.168.1.254">
+                </div>
+                <div class="mb-3">
+                    <label class="form-label small text-muted">Primary DNS Server</label>
+                    <input type="text" class="form-control form-control-sm" id="inspector-dev-dns" placeholder="8.8.8.8">
+                </div>
+                <div class="p-2 bg-card-secondary rounded border border-accent small">
+                    <div class="d-flex justify-content-between text-muted" style="font-size:0.72rem;">
+                        <span>Subnet Scope:</span>
+                        <span class="text-info font-monospace" id="inspector-subnet-summary">/24 (254 Usable Hosts)</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tab 3: Interfaces -->
+            <div class="tab-pane fade" id="pane-insp-interfaces" role="tabpanel">
+                <div class="d-flex align-items-center justify-content-between mb-2">
+                    <h6 class="text-white small fw-bold mb-0"><i class="fa-solid fa-network-wired text-info me-1"></i>Port Interfaces</h6>
+                    <span class="badge bg-secondary" id="inspector-ifc-count" style="font-size:0.65rem;">0 ports</span>
+                </div>
+                <div id="inspector-interfaces-list" class="d-flex flex-column gap-2"></div>
+            </div>
+
+            <!-- Tab 4: CLI & Tools -->
+            <div class="tab-pane fade" id="pane-insp-tools" role="tabpanel">
+                <p class="text-secondary small mb-3">Launch interactive diagnostic consoles, guided wizards, or device manuals.</p>
+                <div class="d-flex flex-column gap-2 mb-3">
+                    <button class="btn btn-sm btn-outline-info text-start d-flex align-items-center justify-content-between" id="btn-inspect-cli">
+                        <span><i class="fa-solid fa-terminal me-2"></i>Open CLI Terminal</span>
+                        <i class="fa-solid fa-chevron-right text-muted"></i>
+                    </button>
+                    <button class="btn btn-sm btn-outline-cyan text-start d-flex align-items-center justify-content-between" id="btn-inspect-wizard">
+                        <span><i class="fa-solid fa-wand-magic-sparkles me-2"></i>Guided Config Wizard</span>
+                        <i class="fa-solid fa-chevron-right text-muted"></i>
+                    </button>
+                    <button class="btn btn-sm btn-outline-secondary text-start d-flex align-items-center justify-content-between" id="btn-inspect-guide">
+                        <span><i class="fa-solid fa-book me-2"></i>15-Section Learning Guide</span>
+                        <i class="fa-solid fa-chevron-right text-muted"></i>
+                    </button>
+                </div>
+                <hr class="border-secondary border-opacity-25 my-3">
+                <div class="d-flex gap-2">
+                    <button class="btn btn-sm btn-outline-info flex-grow-1" id="btn-inspect-duplicate">
+                        <i class="fa-solid fa-clone me-1"></i> Duplicate
+                    </button>
+                    <button class="btn btn-sm btn-outline-danger flex-grow-1" id="btn-inspect-delete">
+                        <i class="fa-solid fa-trash-can me-1"></i> Delete
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bottom Workbench Drawer (CLI, Packet Inspector, Logs) -->
+    <div class="workbench-drawer minimized" id="workbench-drawer">
+        <div class="workbench-header">
+            <div class="workbench-tabs">
+                <button class="workbench-tab-btn active" data-tab="cli-terminal">
+                    <i class="fa-solid fa-terminal"></i> CLI Terminal
+                </button>
+                <button class="workbench-tab-btn" data-tab="packet-inspector">
+                    <i class="fa-solid fa-route"></i> Packet Inspector
+                </button>
+                <button class="workbench-tab-btn" data-tab="event-log">
+                    <i class="fa-solid fa-list-ul"></i> Event Log
+                </button>
+            </div>
+            <div class="d-flex align-items-center gap-2">
+                <button class="btn btn-sm text-secondary p-0" id="workbench-toggle-btn" title="Toggle Workbench">
+                    <i class="fa-solid fa-chevron-up"></i>
+                </button>
+            </div>
+        </div>
+        <div class="workbench-content">
+            <!-- Pane 1: CLI Terminal -->
+            <div class="workbench-tab-pane h-100" id="tab-pane-cli-terminal">
+                <div id="ramonet-terminal-mount" class="h-100"></div>
+            </div>
+            <!-- Pane 2: Packet Flow Inspector -->
+            <div class="workbench-tab-pane d-none h-100" id="tab-pane-packet-inspector">
+                <div id="packet-inspector-content" class="h-100 overflow-y-auto">
+                    <div class="p-4 text-center text-muted">
+                        <i class="fa-solid fa-route fa-3x mb-2 text-secondary opacity-50"></i>
+                        <p class="small">Click "Run Packet Simulation" in the toolbar to trace packets between devices.</p>
+                    </div>
+                </div>
+            </div>
+            <!-- Pane 3: Event Log -->
+            <div class="workbench-tab-pane d-none h-100" id="tab-pane-event-log">
+                <div class="p-3 font-monospace small text-secondary" id="workbench-event-log-list">
+                    <div class="text-muted"><i class="fa-solid fa-circle-info text-info me-2"></i>Network simulation kernel initialized.</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Context Menu -->
+    <div class="topology-context-menu" id="topology-context-menu">
+        <div class="px-3 py-1 text-muted small fw-bold context-menu-device-title">Device</div>
+        <div class="context-menu-divider"></div>
+        <div class="context-menu-item" id="ctx-open-cli"><i class="fa-solid fa-terminal text-info"></i> Open CLI Terminal</div>
+        <div class="context-menu-item" id="ctx-open-wizard"><i class="fa-solid fa-wand-magic-sparkles text-cyan"></i> Guided Config Wizard</div>
+        <div class="context-menu-item" id="ctx-open-guide"><i class="fa-solid fa-book-open text-warning"></i> 15-Section Learning Guide</div>
+        <div class="context-menu-item" id="ctx-how-to-connect"><i class="fa-solid fa-plug text-success"></i> How to Connect...</div>
+        <div class="context-menu-item" id="ctx-trace-packet"><i class="fa-solid fa-paper-plane text-warning"></i> Trace Packet From Here</div>
+        <div class="context-menu-divider"></div>
+        <div class="context-menu-item" id="ctx-duplicate"><i class="fa-solid fa-clone text-info"></i> Duplicate Device</div>
+        <div class="context-menu-item text-danger" id="ctx-delete"><i class="fa-solid fa-trash-can"></i> Delete Device</div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'js/topology/topology-canvas.js' %}"></script>
+<script src="{% static 'js/simulation/packet-visualizer.js' %}"></script>
+<script src="{% static 'js/cli/terminal.js' %}"></script>
+<script>
+document.addEventListener('DOMContentLoaded', async () => {
+    // Initialize Canvas
+    window.ramonetCanvas = new TopologyCanvas('topology-container');
+    window.ramonetVisualizer = new PacketVisualizer(window.ramonetCanvas);
+    window.ramonetTerminal = new RamonetTerminal('ramonet-terminal-mount');
+
+    // Check if a template parameter is in URL
+    const urlParams = new URLSearchParams(window.location.search);
+    const templateName = urlParams.get('template');
+    if (templateName) {
+        window.ramonetUI.loadNetworkTemplate(templateName);
+    } else {
+        // Load default starter project or previous project
+        window.ramonetUI.loadNetworkTemplate('Basic Home Network');
+    }
+
+    // Bind Toolbar Buttons
+    document.getElementById('btn-mode-connect')?.addEventListener('click', () => {
+        window.ramonetCanvas.startConnectMode();
+    });
+    document.getElementById('btn-mode-select')?.addEventListener('click', () => {
+        window.ramonetCanvas.cancelConnectMode();
+    });
+    document.getElementById('btn-toggle-grid')?.addEventListener('click', (e) => {
+        window.ramonetCanvas.snapToGrid = !window.ramonetCanvas.snapToGrid;
+        e.currentTarget.classList.toggle('active', window.ramonetCanvas.snapToGrid);
+        window.ramonetUI.showToast('Grid Snapping', window.ramonetCanvas.snapToGrid ? 'Grid snapping enabled' : 'Grid snapping disabled', 'info');
+    });
+    document.getElementById('btn-zoom-in')?.addEventListener('click', () => window.ramonetCanvas.zoomAtPoint(1.2, window.innerWidth/2, window.innerHeight/2));
+    document.getElementById('btn-zoom-out')?.addEventListener('click', () => window.ramonetCanvas.zoomAtPoint(0.8, window.innerWidth/2, window.innerHeight/2));
+    document.getElementById('btn-zoom-fit')?.addEventListener('click', () => window.ramonetCanvas.fitToScreen());
+    document.getElementById('btn-zoom-reset')?.addEventListener('click', () => window.ramonetCanvas.resetZoom());
+    document.getElementById('btn-undo')?.addEventListener('click', () => window.ramonetCanvas.undo());
+    document.getElementById('btn-redo')?.addEventListener('click', () => window.ramonetCanvas.redo());
+    document.getElementById('btn-delete-selected')?.addEventListener('click', () => {
+        if (window.ramonetCanvas.selectedDevice) {
+            window.ramonetCanvas.deleteDevice(window.ramonetCanvas.selectedDevice.id);
+        }
+    });
+    document.getElementById('btn-duplicate-selected')?.addEventListener('click', () => {
+        if (window.ramonetCanvas.selectedDevice) {
+            window.ramonetCanvas.duplicateDevice(window.ramonetCanvas.selectedDevice.id);
+        }
+    });
+
+    // Inspector duplicate / delete buttons
+    document.getElementById('btn-inspect-duplicate')?.addEventListener('click', () => {
+        if (window.ramonetCanvas.selectedDevice) {
+            window.ramonetCanvas.duplicateDevice(window.ramonetCanvas.selectedDevice.id);
+        }
+    });
+    document.getElementById('btn-inspect-delete')?.addEventListener('click', () => {
+        if (window.ramonetCanvas.selectedDevice) {
+            window.ramonetCanvas.deleteDevice(window.ramonetCanvas.selectedDevice.id);
+        }
+    });
+
+    // Run Packet Simulation Dialog
+    document.getElementById('btn-run-packet-sim')?.addEventListener('click', () => {
+        const devs = window.ramonetCanvas.project.devices;
+        if (devs.length < 2) {
+            window.ramonetUI.showToast('Notice', 'Add at least 2 connected devices to run packet simulation.', 'warning');
+            return;
+        }
+        const src = devs[0];
+        const dest = devs[devs.length - 1];
+        window.ramonetVisualizer.tracePacket(src.id, dest.ip || '192.168.1.1', 'ICMP');
+    });
+
+    // Inspector Close
+    document.getElementById('btn-close-inspector')?.addEventListener('click', () => {
+        document.getElementById('device-inspector-panel')?.classList.add('closed');
+        window.ramonetCanvas.deselectAll();
+    });
+
+    // Inspector Action Buttons
+    document.getElementById('btn-inspect-cli')?.addEventListener('click', () => {
+        if (window.ramonetCanvas.selectedDevice) {
+            window.ramonetUI.showWorkbenchTab('cli-terminal');
+            window.ramonetTerminal.attachDevice(window.ramonetCanvas.selectedDevice);
+        }
+    });
+    document.getElementById('btn-inspect-wizard')?.addEventListener('click', () => {
+        if (window.ramonetCanvas.selectedDevice) {
+            window.ramonetAssistant.openConfigWizard(window.ramonetCanvas.selectedDevice);
+        }
+    });
+    document.getElementById('btn-inspect-guide')?.addEventListener('click', () => {
+        if (window.ramonetCanvas.selectedDevice) {
+            window.ramonetAssistant.showDeviceGuide(window.ramonetCanvas.selectedDevice);
+        }
+    });
+
+    // Inspector Live Fields Updates
+    ['inspector-dev-ip', 'inspector-dev-mask', 'inspector-dev-gw', 'inspector-dev-dns', 'inspector-dev-hostname'].forEach(id => {
+        document.getElementById(id)?.addEventListener('change', (e) => {
+            const dev = window.ramonetCanvas.selectedDevice;
+            if (!dev) return;
+            if (id === 'inspector-dev-ip') dev.ip = e.target.value.trim();
+            if (id === 'inspector-dev-mask') dev.subnet_mask = e.target.value.trim();
+            if (id === 'inspector-dev-gw') dev.gateway = e.target.value.trim();
+            if (id === 'inspector-dev-dns') dev.dns = e.target.value.trim();
+            if (id === 'inspector-dev-hostname') dev.name = e.target.value.trim();
+            window.ramonetCanvas.renderDeviceNode(dev);
+            window.ramonetCanvas.triggerChange('Updated Device Settings');
+        });
+    });
+
+    // Context Menu Handlers
+    document.getElementById('ctx-open-cli')?.addEventListener('click', () => {
+        if (window.ramonetCanvas.selectedDevice) {
+            window.ramonetUI.showWorkbenchTab('cli-terminal');
+            window.ramonetTerminal.attachDevice(window.ramonetCanvas.selectedDevice);
+        }
+    });
+    document.getElementById('ctx-open-wizard')?.addEventListener('click', () => {
+        if (window.ramonetCanvas.selectedDevice) {
+            window.ramonetAssistant.openConfigWizard(window.ramonetCanvas.selectedDevice);
+        }
+    });
+    document.getElementById('ctx-open-guide')?.addEventListener('click', () => {
+        if (window.ramonetCanvas.selectedDevice) {
+            window.ramonetAssistant.showDeviceGuide(window.ramonetCanvas.selectedDevice);
+        }
+    });
+    document.getElementById('ctx-how-to-connect')?.addEventListener('click', () => {
+        if (window.ramonetCanvas.selectedDevice) {
+            window.ramonetAssistant.showHowToConnect(window.ramonetCanvas.selectedDevice.category, 'Network Switches');
+        }
+    });
+    document.getElementById('ctx-trace-packet')?.addEventListener('click', () => {
+        if (window.ramonetCanvas.selectedDevice) {
+            const src = window.ramonetCanvas.selectedDevice;
+            const other = window.ramonetCanvas.project.devices.find(d => d.id !== src.id);
+            if (other) {
+                window.ramonetVisualizer.tracePacket(src.id, other.ip || '192.168.1.1', 'ICMP');
+            }
+        }
+    });
+    document.getElementById('ctx-duplicate')?.addEventListener('click', () => {
+        if (window.ramonetCanvas.selectedDevice) {
+            window.ramonetCanvas.duplicateDevice(window.ramonetCanvas.selectedDevice.id);
+        }
+    });
+    document.getElementById('ctx-delete')?.addEventListener('click', () => {
+        if (window.ramonetCanvas.selectedDevice) {
+            window.ramonetCanvas.deleteDevice(window.ramonetCanvas.selectedDevice.id);
+        }
+    });
+
+    // Palette Search Filter
+    document.getElementById('palette-search-input')?.addEventListener('input', (e) => {
+        const val = e.target.value.toLowerCase();
+        document.querySelectorAll('.palette-device-item').forEach(item => {
+            const text = item.textContent.toLowerCase();
+            item.style.display = text.includes(val) ? 'flex' : 'none';
+        });
+    });
+});
+</script>
+{% endblock %}

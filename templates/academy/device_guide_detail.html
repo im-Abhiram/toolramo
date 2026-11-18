@@ -1,0 +1,228 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}{{ device.name }} Reference Guide — Ramonet Academy{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <!-- Breadcrumb -->
+    <nav aria-label="breadcrumb" class="mb-3">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{% url 'academy:dashboard' %}" class="text-info text-decoration-none"><i class="fa-solid fa-graduation-cap me-1"></i>Academy</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'academy:device_guides' %}" class="text-info text-decoration-none">Device Guides</a></li>
+            <li class="breadcrumb-item active text-secondary" aria-current="page">{{ device.name }}</li>
+        </ol>
+    </nav>
+
+    <!-- Header Banner -->
+    <div class="card bg-card border-accent mb-4 shadow-sm" style="background: linear-gradient(135deg, rgba(14, 165, 233, 0.08) 0%, rgba(15, 23, 42, 0.95) 100%);">
+        <div class="card-body p-4 d-flex flex-column flex-md-row align-items-md-center justify-content-between gap-3">
+            <div class="d-flex align-items-center gap-4">
+                <div class="fs-1 text-info p-3 bg-card-secondary rounded border border-accent">
+                    <i class="fa-solid {{ device.icon }}"></i>
+                </div>
+                <div>
+                    <div class="d-flex align-items-center gap-2 mb-1">
+                        <span class="badge bg-card-secondary text-info border border-accent">{{ device.category }}</span>
+                        <span class="badge bg-secondary font-monospace" style="font-size: 0.65rem;">{{ device.device_type }}</span>
+                    </div>
+                    <h2 class="h3 text-white fw-bold mb-1">{{ device.name }}</h2>
+                    <p class="text-secondary small mb-0">{{ device.summary }}</p>
+                </div>
+            </div>
+
+            <div class="flex-shrink-0 text-end">
+                <span class="badge bg-success-subtle text-success border border-success p-2">
+                    <i class="fa-solid fa-check-double me-1"></i> 17 Sections Covered
+                </span>
+            </div>
+        </div>
+    </div>
+
+    <!-- 17 Sections Layout -->
+    <div class="row g-4">
+        <!-- Main Column: All 17 Sections -->
+        <div class="col-lg-9">
+            <!-- Section 1 & 2: Intro & Purpose -->
+            <div class="card bg-card border-accent mb-4">
+                <div class="card-header bg-card-secondary border-accent py-3">
+                    <h3 class="h6 text-white fw-bold mb-0"><i class="fa-solid fa-circle-info text-info me-2"></i>1 & 2. Introduction & Purpose</h3>
+                </div>
+                <div class="card-body p-4">
+                    <h5 class="small text-info fw-bold mb-2">1. Device Introduction</h5>
+                    <p class="text-light mb-4" style="line-height: 1.6;">{{ device.section_1_intro }}</p>
+
+                    <h5 class="small text-info fw-bold mb-2">2. Purpose & Function</h5>
+                    <p class="text-secondary mb-0" style="line-height: 1.6;">{{ device.section_2_purpose }}</p>
+                </div>
+            </div>
+
+            <!-- Section 3 & 4: Applications & Appearance -->
+            <div class="card bg-card border-accent mb-4">
+                <div class="card-header bg-card-secondary border-accent py-3">
+                    <h3 class="h6 text-white fw-bold mb-0"><i class="fa-solid fa-cubes text-primary me-2"></i>3 & 4. Real-World Applications & Physical Appearance</h3>
+                </div>
+                <div class="card-body p-4">
+                    <h5 class="small text-info fw-bold mb-2">3. Real-World Applications</h5>
+                    <p class="text-secondary mb-4">{{ device.section_3_applications }}</p>
+
+                    <h5 class="small text-info fw-bold mb-2">4. Physical Appearance & Ports</h5>
+                    <p class="text-light mb-0">{{ device.section_4_appearance_ports }}</p>
+                </div>
+            </div>
+
+            <!-- Section 5 & 6 & 7: Interfaces, Connections, Cables -->
+            <div class="card bg-card border-accent mb-4">
+                <div class="card-header bg-card-secondary border-accent py-3">
+                    <h3 class="h6 text-white fw-bold mb-0"><i class="fa-solid fa-plug text-warning me-2"></i>5, 6 & 7. Interfaces, Connections & Cables</h3>
+                </div>
+                <div class="card-body p-4">
+                    <div class="row g-3">
+                        <div class="col-md-4">
+                            <h5 class="small text-info fw-bold mb-2">5. Available Interfaces</h5>
+                            <p class="small text-secondary mb-0">{{ device.section_5_interfaces }}</p>
+                        </div>
+                        <div class="col-md-4">
+                            <h5 class="small text-info fw-bold mb-2">6. Connection Methods</h5>
+                            <p class="small text-secondary mb-0">{{ device.section_6_connection_methods }}</p>
+                        </div>
+                        <div class="col-md-4">
+                            <h5 class="small text-info fw-bold mb-2">7. Cable Requirements</h5>
+                            <p class="small text-secondary mb-0">{{ device.section_7_cables }}</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Section 8, 9 & 10: Power, IP Configuration, Settings -->
+            <div class="card bg-card border-accent mb-4">
+                <div class="card-header bg-card-secondary border-accent py-3">
+                    <h3 class="h6 text-white fw-bold mb-0"><i class="fa-solid fa-sliders text-success me-2"></i>8, 9 & 10. Power, IP Configuration & Settings</h3>
+                </div>
+                <div class="card-body p-4">
+                    <div class="row g-3">
+                        <div class="col-md-4">
+                            <h5 class="small text-info fw-bold mb-2">8. Power & PoE Requirements</h5>
+                            <p class="small text-secondary mb-0">{{ device.section_8_power_requirements }}</p>
+                        </div>
+                        <div class="col-md-4">
+                            <h5 class="small text-info fw-bold mb-2">9. IP Configuration</h5>
+                            <p class="small text-secondary mb-0">{{ device.section_9_ip_configuration }}</p>
+                        </div>
+                        <div class="col-md-4">
+                            <h5 class="small text-info fw-bold mb-2">10. Device-Specific Settings</h5>
+                            <p class="small text-secondary mb-0">{{ device.section_10_device_settings }}</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Section 11 & 12: Commands & Explanations -->
+            <div class="card bg-card border-accent mb-4">
+                <div class="card-header bg-card-secondary border-accent py-3">
+                    <h3 class="h6 text-white fw-bold mb-0"><i class="fa-solid fa-terminal text-info me-2"></i>11 & 12. Supported Commands & Explanations</h3>
+                </div>
+                <div class="card-body p-4">
+                    <div class="d-flex flex-column gap-3">
+                        {% for cmd in device.section_11_commands %}
+                        <div class="bg-card-secondary p-3 rounded border border-accent">
+                            <div class="d-flex align-items-center justify-content-between mb-2">
+                                <span class="badge bg-dark text-warning font-monospace">{{ cmd.cmd }}</span>
+                                <span class="small text-muted">{{ cmd.desc }}</span>
+                            </div>
+                        </div>
+                        {% empty %}
+                        <p class="small text-muted mb-0">Hardware operates with web management or passive Layer 1 switching.</p>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+
+            <!-- Section 13, 14, 15 & 16: Verification, Mistakes, Troubleshooting, Security -->
+            <div class="card bg-card border-accent mb-4">
+                <div class="card-header bg-card-secondary border-accent py-3">
+                    <h3 class="h6 text-white fw-bold mb-0"><i class="fa-solid fa-stethoscope text-danger me-2"></i>13 to 16. Verification, Common Mistakes & Security</h3>
+                </div>
+                <div class="card-body p-4">
+                    <div class="mb-4">
+                        <h5 class="small text-success fw-bold mb-2">13. Verification Procedures</h5>
+                        <p class="text-light small mb-0">{{ device.section_13_verification }}</p>
+                    </div>
+
+                    <div class="mb-4">
+                        <h5 class="small text-warning fw-bold mb-2">14. Common Mistakes</h5>
+                        <ul class="small text-secondary ps-3 mb-0">
+                            {% for m in device.section_14_common_mistakes %}
+                            <li>{{ m }}</li>
+                            {% endfor %}
+                        </ul>
+                    </div>
+
+                    <div class="mb-4">
+                        <h5 class="small text-danger fw-bold mb-2">15. Troubleshooting</h5>
+                        <div class="d-flex flex-column gap-2">
+                            {% for t in device.section_15_troubleshooting %}
+                            <div class="bg-card-secondary p-2 rounded small text-secondary">
+                                <strong class="text-danger">Issue:</strong> {{ t.issue }} — <strong class="text-success">Fix:</strong> {{ t.fix }}
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+
+                    <div>
+                        <h5 class="small text-info fw-bold mb-2">16. Security Best Practices</h5>
+                        <ul class="small text-secondary ps-3 mb-0">
+                            {% for s in device.section_16_security_practices %}
+                            <li>{{ s }}</li>
+                            {% endfor %}
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Section 17: Practical Project -->
+            <div class="card bg-card border-accent mb-5">
+                <div class="card-header bg-card-secondary border-accent py-3 d-flex align-items-center justify-content-between">
+                    <h3 class="h6 text-white fw-bold mb-0"><i class="fa-solid fa-flask text-warning me-2"></i>17. Practical Project Lab</h3>
+                    <span class="badge bg-primary">Project Specification</span>
+                </div>
+                <div class="card-body p-4">
+                    <h5 class="h6 text-white fw-bold mb-2">{{ device.section_17_practical_project.title }}</h5>
+                    <p class="text-secondary small mb-3">{{ device.section_17_practical_project.summary }}</p>
+                    <a href="{% url 'topology:designer' %}" class="btn btn-sm btn-primary-blue">
+                        <i class="fa-solid fa-diagram-project me-1"></i> Open in Network Designer
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Sidebar Navigation -->
+        <div class="col-lg-3">
+            <div class="card bg-card border-accent sticky-top" style="top: 80px;">
+                <div class="card-header bg-card-secondary border-accent py-2 small fw-bold text-white">
+                    <i class="fa-solid fa-bars-staggered me-2 text-info"></i>17 Standard Sections
+                </div>
+                <div class="list-group list-group-flush small" style="font-size: 0.75rem;">
+                    <div class="list-group-item bg-card text-secondary border-accent">1. Introduction</div>
+                    <div class="list-group-item bg-card text-secondary border-accent">2. Purpose & Function</div>
+                    <div class="list-group-item bg-card text-secondary border-accent">3. Real-World Applications</div>
+                    <div class="list-group-item bg-card text-secondary border-accent">4. Appearance & Ports</div>
+                    <div class="list-group-item bg-card text-secondary border-accent">5. Available Interfaces</div>
+                    <div class="list-group-item bg-card text-secondary border-accent">6. Connection Methods</div>
+                    <div class="list-group-item bg-card text-secondary border-accent">7. Cable Requirements</div>
+                    <div class="list-group-item bg-card text-secondary border-accent">8. Power Requirements</div>
+                    <div class="list-group-item bg-card text-secondary border-accent">9. IP Configuration</div>
+                    <div class="list-group-item bg-card text-secondary border-accent">10. Device Settings</div>
+                    <div class="list-group-item bg-card text-secondary border-accent">11. Supported Commands</div>
+                    <div class="list-group-item bg-card text-secondary border-accent">12. Command Explanations</div>
+                    <div class="list-group-item bg-card text-secondary border-accent">13. Verification Procedures</div>
+                    <div class="list-group-item bg-card text-secondary border-accent">14. Common Mistakes</div>
+                    <div class="list-group-item bg-card text-secondary border-accent">15. Troubleshooting</div>
+                    <div class="list-group-item bg-card text-secondary border-accent">16. Security Best Practices</div>
+                    <div class="list-group-item bg-card text-secondary border-accent">17. Practical Project</div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

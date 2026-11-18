@@ -1,0 +1,299 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Switch Configuration Manager | Ramonet{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-0">
+    <div class="d-flex align-items-center justify-content-between mb-4">
+        <div>
+            <h4 class="text-white fw-bold mb-1">
+                <i class="fa-solid fa-network-wired text-info me-2"></i>Switch Configuration & VLAN Manager
+            </h4>
+            <p class="text-secondary small mb-0">Layer 2/3 Switching, 802.1Q Virtual LANs, Spanning Tree Protocol (STP), MAC Address Tables, and Port Security.</p>
+        </div>
+        <div class="d-flex gap-2">
+            <button class="btn btn-outline-cyan btn-sm" onclick="window.ramonetAssistant.openConfigWizard({name: 'Switch2960', category: 'switches', ip: '192.168.1.2'})">
+                <i class="fa-solid fa-wand-magic-sparkles me-1"></i> Switch Wizard
+            </button>
+            <a href="{% url 'topology:designer' %}" class="btn btn-primary-blue btn-sm">
+                <i class="fa-solid fa-diagram-project me-1"></i> Open Designer
+            </a>
+        </div>
+    </div>
+
+    <!-- Manager Tabs -->
+    <ul class="nav nav-pills mb-4 border-bottom border-secondary border-opacity-25 pb-2" id="switchTabs" role="tablist">
+        <li class="nav-item">
+            <button class="nav-link active btn-sm" data-bs-toggle="pill" data-bs-target="#tab-vlans">
+                <i class="fa-solid fa-layer-group me-1"></i> VLAN Manager
+            </button>
+        </li>
+        <li class="nav-item">
+            <button class="nav-link btn-sm" data-bs-toggle="pill" data-bs-target="#tab-ports">
+                <i class="fa-solid fa-ethernet me-1"></i> Port Assignments
+            </button>
+        </li>
+        <li class="nav-item">
+            <button class="nav-link btn-sm" data-bs-toggle="pill" data-bs-target="#tab-mac">
+                <i class="fa-solid fa-table me-1"></i> MAC Address Table
+            </button>
+        </li>
+        <li class="nav-item">
+            <button class="nav-link btn-sm" data-bs-toggle="pill" data-bs-target="#tab-stp">
+                <i class="fa-solid fa-tree me-1"></i> Spanning Tree (STP)
+            </button>
+        </li>
+        <li class="nav-item">
+            <button class="nav-link btn-sm" data-bs-toggle="pill" data-bs-target="#tab-security">
+                <i class="fa-solid fa-lock me-1"></i> Port Security
+            </button>
+        </li>
+    </ul>
+
+    <!-- Tab Contents -->
+    <div class="tab-content" id="switchTabContent">
+        <!-- Tab 1: VLANs -->
+        <div class="tab-pane fade show active" id="tab-vlans">
+            <div class="row g-4">
+                <div class="col-lg-5">
+                    <div class="ramonet-card">
+                        <div class="ramonet-card-header">
+                            <span class="text-white fw-bold small"><i class="fa-solid fa-plus text-info me-2"></i>Create New VLAN</span>
+                        </div>
+                        <div class="ramonet-card-body">
+                            <div class="mb-3">
+                                <label class="form-label small text-muted">VLAN ID (1 - 4094)</label>
+                                <input type="number" class="form-control form-control-sm" id="new-vlan-id" value="10">
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label small text-muted">VLAN Name</label>
+                                <input type="text" class="form-control form-control-sm" id="new-vlan-name" value="Engineering_Dept">
+                            </div>
+                            <button class="btn btn-primary-blue btn-sm w-100" id="btn-add-vlan">
+                                <i class="fa-solid fa-plus me-1"></i> Add VLAN to Database
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-lg-7">
+                    <div class="ramonet-card">
+                        <div class="ramonet-card-header">
+                            <span class="text-white fw-bold small"><i class="fa-solid fa-list text-info me-2"></i>Active VLAN Database (802.1Q)</span>
+                        </div>
+                        <div class="table-responsive">
+                            <table class="table table-ramonet mb-0" id="vlans-table">
+                                <thead>
+                                    <tr>
+                                        <th>VLAN ID</th>
+                                        <th>VLAN Name</th>
+                                        <th>Status</th>
+                                        <th>Assigned Member Ports</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <td><span class="badge bg-secondary font-monospace">1</span></td>
+                                        <td class="text-white">default</td>
+                                        <td><span class="badge bg-success">active</span></td>
+                                        <td class="text-secondary font-monospace small">Fa0/1 - Fa0/24</td>
+                                    </tr>
+                                    <tr>
+                                        <td><span class="badge bg-info text-dark font-monospace">10</span></td>
+                                        <td class="text-white">Engineering_Dept</td>
+                                        <td><span class="badge bg-success">active</span></td>
+                                        <td class="text-secondary font-monospace small">Fa0/1 - Fa0/8</td>
+                                    </tr>
+                                    <tr>
+                                        <td><span class="badge bg-info text-dark font-monospace">20</span></td>
+                                        <td class="text-white">Accounting_Dept</td>
+                                        <td><span class="badge bg-success">active</span></td>
+                                        <td class="text-secondary font-monospace small">Fa0/9 - Fa0/16</td>
+                                    </tr>
+                                    <tr>
+                                        <td><span class="badge bg-info text-dark font-monospace">30</span></td>
+                                        <td class="text-white">Surveillance_CCTV</td>
+                                        <td><span class="badge bg-success">active</span></td>
+                                        <td class="text-secondary font-monospace small">Fa0/17 - Fa0/24</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tab 2: Ports -->
+        <div class="tab-pane fade" id="tab-ports">
+            <div class="ramonet-card">
+                <div class="ramonet-card-header">
+                    <span class="text-white fw-bold small"><i class="fa-solid fa-ethernet text-info me-2"></i>Switchport Mode (Access vs 802.1Q Trunk)</span>
+                </div>
+                <div class="table-responsive">
+                    <table class="table table-ramonet mb-0">
+                        <thead>
+                            <tr>
+                                <th>Interface</th>
+                                <th>Mode</th>
+                                <th>Access VLAN</th>
+                                <th>Allowed Trunk VLANs</th>
+                                <th>Native VLAN</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td class="text-white font-monospace">GigabitEthernet0/1</td>
+                                <td><span class="badge bg-primary">Trunk (802.1Q)</span></td>
+                                <td class="text-muted">--</td>
+                                <td class="text-info font-monospace small">1, 10, 20, 30</td>
+                                <td class="font-monospace small">1</td>
+                                <td><span class="badge bg-success">Up / Forwarding</span></td>
+                            </tr>
+                            <tr>
+                                <td class="text-white font-monospace">FastEthernet0/1</td>
+                                <td><span class="badge bg-secondary">Access</span></td>
+                                <td class="text-info font-monospace">10</td>
+                                <td class="text-muted">--</td>
+                                <td class="text-muted">--</td>
+                                <td><span class="badge bg-success">Up / Forwarding</span></td>
+                            </tr>
+                            <tr>
+                                <td class="text-white font-monospace">FastEthernet0/9</td>
+                                <td><span class="badge bg-secondary">Access</span></td>
+                                <td class="text-info font-monospace">20</td>
+                                <td class="text-muted">--</td>
+                                <td class="text-muted">--</td>
+                                <td><span class="badge bg-success">Up / Forwarding</span></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tab 3: MAC Address Table -->
+        <div class="tab-pane fade" id="tab-mac">
+            <div class="ramonet-card">
+                <div class="ramonet-card-header">
+                    <span class="text-white fw-bold small"><i class="fa-solid fa-table text-info me-2"></i>CAM Table (Content Addressable Memory)</span>
+                </div>
+                <div class="table-responsive">
+                    <table class="table table-ramonet mb-0">
+                        <thead>
+                            <tr>
+                                <th>VLAN</th>
+                                <th>MAC Address</th>
+                                <th>Type</th>
+                                <th>Port</th>
+                                <th>Aging Timer</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td><span class="badge bg-info text-dark font-monospace">10</span></td>
+                                <td class="font-monospace text-white">00:15:5D:A1:B2:01</td>
+                                <td><span class="badge bg-secondary">DYNAMIC</span></td>
+                                <td class="font-monospace text-info">FastEthernet0/1</td>
+                                <td class="text-muted small">240s</td>
+                            </tr>
+                            <tr>
+                                <td><span class="badge bg-info text-dark font-monospace">20</span></td>
+                                <td class="font-monospace text-white">00:15:5D:A1:B2:02</td>
+                                <td><span class="badge bg-secondary">DYNAMIC</span></td>
+                                <td class="font-monospace text-info">FastEthernet0/9</td>
+                                <td class="text-muted small">185s</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tab 4: STP -->
+        <div class="tab-pane fade" id="tab-stp">
+            <div class="ramonet-card">
+                <div class="ramonet-card-header">
+                    <span class="text-white fw-bold small"><i class="fa-solid fa-tree text-info me-2"></i>Rapid Spanning Tree Protocol (IEEE 802.1w)</span>
+                </div>
+                <div class="ramonet-card-body">
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <div class="p-3 bg-sidebar rounded border border-secondary border-opacity-25">
+                                <small class="text-muted d-block">Bridge Priority:</small>
+                                <strong class="text-white">32768 (Default Priority)</strong>
+                                <small class="text-muted d-block mt-2">Bridge Root Status:</small>
+                                <span class="badge bg-info text-dark">This bridge is not the Root</span>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="p-3 bg-sidebar rounded border border-secondary border-opacity-25">
+                                <small class="text-muted d-block">Root Port:</small>
+                                <strong class="text-info font-monospace">GigabitEthernet0/1 (Cost: 4)</strong>
+                                <small class="text-muted d-block mt-2">Topology Change Counter:</small>
+                                <span class="text-white">2 changes observed</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tab 5: Port Security -->
+        <div class="tab-pane fade" id="tab-security">
+            <div class="ramonet-card">
+                <div class="ramonet-card-header">
+                    <span class="text-white fw-bold small"><i class="fa-solid fa-lock text-info me-2"></i>Port Security Policy</span>
+                </div>
+                <div class="ramonet-card-body">
+                    <p class="text-secondary small mb-3">Prevents MAC address flooding and unauthorized device insertion by restricting the number of secure MAC addresses allowed per port.</p>
+                    <div class="table-responsive">
+                        <table class="table table-ramonet mb-0">
+                            <thead>
+                                <tr>
+                                    <th>Interface</th>
+                                    <th>Max Secure MACs</th>
+                                    <th>Violation Action</th>
+                                    <th>Current MACs</th>
+                                    <th>Security Status</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td class="font-monospace text-white">FastEthernet0/1</td>
+                                    <td class="font-monospace">1</td>
+                                    <td><span class="badge bg-danger">Shutdown</span></td>
+                                    <td class="font-monospace">1 (Sticky)</td>
+                                    <td><span class="badge bg-success">Secure-up</span></td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.getElementById('btn-add-vlan')?.addEventListener('click', () => {
+    const id = document.getElementById('new-vlan-id').value;
+    const name = document.getElementById('new-vlan-name').value;
+    if (!id || !name) return;
+
+    const tbody = document.querySelector('#vlans-table tbody');
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+        <td><span class="badge bg-info text-dark font-monospace">${id}</span></td>
+        <td class="text-white">${name}</td>
+        <td><span class="badge bg-success">active</span></td>
+        <td class="text-secondary font-monospace small">Unassigned</td>
+    `;
+    tbody.appendChild(tr);
+    window.ramonetUI?.showToast('VLAN Added', `Created VLAN ${id} (${name})`, 'success');
+});
+</script>
+{% endblock %}

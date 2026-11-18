@@ -1,0 +1,238 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Firewall Manager | Ramonet{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-0">
+    <div class="d-flex align-items-center justify-content-between mb-4">
+        <div>
+            <h4 class="text-white fw-bold mb-1">
+                <i class="fa-solid fa-shield-halved text-danger me-2"></i>Firewall & Security Operations Manager
+            </h4>
+            <p class="text-secondary small mb-0">Stateful Packet Inspection (SPI), LAN/WAN/DMZ Zone Filtering, Conntrack State Tables, and Port Forwarding.</p>
+        </div>
+        <div class="d-flex gap-2">
+            <button class="btn btn-outline-cyan btn-sm" onclick="window.ramonetAssistant.openConfigWizard({name: 'Firewall1', category: 'firewalls', ip: '172.16.1.1'})">
+                <i class="fa-solid fa-wand-magic-sparkles me-1"></i> Firewall Wizard
+            </button>
+            <a href="{% url 'topology:designer' %}" class="btn btn-primary-blue btn-sm">
+                <i class="fa-solid fa-diagram-project me-1"></i> Open Designer
+            </a>
+        </div>
+    </div>
+
+    <!-- Manager Tabs -->
+    <ul class="nav nav-pills mb-4 border-bottom border-secondary border-opacity-25 pb-2" id="firewallTabs" role="tablist">
+        <li class="nav-item">
+            <button class="nav-link active btn-sm" data-bs-toggle="pill" data-bs-target="#tab-fw-rules">
+                <i class="fa-solid fa-filter me-1"></i> Packet Filter Rules
+            </button>
+        </li>
+        <li class="nav-item">
+            <button class="nav-link btn-sm" data-bs-toggle="pill" data-bs-target="#tab-fw-zones">
+                <i class="fa-solid fa-globe me-1"></i> Security Zones (LAN/WAN/DMZ)
+            </button>
+        </li>
+        <li class="nav-item">
+            <button class="nav-link btn-sm" data-bs-toggle="pill" data-bs-target="#tab-fw-conntrack">
+                <i class="fa-solid fa-network-wired me-1"></i> Stateful Connection Tracking
+            </button>
+        </li>
+        <li class="nav-item">
+            <button class="nav-link btn-sm" data-bs-toggle="pill" data-bs-target="#tab-fw-portfwd">
+                <i class="fa-solid fa-arrow-turn-down me-1"></i> Port Forwarding (DNAT)
+            </button>
+        </li>
+    </ul>
+
+    <!-- Tab Contents -->
+    <div class="tab-content" id="firewallTabContent">
+        <!-- Tab 1: Rules -->
+        <div class="tab-pane fade show active" id="tab-fw-rules">
+            <div class="ramonet-card">
+                <div class="ramonet-card-header d-flex justify-content-between align-items-center">
+                    <span class="text-white fw-bold small"><i class="fa-solid fa-list-check text-info me-2"></i>Ordered Firewall Rules (Evaluated Top-Down)</span>
+                    <button class="btn btn-sm btn-primary-blue py-0 px-2" id="btn-add-fw-rule"><i class="fa-solid fa-plus me-1"></i> Add Rule</button>
+                </div>
+                <div class="table-responsive">
+                    <table class="table table-ramonet mb-0" id="fw-rules-table">
+                        <thead>
+                            <tr>
+                                <th>#</th>
+                                <th>Action</th>
+                                <th>Protocol</th>
+                                <th>Source IP / Subnet</th>
+                                <th>Destination IP</th>
+                                <th>Port</th>
+                                <th>Hits</th>
+                                <th>State</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>1</td>
+                                <td><span class="badge bg-success">ALLOW</span></td>
+                                <td class="font-monospace">TCP</td>
+                                <td class="font-monospace text-white">192.168.1.0/24 (LAN)</td>
+                                <td class="font-monospace text-secondary">any (WAN)</td>
+                                <td class="font-monospace text-info">80, 443</td>
+                                <td class="font-monospace text-success">4,520</td>
+                                <td><span class="badge bg-success">Active</span></td>
+                            </tr>
+                            <tr>
+                                <td>2</td>
+                                <td><span class="badge bg-success">ALLOW</span></td>
+                                <td class="font-monospace">UDP</td>
+                                <td class="font-monospace text-white">192.168.1.0/24 (LAN)</td>
+                                <td class="font-monospace text-secondary">any (WAN)</td>
+                                <td class="font-monospace text-info">53 (DNS)</td>
+                                <td class="font-monospace text-success">1,890</td>
+                                <td><span class="badge bg-success">Active</span></td>
+                            </tr>
+                            <tr>
+                                <td>3</td>
+                                <td><span class="badge bg-success">ALLOW</span></td>
+                                <td class="font-monospace">ICMP</td>
+                                <td class="font-monospace text-white">any</td>
+                                <td class="font-monospace text-white">any</td>
+                                <td class="font-monospace text-muted">any</td>
+                                <td class="font-monospace text-success">310</td>
+                                <td><span class="badge bg-success">Active</span></td>
+                            </tr>
+                            <tr>
+                                <td>4</td>
+                                <td><span class="badge bg-danger">DENY</span></td>
+                                <td class="font-monospace">any</td>
+                                <td class="font-monospace text-danger">any (WAN)</td>
+                                <td class="font-monospace text-white">192.168.1.0/24 (LAN)</td>
+                                <td class="font-monospace text-muted">any</td>
+                                <td class="font-monospace text-warning">842</td>
+                                <td><span class="badge bg-success">Active</span></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tab 2: Zones -->
+        <div class="tab-pane fade" id="tab-fw-zones">
+            <div class="row g-3">
+                <div class="col-md-4">
+                    <div class="ramonet-card h-100 border-success border-opacity-25">
+                        <div class="ramonet-card-header bg-success-subtle text-success">
+                            <i class="fa-solid fa-lock me-2"></i>LAN Zone (Trusted)
+                        </div>
+                        <div class="ramonet-card-body small text-secondary">
+                            <div><strong>Interface:</strong> igb1_LAN</div>
+                            <div><strong>Subnet:</strong> 192.168.1.0/24</div>
+                            <div><strong>Default Policy:</strong> Allow Outbound</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="ramonet-card h-100 border-danger border-opacity-25">
+                        <div class="ramonet-card-header bg-danger-subtle text-danger">
+                            <i class="fa-solid fa-globe me-2"></i>WAN Zone (Untrusted)
+                        </div>
+                        <div class="ramonet-card-body small text-secondary">
+                            <div><strong>Interface:</strong> igb0_WAN</div>
+                            <div><strong>Subnet:</strong> DHCP / Public IP</div>
+                            <div><strong>Default Policy:</strong> Drop Inbound</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="ramonet-card h-100 border-warning border-opacity-25">
+                        <div class="ramonet-card-header bg-warning-subtle text-warning">
+                            <i class="fa-solid fa-server me-2"></i>DMZ Zone (Semi-Trusted)
+                        </div>
+                        <div class="ramonet-card-body small text-secondary">
+                            <div><strong>Interface:</strong> igb2_DMZ</div>
+                            <div><strong>Subnet:</strong> 172.16.10.0/24</div>
+                            <div><strong>Default Policy:</strong> Isolated from LAN</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tab 3: Conntrack -->
+        <div class="tab-pane fade" id="tab-fw-conntrack">
+            <div class="ramonet-card">
+                <div class="ramonet-card-header">
+                    <span class="text-white fw-bold small"><i class="fa-solid fa-table-list text-info me-2"></i>Linux Netfilter Conntrack Table</span>
+                </div>
+                <div class="table-responsive">
+                    <table class="table table-ramonet mb-0">
+                        <thead>
+                            <tr>
+                                <th>Protocol</th>
+                                <th>Source IP & Port</th>
+                                <th>Destination IP & Port</th>
+                                <th>State</th>
+                                <th>TTL / Timeout</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td><span class="badge bg-secondary">TCP</span></td>
+                                <td class="font-monospace text-white">192.168.1.50:51240</td>
+                                <td class="font-monospace text-info">142.250.190.46:443</td>
+                                <td><span class="badge bg-success">ESTABLISHED</span></td>
+                                <td class="font-monospace text-muted">431998s</td>
+                            </tr>
+                            <tr>
+                                <td><span class="badge bg-secondary">UDP</span></td>
+                                <td class="font-monospace text-white">192.168.1.10:60124</td>
+                                <td class="font-monospace text-info">8.8.8.8:53</td>
+                                <td><span class="badge bg-info text-dark">ASSURED</span></td>
+                                <td class="font-monospace text-muted">28s</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tab 4: Port Forwarding -->
+        <div class="tab-pane fade" id="tab-fw-portfwd">
+            <div class="ramonet-card">
+                <div class="ramonet-card-header">
+                    <span class="text-white fw-bold small"><i class="fa-solid fa-arrow-turn-down text-info me-2"></i>Destination NAT (DNAT / Virtual Servers)</span>
+                </div>
+                <div class="table-responsive">
+                    <table class="table table-ramonet mb-0">
+                        <thead>
+                            <tr>
+                                <th>Service Name</th>
+                                <th>WAN External Port</th>
+                                <th>Internal Server IP</th>
+                                <th>Internal Port</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td class="text-white">Web Server HTTP</td>
+                                <td class="font-monospace text-info">80</td>
+                                <td class="font-monospace text-white">172.16.10.100 (DMZ)</td>
+                                <td class="font-monospace text-info">80</td>
+                                <td><span class="badge bg-success">Enabled</span></td>
+                            </tr>
+                            <tr>
+                                <td class="text-white">CCTV NVR Remote View</td>
+                                <td class="font-monospace text-info">8443</td>
+                                <td class="font-monospace text-white">192.168.10.100</td>
+                                <td class="font-monospace text-info">443</td>
+                                <td><span class="badge bg-success">Enabled</span></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

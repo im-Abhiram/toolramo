@@ -1,0 +1,105 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Network Scenario Library — Ramonet{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-0">
+    <!-- Header -->
+    <div class="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-4">
+        <div>
+            <h4 class="text-white fw-bold mb-1">
+                <i class="fa-solid fa-shapes text-cyan me-2"></i>Network Scenario Library
+            </h4>
+            <p class="text-secondary small mb-0">
+                16+ pre-built, production-grade network architectures and topologies ready to simulate, configure, and inspect in Ramonet.
+            </p>
+        </div>
+        <div class="d-flex gap-2">
+            <a href="{% url 'topology:designer' %}" class="btn btn-primary-blue btn-sm">
+                <i class="fa-solid fa-diagram-project me-1"></i> Open Blank Designer
+            </a>
+        </div>
+    </div>
+
+    <!-- Filter Pills -->
+    <div class="d-flex flex-wrap gap-2 mb-4">
+        <button class="btn btn-xs btn-outline-cyan active filter-btn" data-filter="all">All Scenarios (16)</button>
+        <button class="btn btn-xs btn-outline-secondary filter-btn" data-filter="Home & SOHO">Home & SOHO</button>
+        <button class="btn btn-xs btn-outline-secondary filter-btn" data-filter="Enterprise Switching">Enterprise Switching</button>
+        <button class="btn btn-xs btn-outline-secondary filter-btn" data-filter="Enterprise Routing">Enterprise Routing</button>
+        <button class="btn btn-xs btn-outline-secondary filter-btn" data-filter="Network Security">Security & Firewalls</button>
+        <button class="btn btn-xs btn-outline-secondary filter-btn" data-filter="High Availability">High Availability</button>
+        <button class="btn btn-xs btn-outline-secondary filter-btn" data-filter="Physical & IoT">Surveillance & IoT</button>
+        <button class="btn btn-xs btn-outline-secondary filter-btn" data-filter="Data Center">Data Center & Racks</button>
+    </div>
+
+    <!-- Scenarios Grid -->
+    <div class="row g-4" id="scenarios-grid">
+        {% for sc in scenarios %}
+        <div class="col-lg-4 col-md-6 scenario-card" data-category="{{ sc.category }}">
+            <div class="ramonet-card h-100 d-flex flex-column">
+                <div class="ramonet-card-header d-flex justify-content-between align-items-center">
+                    <span class="badge bg-secondary font-monospace">{{ sc.category }}</span>
+                    <span class="badge {% if sc.badge == 'Beginner' %}bg-success{% elif sc.badge == 'Intermediate' %}bg-info text-dark{% else %}bg-warning text-dark{% endif %}">
+                        {{ sc.badge }}
+                    </span>
+                </div>
+                <div class="ramonet-card-body flex-grow-1">
+                    <h5 class="text-white fw-bold fs-6 mb-2">{{ sc.title }}</h5>
+                    <p class="text-secondary small mb-3">{{ sc.description }}</p>
+                    
+                    <div class="p-2 bg-sidebar rounded border border-secondary border-opacity-25 small mb-3">
+                        <span class="text-muted d-block" style="font-size: 0.75rem;">KEY PROTOCOLS & CONCEPTS:</span>
+                        <strong class="text-cyan small">{{ sc.focus }}</strong>
+                    </div>
+
+                    <div class="d-flex align-items-center justify-content-between text-muted small">
+                        <span><i class="fa-solid fa-server me-1"></i>{{ sc.devices_count }} Configured Devices</span>
+                        <span class="text-success"><i class="fa-solid fa-circle-check me-1"></i>Pre-validated</span>
+                    </div>
+                </div>
+                <div class="p-3 border-top border-secondary border-opacity-25 bg-surface rounded-bottom d-flex gap-2">
+                    <a href="{% url 'topology:designer' %}?scenario={{ sc.id }}" class="btn btn-primary-blue btn-sm flex-grow-1">
+                        <i class="fa-solid fa-play me-1"></i> Load into Designer
+                    </a>
+                    <a href="{% url 'academy:dashboard' %}" class="btn btn-outline-secondary btn-sm" title="View Related Academy Lesson">
+                        <i class="fa-solid fa-graduation-cap"></i>
+                    </a>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    const filterButtons = document.querySelectorAll('.filter-btn');
+    const cards = document.querySelectorAll('.scenario-card');
+
+    filterButtons.forEach(btn => {
+        btn.addEventListener('click', () => {
+            filterButtons.forEach(b => {
+                b.classList.remove('btn-outline-cyan', 'active');
+                b.classList.add('btn-outline-secondary');
+            });
+            btn.classList.add('btn-outline-cyan', 'active');
+            btn.classList.remove('btn-outline-secondary');
+
+            const filter = btn.getAttribute('data-filter');
+            cards.forEach(card => {
+                const cat = card.getAttribute('data-category');
+                if (filter === 'all' || cat === filter) {
+                    card.style.display = 'block';
+                } else {
+                    card.style.display = 'none';
+                }
+            });
+        });
+    });
+});
+</script>
+{% endblock %}

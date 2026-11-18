@@ -1,0 +1,437 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}CCTV & Surveillance Network Planner — Ramonet{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-0">
+    <!-- Header -->
+    <div class="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-4">
+        <div>
+            <h4 class="text-white fw-bold mb-1">
+                <i class="fa-solid fa-video text-warning me-2"></i>CCTV Surveillance Network Planner
+            </h4>
+            <p class="text-secondary small mb-0">
+                PoE Power Budget Calculation (802.3af/at/bt), NVR Channel Sizing, Storage Retention, and Uplink Bottleneck Detection.
+            </p>
+        </div>
+        <div class="d-flex gap-2">
+            <button class="btn btn-outline-secondary btn-sm" id="btn-reset-cctv">
+                <i class="fa-solid fa-rotate-left me-1"></i> Reset Defaults
+            </button>
+            <button class="btn btn-outline-cyan btn-sm" id="btn-add-camera-modal" data-bs-toggle="modal" data-bs-target="#addCameraModal">
+                <i class="fa-solid fa-plus me-1"></i> Add Camera
+            </button>
+            <a href="{% url 'topology:designer' %}" class="btn btn-primary-blue btn-sm">
+                <i class="fa-solid fa-diagram-project me-1"></i> Open in Designer
+            </a>
+        </div>
+    </div>
+
+    <!-- Bottleneck Alert Banner (Dynamic) -->
+    <div id="cctv-alerts-container" class="mb-4"></div>
+
+    <!-- Top KPI Grid -->
+    <div class="row g-3 mb-4">
+        <div class="col-md-3 col-sm-6">
+            <div class="ramonet-card p-3">
+                <div class="d-flex align-items-center justify-content-between mb-2">
+                    <span class="text-secondary small">Total IP Cameras</span>
+                    <i class="fa-solid fa-camera text-info"></i>
+                </div>
+                <div class="d-flex align-items-baseline gap-2">
+                    <h3 class="text-white fw-bold mb-0" id="kpi-cam-count">6</h3>
+                    <span class="text-muted small" id="kpi-channel-max">/ 16 Channels</span>
+                </div>
+                <div class="progress mt-2" style="height: 4px; background: rgba(255,255,255,0.06);">
+                    <div id="prog-channels" class="progress-bar bg-info" style="width: 37.5%;"></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-3 col-sm-6">
+            <div class="ramonet-card p-3">
+                <div class="d-flex align-items-center justify-content-between mb-2">
+                    <span class="text-secondary small">Aggregate Stream Traffic</span>
+                    <i class="fa-solid fa-network-wired text-cyan"></i>
+                </div>
+                <div class="d-flex align-items-baseline gap-2">
+                    <h3 class="text-cyan fw-bold mb-0" id="kpi-total-bw">28.5</h3>
+                    <span class="text-secondary small">Mbps</span>
+                </div>
+                <small class="text-muted d-block mt-2" id="kpi-uplink-status">
+                    <i class="fa-solid fa-circle-check text-success me-1"></i>2.8% of 1 Gbps Switch Uplink
+                </small>
+            </div>
+        </div>
+
+        <div class="col-md-3 col-sm-6">
+            <div class="ramonet-card p-3">
+                <div class="d-flex align-items-center justify-content-between mb-2">
+                    <span class="text-secondary small">PoE Power Demand</span>
+                    <i class="fa-solid fa-bolt text-warning"></i>
+                </div>
+                <div class="d-flex align-items-baseline gap-2">
+                    <h3 class="text-warning fw-bold mb-0" id="kpi-total-poe">85.0</h3>
+                    <span class="text-secondary small">W / <span id="kpi-poe-budget-label">370W</span></span>
+                </div>
+                <div class="progress mt-2" style="height: 4px; background: rgba(255,255,255,0.06);">
+                    <div id="prog-poe" class="progress-bar bg-warning" style="width: 23%;"></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-3 col-sm-6">
+            <div class="ramonet-card p-3">
+                <div class="d-flex align-items-center justify-content-between mb-2">
+                    <span class="text-secondary small">Required Storage (Retention)</span>
+                    <i class="fa-solid fa-hard-drive text-success"></i>
+                </div>
+                <div class="d-flex align-items-baseline gap-2">
+                    <h3 class="text-success fw-bold mb-0" id="kpi-storage-tb">9.23</h3>
+                    <span class="text-secondary small">TB</span>
+                </div>
+                <small class="text-muted d-block mt-2" id="kpi-storage-rec">
+                    <i class="fa-solid fa-database text-info me-1"></i>30 Days continuous recording
+                </small>
+            </div>
+        </div>
+    </div>
+
+    <div class="row g-4 mb-4">
+        <!-- Infrastructure Parameters -->
+        <div class="col-lg-4">
+            <div class="ramonet-card h-100">
+                <div class="ramonet-card-header">
+                    <span class="text-white fw-bold small">
+                        <i class="fa-solid fa-sliders text-cyan me-2"></i>Infrastructure Sizing Controls
+                    </span>
+                </div>
+                <div class="ramonet-card-body">
+                    <div class="mb-3">
+                        <label class="form-label text-secondary small fw-semibold">NVR Model & Channels</label>
+                        <select class="form-select form-select-sm bg-dark border-secondary text-white" id="ctrl-nvr-channels">
+                            <option value="8">8-Channel Embedded NVR (Small Office)</option>
+                            <option value="16" selected>16-Channel 4K NVR (Standard Branch)</option>
+                            <option value="32">32-Channel Enterprise NVR (Campus/Commercial)</option>
+                            <option value="64">64-Channel High-Density Enterprise NVR</option>
+                        </select>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label text-secondary small fw-semibold">PoE Switch Power Supply Budget</label>
+                        <select class="form-select form-select-sm bg-dark border-secondary text-white" id="ctrl-poe-budget">
+                            <option value="130">130 Watts (8-Port Gigabit PoE+)</option>
+                            <option value="250">250 Watts (16-Port Gigabit PoE+)</option>
+                            <option value="370" selected>370 Watts (24-Port Gigabit PoE+)</option>
+                            <option value="740">740 Watts (48-Port Dual PSU PoE+)</option>
+                        </select>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label text-secondary small fw-semibold">Retention Target (Days)</label>
+                        <div class="input-group input-group-sm">
+                            <input type="number" class="form-control bg-dark border-secondary text-white" id="ctrl-retention-days" value="30" min="1" max="365">
+                            <span class="input-group-text bg-sidebar text-muted border-secondary">Days</span>
+                        </div>
+                        <small class="text-muted">Standard legal/regulatory retention is 30 or 90 days.</small>
+                    </div>
+
+                    <div class="p-3 bg-sidebar rounded border border-secondary border-opacity-25 mt-4">
+                        <div class="fw-bold text-white small mb-2">
+                            <i class="fa-solid fa-microchip text-primary-cyan me-1"></i> Recommended Storage Config
+                        </div>
+                        <div class="text-secondary small" id="storage-recommendation-text">
+                            Loading recommendations...
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Camera Fleet Table -->
+        <div class="col-lg-8">
+            <div class="ramonet-card h-100">
+                <div class="ramonet-card-header d-flex justify-content-between align-items-center">
+                    <span class="text-white fw-bold small">
+                        <i class="fa-solid fa-list-check text-warning me-2"></i>Configured Surveillance Cameras
+                    </span>
+                    <button class="btn btn-xs btn-outline-cyan" data-bs-toggle="modal" data-bs-target="#addCameraModal">
+                        <i class="fa-solid fa-plus me-1"></i> Add Camera
+                    </button>
+                </div>
+                <div class="table-responsive" style="max-height: 420px; overflow-y: auto;">
+                    <table class="table table-ramonet table-hover mb-0">
+                        <thead class="sticky-top bg-surface">
+                            <tr>
+                                <th>Camera Name</th>
+                                <th>Type</th>
+                                <th>IP / Subnet</th>
+                                <th>Format</th>
+                                <th>FPS</th>
+                                <th>Bitrate</th>
+                                <th>PoE Draw</th>
+                                <th class="text-end">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="camera-table-body">
+                            <!-- Populated dynamically by JavaScript -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Add Camera Modal -->
+<div class="modal fade" id="addCameraModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content bg-surface border-secondary text-white">
+            <div class="modal-header border-secondary">
+                <h5 class="modal-title fs-6 fw-bold">
+                    <i class="fa-solid fa-video text-warning me-2"></i>Add Surveillance Camera
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="form-add-camera">
+                    <div class="mb-3">
+                        <label class="form-label small text-secondary">Camera Name / Location</label>
+                        <input type="text" class="form-control form-control-sm bg-dark border-secondary text-white" id="cam-name" placeholder="e.g. Main Entrance Dome" required>
+                    </div>
+                    <div class="row g-2 mb-3">
+                        <div class="col-6">
+                            <label class="form-label small text-secondary">Camera Type</label>
+                            <select class="form-select form-select-sm bg-dark border-secondary text-white" id="cam-type">
+                                <option value="dome">Indoor Dome</option>
+                                <option value="bullet" selected>Outdoor Bullet</option>
+                                <option value="ptz">PTZ Speed Dome (PoE+)</option>
+                                <option value="fisheye">360° Fisheye Panoramic</option>
+                            </select>
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label small text-secondary">IP Address</label>
+                            <input type="text" class="form-control form-control-sm bg-dark border-secondary text-white font-monospace" id="cam-ip" placeholder="192.168.50.10" required>
+                        </div>
+                    </div>
+                    <div class="row g-2 mb-3">
+                        <div class="col-6">
+                            <label class="form-label small text-secondary">Resolution</label>
+                            <select class="form-select form-select-sm bg-dark border-secondary text-white" id="cam-res">
+                                <option value="720p">720p HD</option>
+                                <option value="1080p" selected>1080p Full HD</option>
+                                <option value="4MP">4MP Quad HD</option>
+                                <option value="4K">4K Ultra HD</option>
+                            </select>
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label small text-secondary">Compression Codec</label>
+                            <select class="form-select form-select-sm bg-dark border-secondary text-white" id="cam-codec">
+                                <option value="H.265" selected>H.265 / HEVC (Recommended)</option>
+                                <option value="H.264">H.264 / AVC</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label small text-secondary">Frame Rate (FPS)</label>
+                        <select class="form-select form-select-sm bg-dark border-secondary text-white" id="cam-fps">
+                            <option value="15">15 FPS (Static Area / Parking)</option>
+                            <option value="25">25 FPS (PAL Standard)</option>
+                            <option value="30" selected>30 FPS (Fluid Surveillance)</option>
+                        </select>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer border-secondary">
+                <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary-blue btn-sm" id="btn-save-camera">Save Camera</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    // Initial camera fleet state
+    let cameras = [
+        { name: 'Entrance Gate Bullet', type: 'bullet', ip: '192.168.50.11', resolution: '4K', codec: 'H.265', fps: 30 },
+        { name: 'Lobby PTZ Speed Dome', type: 'ptz', ip: '192.168.50.12', resolution: '1080p', codec: 'H.265', fps: 30 },
+        { name: 'Server Room Dome 1', type: 'dome', ip: '192.168.50.13', resolution: '4MP', codec: 'H.265', fps: 25 },
+        { name: 'Server Room Dome 2', type: 'dome', ip: '192.168.50.14', resolution: '4MP', codec: 'H.265', fps: 25 },
+        { name: 'Perimeter West Fence', type: 'bullet', ip: '192.168.50.15', resolution: '1080p', codec: 'H.264', fps: 30 },
+        { name: 'Loading Dock Fisheye', type: 'fisheye', ip: '192.168.50.16', resolution: '4MP', codec: 'H.265', fps: 25 }
+    ];
+
+    const tableBody = document.getElementById('camera-table-body');
+    const nvrSelect = document.getElementById('ctrl-nvr-channels');
+    const poeSelect = document.getElementById('ctrl-poe-budget');
+    const retentionInput = document.getElementById('ctrl-retention-days');
+    const alertsContainer = document.getElementById('cctv-alerts-container');
+
+    function renderTable() {
+        tableBody.innerHTML = '';
+        cameras.forEach((cam, idx) => {
+            const tr = document.createElement('tr');
+            const isPtz = cam.type === 'ptz';
+            const poeVal = isPtz ? '25.0W (PoE+)' : '12.0W (PoE)';
+            const poeClass = isPtz ? 'bg-danger text-white' : 'bg-warning text-dark';
+
+            tr.innerHTML = `
+                <td>
+                    <div class="fw-bold text-white small">${cam.name}</div>
+                    <span class="text-muted font-monospace" style="font-size:0.75rem;">rtsp://${cam.ip}:554/live/ch0</span>
+                </td>
+                <td><span class="badge bg-secondary text-capitalize">${cam.type}</span></td>
+                <td><span class="font-monospace text-cyan small">${cam.ip}</span></td>
+                <td><span class="badge bg-dark border border-secondary">${cam.resolution}</span> <span class="badge bg-info bg-opacity-25 text-info">${cam.codec}</span></td>
+                <td class="text-secondary small">${cam.fps} fps</td>
+                <td class="font-monospace text-white small" id="cam-bw-${idx}">Calculating...</td>
+                <td><span class="badge ${poeClass}">${poeVal}</span></td>
+                <td class="text-end">
+                    <button class="btn btn-xs btn-outline-danger btn-delete-cam" data-index="${idx}" title="Delete Camera">
+                        <i class="fa-solid fa-trash"></i>
+                    </button>
+                </td>
+            `;
+            tableBody.appendChild(tr);
+        });
+
+        document.querySelectorAll('.btn-delete-cam').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                const idx = parseInt(btn.getAttribute('data-index'), 10);
+                cameras.splice(idx, 1);
+                renderTable();
+                recalculate();
+            });
+        });
+    }
+
+    async function recalculate() {
+        const nvrChannels = parseInt(nvrSelect.value, 10);
+        const poeBudget = parseFloat(poeSelect.value);
+        const retentionDays = parseInt(retentionInput.value, 10) || 30;
+
+        try {
+            const res = await fetch('/configuration/api/cctv-calc/', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    cameras: cameras,
+                    nvr_channels: nvrChannels,
+                    poe_budget_watts: poeBudget,
+                    retention_days: retentionDays
+                })
+            });
+
+            if (res.ok) {
+                const data = await res.json();
+                updateUI(data);
+            }
+        } catch (err) {
+            console.error('CCTV calculation error:', err);
+        }
+    }
+
+    function updateUI(data) {
+        // KPIs
+        const nvrChannels = parseInt(nvrSelect.value, 10);
+        document.getElementById('kpi-cam-count').textContent = data.camera_count;
+        document.getElementById('kpi-channel-max').textContent = `/ ${nvrChannels} Channels`;
+        const chanPct = Math.min(100, (data.camera_count / nvrChannels) * 100);
+        const chanProg = document.getElementById('prog-channels');
+        chanProg.style.width = `${chanPct}%`;
+        chanProg.className = `progress-bar ${chanPct > 100 ? 'bg-danger' : chanPct > 80 ? 'bg-warning' : 'bg-info'}`;
+
+        document.getElementById('kpi-total-bw').textContent = data.total_bandwidth_mbps;
+        const uplinkPct = ((data.total_bandwidth_mbps / 1000) * 100).toFixed(1);
+        document.getElementById('kpi-uplink-status').innerHTML = data.total_bandwidth_mbps > 900
+            ? `<i class="fa-solid fa-triangle-exclamation text-warning me-1"></i>${uplinkPct}% of 1 Gbps Switch Uplink (High Load!)`
+            : `<i class="fa-solid fa-circle-check text-success me-1"></i>${uplinkPct}% of 1 Gbps Switch Uplink`;
+
+        document.getElementById('kpi-total-poe').textContent = data.total_poe_watts;
+        document.getElementById('kpi-poe-budget-label').textContent = `${data.poe_budget_watts}W`;
+        const poePct = Math.min(100, (data.total_poe_watts / data.poe_budget_watts) * 100);
+        const poeProg = document.getElementById('prog-poe');
+        poeProg.style.width = `${poePct}%`;
+        poeProg.className = `progress-bar ${poePct > 100 ? 'bg-danger' : poePct > 80 ? 'bg-warning' : 'bg-warning'}`;
+
+        document.getElementById('kpi-storage-tb').textContent = data.required_storage_tb;
+
+        // Recommendations
+        const recText = document.getElementById('storage-recommendation-text');
+        const tb = data.required_storage_tb;
+        const hddCount = Math.max(2, Math.ceil(tb / 6));
+        recText.innerHTML = `
+            <div>• Storage: <strong>${tb} TB</strong> needed for ${data.retention_days} days.</div>
+            <div>• HDD Array: <strong>${hddCount}x ${(tb/hddCount + 2).toFixed(0)}TB</strong> Surveillance-grade drives (RAID 5).</div>
+            <div>• PoE Power Margin: <strong>${data.poe_remaining_watts}W</strong> available headroom.</div>
+        `;
+
+        // Update per-camera bandwidth in table
+        data.cameras.forEach((c, idx) => {
+            const el = document.getElementById(`cam-bw-${idx}`);
+            if (el) el.textContent = `${c.bandwidth_mbps} Mbps`;
+        });
+
+        // Alerts
+        alertsContainer.innerHTML = '';
+        if (data.alerts && data.alerts.length > 0) {
+            data.alerts.forEach(al => {
+                const alertDiv = document.createElement('div');
+                alertDiv.className = `alert alert-${al.severity} d-flex align-items-center small py-2 px-3 mb-2`;
+                alertDiv.innerHTML = `<i class="fa-solid fa-triangle-exclamation me-2 fs-6"></i><div><strong>Bottleneck Detected:</strong> ${al.message}</div>`;
+                alertsContainer.appendChild(alertDiv);
+            });
+        }
+    }
+
+    // Modal add camera handler
+    document.getElementById('btn-save-camera').addEventListener('click', () => {
+        const name = document.getElementById('cam-name').value.trim();
+        const type = document.getElementById('cam-type').value;
+        const ip = document.getElementById('cam-ip').value.trim();
+        const res = document.getElementById('cam-res').value;
+        const codec = document.getElementById('cam-codec').value;
+        const fps = parseInt(document.getElementById('cam-fps').value, 10);
+
+        if (!name || !ip) {
+            alert('Please provide camera name and IP address.');
+            return;
+        }
+
+        cameras.push({ name, type, ip, resolution: res, codec, fps });
+        const modalEl = document.getElementById('addCameraModal');
+        const modal = bootstrap.Modal.getInstance(modalEl);
+        modal.hide();
+
+        document.getElementById('form-add-camera').reset();
+        renderTable();
+        recalculate();
+    });
+
+    [nvrSelect, poeSelect, retentionInput].forEach(el => {
+        el.addEventListener('change', recalculate);
+        el.addEventListener('input', recalculate);
+    });
+
+    document.getElementById('btn-reset-cctv').addEventListener('click', () => {
+        cameras = [
+            { name: 'Entrance Gate Bullet', type: 'bullet', ip: '192.168.50.11', resolution: '4K', codec: 'H.265', fps: 30 },
+            { name: 'Lobby PTZ Speed Dome', type: 'ptz', ip: '192.168.50.12', resolution: '1080p', codec: 'H.265', fps: 30 },
+            { name: 'Server Room Dome 1', type: 'dome', ip: '192.168.50.13', resolution: '4MP', codec: 'H.265', fps: 25 },
+            { name: 'Server Room Dome 2', type: 'dome', ip: '192.168.50.14', resolution: '4MP', codec: 'H.265', fps: 25 },
+            { name: 'Perimeter West Fence', type: 'bullet', ip: '192.168.50.15', resolution: '1080p', codec: 'H.264', fps: 30 }
+        ];
+        renderTable();
+        recalculate();
+    });
+
+    // Initial render
+    renderTable();
+    recalculate();
+});
+</script>
+{% endblock %}

@@ -1,0 +1,264 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Academy Dashboard — RamoNet{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <!-- Hero Banner -->
+    <div class="card bg-card border-accent mb-4 shadow-sm" style="background: linear-gradient(135deg, rgba(14, 165, 233, 0.12) 0%, rgba(15, 23, 42, 0.9) 100%);">
+        <div class="card-body p-4">
+            <div class="row align-items-center">
+                <div class="col-lg-8">
+                    <div class="d-flex align-items-center gap-2 mb-2">
+                        <span class="badge bg-primary px-3 py-1 text-uppercase" style="letter-spacing: 0.05em;"><i class="fa-solid fa-graduation-cap me-1"></i> RamoNet Academy</span>
+                        <span class="badge bg-dark text-info border border-info"><i class="fa-solid fa-laptop-code me-1"></i> Hands-on Simulation Labs</span>
+                    </div>
+                    <h2 class="h3 text-white fw-bold mb-2">Learn Real-World Computer Networking by Doing</h2>
+                    <p class="text-secondary mb-3" style="max-width: 680px;">
+                        Master Cisco switching, routing, firewalls, and enterprise network design through structured practical exercises. Every lesson features an integrated 4-pane simulation lab with step validation and mistake detection.
+                    </p>
+                    {% if recommended_lesson %}
+                    <div class="d-flex flex-wrap gap-2 align-items-center">
+                        <a href="{% url 'academy:lesson_reader' recommended_lesson.course.slug recommended_lesson.slug %}" class="btn btn-primary-blue shadow-sm">
+                            <i class="fa-solid fa-play me-2"></i>Continue: {{ recommended_lesson.title|truncatechars:35 }}
+                        </a>
+                        <a href="{% url 'academy:device_guides' %}" class="btn btn-outline-info">
+                            <i class="fa-solid fa-book-bookmark me-2"></i>Explore 27 Device Guides
+                        </a>
+                    </div>
+                    {% endif %}
+                </div>
+                <div class="col-lg-4 text-end d-none d-lg-block">
+                    <div class="d-inline-flex flex-column align-items-center bg-card-secondary p-3 rounded border border-accent">
+                        <div class="text-warning display-6 mb-1"><i class="fa-solid fa-award"></i></div>
+                        <span class="small text-muted text-uppercase fw-semibold">Target Credential</span>
+                        <span class="text-light fw-bold">RCNA Certified</span>
+                        <span class="badge bg-success-subtle text-success border border-success mt-1" style="font-size: 0.7rem;">Exam Available</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- KPI Metric Cards -->
+    <div class="row g-3 mb-4">
+        <div class="col-6 col-md-4 col-xl-2">
+            <div class="card bg-card border-accent h-100">
+                <div class="card-body p-3 text-center">
+                    <div class="text-info fs-4 mb-1"><i class="fa-solid fa-layer-group"></i></div>
+                    <div class="h4 text-white fw-bold mb-0" id="stat-total-courses">{{ total_courses }}</div>
+                    <div class="small text-muted">Courses</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-6 col-md-4 col-xl-2">
+            <div class="card bg-card border-accent h-100">
+                <div class="card-body p-3 text-center">
+                    <div class="text-primary fs-4 mb-1"><i class="fa-solid fa-book-open"></i></div>
+                    <div class="h4 text-white fw-bold mb-0" id="stat-total-lessons">{{ total_lessons }}</div>
+                    <div class="small text-muted">Lessons</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-6 col-md-4 col-xl-2">
+            <div class="card bg-card border-accent h-100">
+                <div class="card-body p-3 text-center">
+                    <div class="text-success fs-4 mb-1"><i class="fa-solid fa-circle-check"></i></div>
+                    <div class="h4 text-success fw-bold mb-0" id="stat-completed-lessons">{{ completed_lessons }}</div>
+                    <div class="small text-muted">Completed</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-6 col-md-4 col-xl-2">
+            <div class="card bg-card border-accent h-100">
+                <div class="card-body p-3 text-center">
+                    <div class="text-warning fs-4 mb-1"><i class="fa-solid fa-flask"></i></div>
+                    <div class="h4 text-warning fw-bold mb-0" id="stat-labs-completed">{{ labs_completed }}</div>
+                    <div class="small text-muted">Labs Done</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-6 col-md-4 col-xl-2">
+            <div class="card bg-card border-accent h-100">
+                <div class="card-body p-3 text-center">
+                    <div class="text-danger fs-4 mb-1"><i class="fa-solid fa-fire"></i></div>
+                    <div class="h4 text-white fw-bold mb-0" id="stat-streak">{{ streak_days }} <span class="fs-6 text-muted">days</span></div>
+                    <div class="small text-muted">Streak</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-6 col-md-4 col-xl-2">
+            <div class="card bg-card border-accent h-100">
+                <div class="card-body p-3 text-center">
+                    <div class="text-warning fs-4 mb-1"><i class="fa-solid fa-star"></i></div>
+                    <div class="h4 text-white fw-bold mb-0" id="stat-points">{{ total_points }}</div>
+                    <div class="small text-muted">XP Points</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filters Bar -->
+    <div class="card bg-card border-accent mb-4">
+        <div class="card-body p-3 d-flex flex-wrap align-items-center justify-content-between gap-3">
+            <!-- Level Filters -->
+            <div class="d-flex flex-wrap align-items-center gap-2">
+                <span class="small text-muted fw-semibold me-2"><i class="fa-solid fa-filter me-1"></i> Level:</span>
+                <a href="{% url 'academy:dashboard' %}" class="btn btn-sm {% if not selected_level %}btn-primary-blue{% else %}btn-outline-secondary text-secondary{% endif %}">
+                    All Levels
+                </a>
+                <a href="{% url 'academy:dashboard' %}?level=beginner" class="btn btn-sm {% if selected_level == 'beginner' %}btn-success{% else %}btn-outline-secondary text-secondary{% endif %}">
+                    <i class="fa-solid fa-seedling me-1 text-success"></i> Beginner
+                </a>
+                <a href="{% url 'academy:dashboard' %}?level=intermediate" class="btn btn-sm {% if selected_level == 'intermediate' %}btn-info{% else %}btn-outline-secondary text-secondary{% endif %}">
+                    <i class="fa-solid fa-gears me-1 text-info"></i> Intermediate
+                </a>
+                <a href="{% url 'academy:dashboard' %}?level=advanced" class="btn btn-sm {% if selected_level == 'advanced' %}btn-danger{% else %}btn-outline-secondary text-secondary{% endif %}">
+                    <i class="fa-solid fa-shield-halved me-1 text-danger"></i> Advanced
+                </a>
+            </div>
+
+            <!-- Quick Jump to Device Guides -->
+            <div>
+                <a href="{% url 'academy:device_guides' %}" class="btn btn-sm btn-outline-info">
+                    <i class="fa-solid fa-server me-1"></i> 27 Device Guides Catalogue <i class="fa-solid fa-arrow-right ms-1"></i>
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Course Catalogue Section -->
+    <div class="d-flex align-items-center justify-content-between mb-3">
+        <h3 class="h5 text-white fw-bold mb-0"><i class="fa-solid fa-book-bookmark text-info me-2"></i>Structured Course Catalogue ({{ courses.count }})</h3>
+        <span class="small text-muted">14 Complete Hands-on Courses</span>
+    </div>
+
+    <div class="row g-4 mb-5">
+        {% for course in courses %}
+        <div class="col-md-6 col-lg-4">
+            <div class="card bg-card border-accent h-100 course-card transition-hover shadow-sm">
+                <div class="card-body p-4 d-flex flex-column">
+                    <!-- Top Category and Level -->
+                    <div class="d-flex align-items-center justify-content-between mb-3">
+                        <span class="badge bg-card-secondary text-info border border-accent">
+                            <i class="fa-solid {{ course.icon }} me-1"></i> {{ course.get_category_display }}
+                        </span>
+                        <span class="badge {% if course.level == 'beginner' %}bg-success-subtle text-success border border-success{% elif course.level == 'intermediate' %}bg-info-subtle text-info border border-info{% else %}bg-danger-subtle text-danger border border-danger{% endif %} text-uppercase" style="font-size: 0.7rem;">
+                            {{ course.get_level_display }}
+                        </span>
+                    </div>
+
+                    <!-- Course Title & Description -->
+                    <h4 class="h5 text-white fw-bold mb-2">
+                        <a href="{% url 'academy:course_detail' course.slug %}" class="text-white text-decoration-none hover-primary">
+                            {{ course.title }}
+                        </a>
+                    </h4>
+                    <p class="small text-secondary mb-3 flex-grow-1" style="line-height: 1.5;">
+                        {{ course.description|truncatewords:22 }}
+                    </p>
+
+                    <!-- Meta specs -->
+                    <div class="bg-card-secondary p-2 rounded border border-accent mb-3 d-flex align-items-center justify-content-around text-center small">
+                        <div>
+                            <span class="text-muted d-block" style="font-size: 0.7rem;">Lessons</span>
+                            <span class="fw-bold text-light">{{ course.lesson_count }} Modules</span>
+                        </div>
+                        <div class="border-start border-accent ps-3">
+                            <span class="text-muted d-block" style="font-size: 0.7rem;">Duration</span>
+                            <span class="fw-bold text-light">{{ course.estimated_hours }} hrs</span>
+                        </div>
+                        <div class="border-start border-accent ps-3">
+                            <span class="text-muted d-block" style="font-size: 0.7rem;">Practical Lab</span>
+                            {% if course.has_practical_labs %}
+                            <span class="text-success fw-bold"><i class="fa-solid fa-check"></i> Interactive</span>
+                            {% else %}
+                            <span class="text-muted">Theory</span>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <!-- Bottom Action -->
+                    <div class="d-flex align-items-center justify-content-between pt-2 border-top border-accent">
+                        <span class="small text-muted" title="{{ course.badge_name }}">
+                            <i class="fa-solid fa-award text-warning me-1"></i> {{ course.badge_name|truncatechars:20 }}
+                        </span>
+                        <a href="{% url 'academy:course_detail' course.slug %}" class="btn btn-sm btn-outline-primary-blue">
+                            View Syllabus <i class="fa-solid fa-chevron-right ms-1"></i>
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% empty %}
+        <div class="col-12 text-center py-5">
+            <div class="text-muted fs-1 mb-2"><i class="fa-solid fa-box-open"></i></div>
+            <h5 class="text-light">No courses match the selected filter.</h5>
+            <a href="{% url 'academy:dashboard' %}" class="btn btn-sm btn-outline-info mt-2">Clear Filters</a>
+        </div>
+        {% endfor %}
+    </div>
+
+    <!-- 27 Hardware Devices Showcase Strip -->
+    <div class="card bg-card border-accent mb-5">
+        <div class="card-header bg-card-secondary border-accent py-3 d-flex align-items-center justify-content-between">
+            <div class="d-flex align-items-center gap-2">
+                <i class="fa-solid fa-microchip text-info fs-5"></i>
+                <h4 class="h6 text-white fw-bold mb-0">Hardware Knowledge Guides (27 Devices)</h4>
+            </div>
+            <a href="{% url 'academy:device_guides' %}" class="btn btn-sm btn-outline-info">
+                View All 27 Devices <i class="fa-solid fa-arrow-right ms-1"></i>
+            </a>
+        </div>
+        <div class="card-body p-4">
+            <p class="small text-secondary mb-3">
+                Every hardware course covers 17 standard sections: Purpose, appearance, interfaces, connection diagrams, cable requirements, PoE, IP configuration, supported commands, common mistakes, and hands-on practical projects.
+            </p>
+            <div class="row g-3">
+                {% for dev in device_guides_preview %}
+                <div class="col-6 col-md-4 col-xl-3">
+                    <a href="{% url 'academy:device_guide_detail' dev.slug %}" class="text-decoration-none">
+                        <div class="card bg-card-secondary border-accent h-100 p-3 hover-border-info transition-hover">
+                            <div class="d-flex align-items-center gap-3">
+                                <div class="fs-4 text-info"><i class="fa-solid {{ dev.icon }}"></i></div>
+                                <div>
+                                    <div class="text-white fw-semibold small text-truncate" style="max-width: 140px;">{{ dev.name }}</div>
+                                    <div class="text-muted" style="font-size: 0.7rem;">{{ dev.category }}</div>
+                                </div>
+                            </div>
+                        </div>
+                    </a>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Badges & Achievements Section -->
+    <div class="card bg-card border-accent mb-4">
+        <div class="card-header bg-card-secondary border-accent py-3">
+            <div class="d-flex align-items-center gap-2">
+                <i class="fa-solid fa-trophy text-warning fs-5"></i>
+                <h4 class="h6 text-white fw-bold mb-0">Academy Badges & Certifications</h4>
+            </div>
+        </div>
+        <div class="card-body p-4">
+            <div class="row g-3">
+                {% for ach in achievements %}
+                <div class="col-md-6 col-xl-3">
+                    <div class="card bg-card-secondary border-accent p-3 h-100 d-flex flex-row align-items-center gap-3">
+                        <div class="fs-2 text-warning"><i class="fa-solid {{ ach.icon }}"></i></div>
+                        <div>
+                            <div class="text-white fw-bold small">{{ ach.title }}</div>
+                            <div class="text-muted" style="font-size: 0.75rem;">{{ ach.description }}</div>
+                            <span class="badge bg-warning-subtle text-warning border border-warning mt-1" style="font-size: 0.65rem;">+{{ ach.points }} XP</span>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

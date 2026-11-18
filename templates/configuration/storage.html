@@ -1,0 +1,141 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}NAS & Storage Manager | Ramonet{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-0">
+    <div class="d-flex align-items-center justify-content-between mb-4">
+        <div>
+            <h4 class="text-white fw-bold mb-1">
+                <i class="fa-solid fa-hard-drive text-secondary me-2"></i>NAS & Storage Networking Manager
+            </h4>
+            <p class="text-secondary small mb-0">RAID 0/1/5/6/10 Capacity Calculations, SMB/NFS Shared Folders, and LACP Link Aggregation.</p>
+        </div>
+        <a href="{% url 'topology:designer' %}" class="btn btn-primary-blue btn-sm">
+            <i class="fa-solid fa-diagram-project me-1"></i> Open Designer
+        </a>
+    </div>
+
+    <!-- RAID Calculator & Simulator -->
+    <div class="row g-4 mb-4">
+        <div class="col-lg-5">
+            <div class="ramonet-card h-100">
+                <div class="ramonet-card-header">
+                    <span class="text-white fw-bold small"><i class="fa-solid fa-calculator text-info me-2"></i>Interactive RAID Capacity Estimator</span>
+                </div>
+                <div class="ramonet-card-body">
+                    <div class="mb-3">
+                        <label class="form-label small text-muted">RAID Level</label>
+                        <select class="form-select form-select-sm" id="raid-level">
+                            <option value="RAID0">RAID 0 (Striping - No Fault Tolerance)</option>
+                            <option value="RAID1">RAID 1 (Mirroring - High Redundancy)</option>
+                            <option value="RAID5" selected>RAID 5 (Striping with Parity - 1 Drive Failure)</option>
+                            <option value="RAID6">RAID 6 (Dual Parity - 2 Drive Failures)</option>
+                            <option value="RAID10">RAID 10 (Stripe of Mirrors - Speed & Redundancy)</option>
+                        </select>
+                    </div>
+                    <div class="row g-2 mb-3">
+                        <div class="col-6">
+                            <label class="form-label small text-muted">Number of Drives</label>
+                            <input type="number" class="form-control form-control-sm" id="raid-count" value="4" min="2" max="16">
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label small text-muted">Drive Size (TB)</label>
+                            <input type="number" class="form-control form-control-sm" id="raid-size" value="4" min="1" max="24">
+                        </div>
+                    </div>
+
+                    <!-- Computed Output Box -->
+                    <div class="p-3 bg-sidebar rounded border border-secondary border-opacity-25" id="raid-output-box">
+                        <div class="d-flex justify-content-between mb-1">
+                            <span class="text-muted small">Usable Storage Capacity:</span>
+                            <strong class="text-success" id="raid-usable-tb">12.0 TB</strong>
+                        </div>
+                        <div class="d-flex justify-content-between mb-1">
+                            <span class="text-muted small">Drive Fault Tolerance:</span>
+                            <span class="badge bg-info text-dark" id="raid-fault-drives">1 Drive</span>
+                        </div>
+                        <div class="d-flex justify-content-between mb-2">
+                            <span class="text-muted small">Storage Efficiency:</span>
+                            <strong class="text-white" id="raid-efficiency">75%</strong>
+                        </div>
+                        <div class="progress bg-dark mb-2" style="height: 6px;">
+                            <div class="progress-bar bg-success" id="raid-progress-bar" style="width: 75%;"></div>
+                        </div>
+                        <p class="small text-secondary mb-0" id="raid-desc-text">Block-level striping with distributed parity.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Shared Folders & Protocols -->
+        <div class="col-lg-7">
+            <div class="ramonet-card h-100">
+                <div class="ramonet-card-header d-flex justify-content-between align-items-center">
+                    <span class="text-white fw-bold small"><i class="fa-solid fa-folder-tree text-info me-2"></i>Active Network Shares (SMB / NFS)</span>
+                    <button class="btn btn-sm btn-primary-blue py-0 px-2"><i class="fa-solid fa-plus me-1"></i> New Share</button>
+                </div>
+                <div class="table-responsive">
+                    <table class="table table-ramonet mb-0">
+                        <thead>
+                            <tr>
+                                <th>Share Name</th>
+                                <th>Protocol</th>
+                                <th>Network Path</th>
+                                <th>Permissions</th>
+                                <th>Used / Capacity</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td class="text-white fw-bold">Engineering_Files</td>
+                                <td><span class="badge bg-primary">SMB (445)</span></td>
+                                <td class="font-monospace small text-info">\\192.168.1.20\Engineering</td>
+                                <td class="text-muted small">Read / Write</td>
+                                <td>
+                                    <div class="small text-secondary mb-1">3.2 TB / 12 TB</div>
+                                    <div class="progress bg-sidebar" style="height:4px;"><div class="progress-bar bg-info" style="width:26%;"></div></div>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td class="text-white fw-bold">Surveillance_Archive</td>
+                                <td><span class="badge bg-secondary">NFS (2049)</span></td>
+                                <td class="font-monospace small text-info">192.168.1.20:/volume1/cctv</td>
+                                <td class="text-muted small">NVR Dedicated</td>
+                                <td>
+                                    <div class="small text-secondary mb-1">7.8 TB / 12 TB</div>
+                                    <div class="progress bg-sidebar" style="height:4px;"><div class="progress-bar bg-warning" style="width:65%;"></div></div>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+['raid-level', 'raid-count', 'raid-size'].forEach(id => {
+    document.getElementById(id)?.addEventListener('input', updateRaid);
+});
+
+function updateRaid() {
+    const level = document.getElementById('raid-level').value;
+    const count = document.getElementById('raid-count').value;
+    const size = document.getElementById('raid-size').value;
+
+    const res = window.RamonetCalculators.calculateRAIDCapacity(count, size, level);
+    if (res) {
+        document.getElementById('raid-usable-tb').textContent = `${res.usableCapacityTB} TB`;
+        document.getElementById('raid-fault-drives').textContent = `${res.faultToleranceDrives} Drive(s)`;
+        document.getElementById('raid-efficiency').textContent = `${res.storageEfficiencyPercent}%`;
+        document.getElementById('raid-progress-bar').style.width = `${res.storageEfficiencyPercent}%`;
+        document.getElementById('raid-desc-text').textContent = res.description;
+    }
+}
+</script>
+{% endblock %}

@@ -1,0 +1,203 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Network Event & Alert Centre — Ramonet{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-0">
+    <!-- Header -->
+    <div class="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-4">
+        <div>
+            <h4 class="text-white fw-bold mb-1">
+                <i class="fa-solid fa-bell text-warning me-2"></i>Network Event & Alert Centre
+            </h4>
+            <p class="text-secondary small mb-0">
+                Centralized fault management, link flaps, threshold violations, and security incident response.
+            </p>
+        </div>
+        <div class="d-flex gap-2">
+            <button class="btn btn-outline-cyan btn-sm" id="btn-refresh-alerts">
+                <i class="fa-solid fa-arrows-rotate me-1"></i> Refresh Alerts
+            </button>
+            <a href="{% url 'monitoring:dashboard' %}" class="btn btn-primary-blue btn-sm">
+                <i class="fa-solid fa-chart-line me-1"></i> NOC Dashboard
+            </a>
+        </div>
+    </div>
+
+    <!-- Alert KPIs -->
+    <div class="row g-3 mb-4">
+        <div class="col-md-4 col-sm-6">
+            <div class="ramonet-card p-3">
+                <div class="d-flex align-items-center justify-content-between mb-2">
+                    <span class="text-secondary small">Active Incident Alerts</span>
+                    <i class="fa-solid fa-circle-exclamation text-danger"></i>
+                </div>
+                <h3 class="text-danger fw-bold mb-0" id="kpi-active-alerts">3</h3>
+                <small class="text-muted d-block mt-2">Requires engineer attention</small>
+            </div>
+        </div>
+
+        <div class="col-md-4 col-sm-6">
+            <div class="ramonet-card p-3">
+                <div class="d-flex align-items-center justify-content-between mb-2">
+                    <span class="text-secondary small">Acknowledged (In Progress)</span>
+                    <i class="fa-solid fa-user-check text-warning"></i>
+                </div>
+                <h3 class="text-warning fw-bold mb-0" id="kpi-ack-alerts">1</h3>
+                <small class="text-muted d-block mt-2">Under active triage</small>
+            </div>
+        </div>
+
+        <div class="col-md-4 col-sm-6">
+            <div class="ramonet-card p-3">
+                <div class="d-flex align-items-center justify-content-between mb-2">
+                    <span class="text-secondary small">System Health Status</span>
+                    <i class="fa-solid fa-shield-halved text-success"></i>
+                </div>
+                <h3 class="text-success fw-bold mb-0">Operational</h3>
+                <small class="text-success d-block mt-2"><i class="fa-solid fa-circle-check me-1"></i>Core routing fabric stable</small>
+            </div>
+        </div>
+    </div>
+
+    <!-- Active Alerts Table / Feed -->
+    <div class="ramonet-card">
+        <div class="ramonet-card-header d-flex justify-content-between align-items-center">
+            <span class="text-white fw-bold small">
+                <i class="fa-solid fa-list-check text-cyan me-2"></i>Real-Time Event Incident Roster
+            </span>
+            <div class="d-flex gap-2">
+                <button class="btn btn-xs btn-outline-cyan active filter-alert-btn" data-filter="all">All</button>
+                <button class="btn btn-xs btn-outline-secondary filter-alert-btn" data-filter="active">Active Only</button>
+            </div>
+        </div>
+        <div class="table-responsive">
+            <table class="table table-ramonet table-hover mb-0">
+                <thead>
+                    <tr>
+                        <th>Severity</th>
+                        <th>Alert ID</th>
+                        <th>Category</th>
+                        <th>Device / Port</th>
+                        <th>Incident Description</th>
+                        <th>Timestamp</th>
+                        <th>Status</th>
+                        <th class="text-end">Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="alerts-table-body">
+                    <!-- Populated dynamically -->
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    const tableBody = document.getElementById('alerts-table-body');
+    let alertsData = [];
+    let currentFilter = 'all';
+
+    async function fetchAlerts() {
+        try {
+            const res = await fetch('/monitoring/api/alerts/list/');
+            if (res.ok) {
+                const data = await res.json();
+                alertsData = data.alerts;
+                renderAlerts();
+            }
+        } catch (err) {
+            console.error('Fetch alerts error:', err);
+        }
+    }
+
+    function renderAlerts() {
+        const activeCount = alertsData.filter(a => a.status === 'active').length;
+        const ackCount = alertsData.filter(a => a.status === 'acknowledged').length;
+        document.getElementById('kpi-active-alerts').textContent = activeCount;
+        document.getElementById('kpi-ack-alerts').textContent = ackCount;
+
+        tableBody.innerHTML = '';
+        const list = currentFilter === 'all'
+            ? alertsData
+            : alertsData.filter(a => a.status === currentFilter);
+
+        list.forEach(a => {
+            const tr = document.createElement('tr');
+            const sevBadge = a.severity === 'danger' ? 'bg-danger' : a.severity === 'warning' ? 'bg-warning text-dark' : 'bg-info text-dark';
+            const statusBadge = a.status === 'active' ? 'bg-danger' : a.status === 'acknowledged' ? 'bg-warning text-dark' : 'bg-success';
+
+            tr.innerHTML = `
+                <td><span class="badge ${sevBadge} text-uppercase">${a.severity}</span></td>
+                <td><span class="font-monospace text-secondary small">${a.id}</span></td>
+                <td><span class="badge bg-secondary">${a.category}</span></td>
+                <td>
+                    <span class="text-white fw-bold small">${a.device}</span>
+                    <span class="text-muted small font-monospace d-block">${a.port}</span>
+                </td>
+                <td class="text-secondary small" style="max-width: 320px;">${a.message}</td>
+                <td class="text-muted small">${a.timestamp}</td>
+                <td><span class="badge ${statusBadge} text-capitalize">${a.status}</span></td>
+                <td class="text-end">
+                    ${a.status === 'active' ? `
+                        <button class="btn btn-xs btn-outline-warning btn-ack" data-id="${a.id}" title="Acknowledge">
+                            <i class="fa-solid fa-check"></i>
+                        </button>
+                    ` : ''}
+                    ${a.status !== 'resolved' ? `
+                        <button class="btn btn-xs btn-outline-success btn-resolve" data-id="${a.id}" title="Resolve & Clear">
+                            <i class="fa-solid fa-circle-check"></i>
+                        </button>
+                    ` : '<span class="text-muted small">Closed</span>'}
+                </td>
+            `;
+            tableBody.appendChild(tr);
+        });
+
+        document.querySelectorAll('.btn-ack').forEach(btn => {
+            btn.addEventListener('click', async () => {
+                const id = btn.getAttribute('data-id');
+                await fetch('/monitoring/api/alerts/acknowledge/', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ alert_id: id })
+                });
+                fetchAlerts();
+            });
+        });
+
+        document.querySelectorAll('.btn-resolve').forEach(btn => {
+            btn.addEventListener('click', async () => {
+                const id = btn.getAttribute('data-id');
+                await fetch('/monitoring/api/alerts/resolve/', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ alert_id: id })
+                });
+                fetchAlerts();
+            });
+        });
+    }
+
+    document.querySelectorAll('.filter-alert-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            document.querySelectorAll('.filter-alert-btn').forEach(b => {
+                b.classList.remove('btn-outline-cyan', 'active');
+                b.classList.add('btn-outline-secondary');
+            });
+            btn.classList.add('btn-outline-cyan', 'active');
+            btn.classList.remove('btn-outline-secondary');
+            currentFilter = btn.getAttribute('data-filter');
+            renderAlerts();
+        });
+    });
+
+    document.getElementById('btn-refresh-alerts').addEventListener('click', fetchAlerts);
+    fetchAlerts();
+});
+</script>
+{% endblock %}

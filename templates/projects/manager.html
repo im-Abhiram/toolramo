@@ -1,0 +1,242 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Project Manager | Ramonet{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-0">
+    <div class="d-flex align-items-center justify-content-between mb-4">
+        <div>
+            <h4 class="text-white fw-bold mb-1">
+                <i class="fa-solid fa-folder text-info me-2"></i>Network Topology Project Manager
+            </h4>
+            <p class="text-secondary small mb-0">Manage offline IndexedDB topology designs, export/import JSON configurations, and launch prebuilt templates.</p>
+        </div>
+        <div class="d-flex gap-2">
+            <button class="btn btn-outline-cyan btn-sm" id="btn-import-project-modal">
+                <i class="fa-solid fa-file-import me-1"></i> Import JSON Project
+            </button>
+            <a href="{% url 'topology:designer' %}" class="btn btn-primary-blue btn-sm">
+                <i class="fa-solid fa-plus me-1"></i> New Blank Project
+            </a>
+        </div>
+    </div>
+
+    <!-- Hidden file input for import -->
+    <input type="file" id="file-import-input" accept=".json" class="d-none">
+
+    <!-- Local IndexedDB Projects Section -->
+    <div class="ramonet-card mb-4">
+        <div class="ramonet-card-header d-flex justify-content-between align-items-center">
+            <span class="text-white fw-bold small"><i class="fa-solid fa-hard-drive text-warning me-2"></i>Locally Stored Projects (Browser IndexedDB)</span>
+            <span class="badge bg-secondary" id="local-projects-counter">Scanning...</span>
+        </div>
+        <div class="table-responsive">
+            <table class="table table-ramonet mb-0" id="local-projects-table">
+                <thead>
+                    <tr>
+                        <th>Project Name</th>
+                        <th>Devices</th>
+                        <th>Connections</th>
+                        <th>Last Modified</th>
+                        <th class="text-end">Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="local-projects-tbody">
+                    <tr>
+                        <td colspan="5" class="text-center py-4 text-muted">
+                            <i class="fa-solid fa-spinner fa-spin me-2"></i>Loading local IndexedDB projects...
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Server & Shared Projects Section -->
+    {% if server_projects %}
+    <div class="ramonet-card mb-4">
+        <div class="ramonet-card-header d-flex justify-content-between align-items-center">
+            <span class="text-white fw-bold small"><i class="fa-solid fa-cloud text-cyan me-2"></i>Server & Shared Projects</span>
+            <span class="badge bg-primary">{{ server_projects|length }} Available</span>
+        </div>
+        <div class="table-responsive">
+            <table class="table table-ramonet mb-0">
+                <thead>
+                    <tr>
+                        <th>Project Name</th>
+                        <th>Owner</th>
+                        <th>Devices</th>
+                        <th>Access</th>
+                        <th>Last Modified</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for sp in server_projects %}
+                    <tr>
+                        <td>
+                            <strong class="text-white d-block">{{ sp.name }}</strong>
+                            <span class="font-monospace small text-muted">{{ sp.slug|default:sp.id }}</span>
+                        </td>
+                        <td class="text-secondary small">{{ sp.user.username|default:"System" }}</td>
+                        <td class="font-monospace text-info">{{ sp.device_count }}</td>
+                        <td>
+                            {% if sp.is_public %}
+                            <span class="badge bg-success" style="font-size:0.65rem;">Public</span>
+                            {% else %}
+                            <span class="badge bg-secondary" style="font-size:0.65rem;">Private</span>
+                            {% endif %}
+                        </td>
+                        <td class="text-muted small">{{ sp.updated_at|date:"Y-m-d H:i" }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- 18 Prebuilt Network Templates Section -->
+    <div class="ramonet-card">
+        <div class="ramonet-card-header d-flex justify-content-between align-items-center">
+            <span class="text-white fw-bold small"><i class="fa-solid fa-layer-group text-info me-2"></i>Prebuilt Network Templates Gallery (All 18 Templates)</span>
+            <span class="badge bg-info text-dark">Production Ready</span>
+        </div>
+        <div class="ramonet-card-body">
+            <div class="row g-3">
+                {% for t in templates %}
+                <div class="col-xl-4 col-md-6">
+                    <div class="p-3 rounded bg-sidebar border border-secondary border-opacity-25 h-100 d-flex flex-column justify-content-between">
+                        <div>
+                            <div class="d-flex align-items-center justify-content-between mb-1">
+                                <h6 class="text-white mb-0 fw-bold">{{ t.name }}</h6>
+                                <span class="badge bg-secondary" style="font-size:0.65rem;">{{ t.template_category }}</span>
+                            </div>
+                            <p class="text-secondary small mb-3">{{ t.description }}</p>
+                        </div>
+                        <div class="d-flex align-items-center justify-content-between pt-2 border-top border-secondary border-opacity-25">
+                            <small class="text-muted"><i class="fa-solid fa-server me-1"></i>{{ t.device_count }} devices</small>
+                            <a href="{% url 'topology:designer' %}?template={{ t.name|urlencode }}" class="btn btn-sm btn-outline-cyan py-0 px-2">
+                                <i class="fa-solid fa-play me-1"></i> Open Template
+                            </a>
+                        </div>
+                    </div>
+                </div>
+                {% empty %}
+                <div class="col-12 text-center text-muted py-4">No templates available.</div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', async () => {
+    await renderLocalProjects();
+
+    // Import Button
+    document.getElementById('btn-import-project-modal')?.addEventListener('click', () => {
+        document.getElementById('file-import-input')?.click();
+    });
+
+    document.getElementById('file-import-input')?.addEventListener('change', (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        const reader = new FileReader();
+        reader.onload = async (event) => {
+            const jsonText = event.target.result;
+            const res = window.ramonetStorage.validateAndImportProjectJSON(jsonText);
+            if (res.valid) {
+                await window.ramonetStorage.saveProject(res.project);
+                window.ramonetUI?.showToast('Project Imported', `Imported "${res.project.name}" successfully!`, 'success');
+                await renderLocalProjects();
+            } else {
+                window.ramonetUI?.showToast('Import Error', res.error, 'danger');
+            }
+        };
+        reader.readAsText(file);
+    });
+});
+
+async function renderLocalProjects() {
+    const tbody = document.getElementById('local-projects-tbody');
+    const counter = document.getElementById('local-projects-counter');
+    const projects = await window.ramonetStorage.getAllProjects();
+
+    counter.textContent = `${projects.length} Saved Projects`;
+
+    if (projects.length === 0) {
+        tbody.innerHTML = `
+            <tr>
+                <td colspan="5" class="text-center py-4 text-muted">
+                    <i class="fa-solid fa-folder-open fa-2x mb-2 text-secondary opacity-50"></i>
+                    <p class="small mb-0">No local projects saved yet. Click "New Blank Project" or open a template above.</p>
+                </td>
+            </tr>
+        `;
+        return;
+    }
+
+    let html = '';
+    projects.forEach(p => {
+        const devCount = (p.devices || []).length;
+        const connCount = (p.connections || []).length;
+        const modDate = p.updated_at ? new Date(p.updated_at).toLocaleString() : 'Recently';
+
+        html += `
+            <tr>
+                <td>
+                    <strong class="text-white d-block">${p.name || 'Untitled'}</strong>
+                    <span class="font-monospace small text-muted">${p.id}</span>
+                </td>
+                <td class="font-monospace text-info">${devCount}</td>
+                <td class="font-monospace text-secondary">${connCount}</td>
+                <td class="text-muted small">${modDate}</td>
+                <td class="text-end">
+                    <button class="btn btn-sm btn-outline-cyan py-0 px-2 me-1" onclick="openLocalProject('${p.id}')" title="Open in Designer">
+                        <i class="fa-solid fa-folder-open me-1"></i> Open
+                    </button>
+                    <button class="btn btn-sm btn-outline-secondary py-0 px-2 me-1" onclick="exportLocalProject('${p.id}')" title="Export JSON">
+                        <i class="fa-solid fa-download"></i>
+                    </button>
+                    <button class="btn btn-sm btn-outline-danger py-0 px-2" onclick="deleteLocalProject('${p.id}')" title="Delete">
+                        <i class="fa-solid fa-trash-can"></i>
+                    </button>
+                </td>
+            </tr>
+        `;
+    });
+    tbody.innerHTML = html;
+}
+
+function openLocalProject(id) {
+    window.RamonetPrefs?.set(window.RamonetPrefs.KEYS.LAST_PROJECT_ID, id);
+    window.location.href = '{% url "topology:designer" %}?project_id=' + id;
+}
+
+async function exportLocalProject(id) {
+    const p = await window.ramonetStorage.getProject(id);
+    if (!p) return;
+    const jsonStr = window.ramonetStorage.exportProjectJSON(p);
+    const blob = new Blob([jsonStr], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${p.name.replace(/\s+/g, '_')}_ramonet.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+    window.ramonetUI?.showToast('Exported', `Exported ${p.name} as JSON.`, 'success');
+}
+
+async function deleteLocalProject(id) {
+    if (confirm('Delete this network topology project?')) {
+        await window.ramonetStorage.deleteProject(id);
+        window.ramonetUI?.showToast('Deleted', 'Project removed from IndexedDB.', 'info');
+        await renderLocalProjects();
+    }
+}
+</script>
+{% endblock %}
