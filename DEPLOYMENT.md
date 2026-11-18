@@ -24,7 +24,8 @@ cd /home/ramonet/ramonet
 # 2. Activate virtualenv
 workon ramonet-env
 
-# 3. Pull latest updates from GitHub
+# 3. Discard server-side db modifications and pull latest updates
+git checkout db.sqlite3
 git pull origin main
 
 # 4. Install any package requirements
