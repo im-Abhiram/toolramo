@@ -1,0 +1,291 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Packet Capture & Protocol Analyzer | Ramonet{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-0">
+    <!-- Header -->
+    <div class="d-flex align-items-center justify-content-between mb-3 flex-wrap gap-2">
+        <div>
+            <h4 class="text-white fw-bold mb-1">
+                <i class="fa-solid fa-network-wired text-cyan me-2"></i>Packet Capture & Protocol Analyzer
+            </h4>
+            <p class="text-secondary small mb-0">
+                Interactive deep-packet inspection, Wireshark-inspired multi-layer frame dissection, and OSI layer analysis.
+            </p>
+        </div>
+        <div class="d-flex gap-2">
+            <a href="{% url 'simulation:visualizer' %}" class="btn btn-outline-cyan btn-sm">
+                <i class="fa-solid fa-wave-pulse me-1"></i> Flow Visualizer
+            </a>
+            <a href="{% url 'topology:designer' %}" class="btn btn-primary-blue btn-sm">
+                <i class="fa-solid fa-diagram-project me-1"></i> Network Designer
+            </a>
+        </div>
+    </div>
+
+    <!-- Filter Bar & Protocol Scenario Triggers -->
+    <div class="ramonet-card mb-3 p-3">
+        <div class="row g-2 align-items-center">
+            <div class="col-md-3">
+                <select class="form-select bg-surface border-secondary text-white small" id="select-pcap-scenario">
+                    {% for sc in scenarios %}
+                    <option value="{{ sc.id }}">{{ sc.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-2">
+                <button class="btn btn-primary-blue btn-sm w-100" id="btn-trigger-capture">
+                    <i class="fa-solid fa-play me-1"></i> Capture Packets
+                </button>
+            </div>
+            <div class="col-md-5">
+                <div class="input-group input-group-sm">
+                    <span class="input-group-text bg-surface border-secondary text-secondary font-monospace">Filter:</span>
+                    <input type="text" class="form-control bg-surface border-secondary text-white font-monospace" id="pcap-filter-input" placeholder='e.g. dns, http, ip.src == "192.168.1.105", tcp.port == 80'>
+                    <button class="btn btn-outline-secondary" id="btn-apply-filter">Apply</button>
+                    <button class="btn btn-outline-secondary" id="btn-clear-filter">Clear</button>
+                </div>
+            </div>
+            <div class="col-md-2 text-end">
+                <span class="badge bg-secondary font-monospace" id="packet-counter-badge">0 Packets</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Wireshark 3-Pane Layout -->
+    <div class="row g-3">
+        <!-- Top Pane: Packet List Table -->
+        <div class="col-12">
+            <div class="ramonet-card">
+                <div class="ramonet-card-header d-flex justify-content-between align-items-center py-2">
+                    <span class="text-white fw-bold small"><i class="fa-solid fa-list-ol text-info me-2"></i>Captured Frames</span>
+                    <div class="d-flex gap-2">
+                        <button class="btn btn-sm btn-outline-secondary py-0 px-2" id="btn-prev-packet" title="Previous Packet"><i class="fa-solid fa-chevron-up"></i></button>
+                        <button class="btn btn-sm btn-outline-secondary py-0 px-2" id="btn-next-packet" title="Next Packet"><i class="fa-solid fa-chevron-down"></i></button>
+                    </div>
+                </div>
+                <div class="table-responsive" style="max-height: 280px; overflow-y: auto;">
+                    <table class="table table-sm table-ramonet table-hover mb-0" style="font-size: 0.8rem;">
+                        <thead class="sticky-top bg-sidebar">
+                            <tr>
+                                <th style="width: 50px;">No.</th>
+                                <th style="width: 90px;">Time (s)</th>
+                                <th>Source</th>
+                                <th>Destination</th>
+                                <th style="width: 80px;">Protocol</th>
+                                <th style="width: 70px;">Length</th>
+                                <th style="width: 60px;">VLAN</th>
+                                <th>Info</th>
+                            </tr>
+                        </thead>
+                        <tbody id="pcap-table-tbody">
+                            <tr><td colspan="8" class="text-center py-4 text-muted">Click "Capture Packets" above to generate a live protocol exchange.</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Bottom Left: Layered OSI Accordion -->
+        <div class="col-md-7">
+            <div class="ramonet-card h-100">
+                <div class="ramonet-card-header py-2">
+                    <span class="text-white fw-bold small">
+                        <i class="fa-solid fa-layer-group text-warning me-2"></i>Packet Dissection & Layered OSI Tree
+                    </span>
+                    <span class="badge bg-secondary font-monospace float-end" id="selected-packet-badge">Packet #1</span>
+                </div>
+                <div class="ramonet-card-body p-3" id="osi-tree-container" style="max-height: 340px; overflow-y: auto;">
+                    <div class="text-muted small text-center py-5">Select a packet from the table above to view detailed OSI header fields.</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Bottom Right: Raw Hex / ASCII Dump -->
+        <div class="col-md-5">
+            <div class="ramonet-card h-100">
+                <div class="ramonet-card-header py-2">
+                    <span class="text-white fw-bold small">
+                        <i class="fa-solid fa-file-code text-cyan me-2"></i>Hex & ASCII Stream Dump
+                    </span>
+                </div>
+                <div class="ramonet-card-body p-3">
+                    <pre class="bg-surface text-cyan p-3 rounded font-monospace small mb-0 border border-secondary border-opacity-25" id="pcap-hex-dump" style="height: 310px; overflow: auto; line-height: 1.3;">
+0000   ff ff ff ff ff ff 52 54 00 12 34 56 08 06
+0010   00 01 08 00 06 04 00 01 52 54 00 12 34 56
+0020   c0 a8 01 69 00 00 00 00 00 00 c0 a8 01 01
+                    </pre>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    let capturedPackets = [];
+    let selectedIndex = 0;
+
+    const btnTrigger = document.getElementById('btn-trigger-capture');
+    const btnFilter = document.getElementById('btn-apply-filter');
+    const btnClear = document.getElementById('btn-clear-filter');
+    const btnPrev = document.getElementById('btn-prev-packet');
+    const btnNext = document.getElementById('btn-next-packet');
+    const filterInput = document.getElementById('pcap-filter-input');
+    const scenarioSelect = document.getElementById('select-pcap-scenario');
+
+    async function loadCapture() {
+        const scenario = scenarioSelect.value;
+        const filter = filterInput.value.trim();
+
+        try {
+            const resp = await fetch('/simulation/api/analyzer/capture/', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCookie('csrftoken') },
+                body: JSON.stringify({ scenario: scenario, filter: filter })
+            });
+            const res = await resp.json();
+            if (res.success) {
+                capturedPackets = res.packets;
+                renderPacketTable(capturedPackets);
+                if (capturedPackets.length > 0) {
+                    selectPacket(0);
+                } else {
+                    document.getElementById('osi-tree-container').innerHTML = '<div class="text-muted small text-center py-4">No packets matched filter expression.</div>';
+                }
+            }
+        } catch (e) {
+            console.error('Capture failed', e);
+        }
+    }
+
+    function renderPacketTable(packets) {
+        const tbody = document.getElementById('pcap-table-tbody');
+        const badge = document.getElementById('packet-counter-badge');
+        badge.textContent = `${packets.length} Packets`;
+
+        if (packets.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="8" class="text-center py-4 text-muted">No packets found.</td></tr>';
+            return;
+        }
+
+        tbody.innerHTML = packets.map((p, idx) => {
+            const protoClass = getProtocolBadgeClass(p.protocol);
+            return `
+                <tr class="pcap-row ${idx === selectedIndex ? 'table-active' : ''}" data-index="${idx}" style="cursor: pointer;">
+                    <td class="font-monospace text-muted">${p.number}</td>
+                    <td class="font-monospace text-cyan">${p.time}</td>
+                    <td class="font-monospace text-white">${p.source_ip || p.source_mac}</td>
+                    <td class="font-monospace text-white">${p.dest_ip || p.dest_mac}</td>
+                    <td><span class="badge ${protoClass}">${p.protocol}</span></td>
+                    <td class="font-monospace text-secondary">${p.length}</td>
+                    <td><span class="badge bg-secondary font-monospace">${p.vlan}</span></td>
+                    <td class="text-secondary text-truncate" style="max-width: 250px;">${p.info}</td>
+                </tr>
+            `;
+        }).join('');
+
+        document.querySelectorAll('.pcap-row').forEach(row => {
+            row.addEventListener('click', () => {
+                const idx = parseInt(row.getAttribute('data-index'), 10);
+                selectPacket(idx);
+            });
+        });
+    }
+
+    function selectPacket(index) {
+        if (!capturedPackets[index]) return;
+        selectedIndex = index;
+        const p = capturedPackets[index];
+
+        // Update active row highlight
+        document.querySelectorAll('.pcap-row').forEach((r, i) => {
+            if (i === index) r.classList.add('table-active');
+            else r.classList.remove('table-active');
+        });
+
+        document.getElementById('selected-packet-badge').textContent = `Packet #${p.number} (${p.protocol})`;
+
+        // Build OSI Layer Accordion
+        const osiBox = document.getElementById('osi-tree-container');
+        let html = '';
+
+        for (const [layerKey, layer] of Object.entries(p.osi_layers)) {
+            const layerTitle = layer.title || layerKey;
+            html += `
+                <div class="mb-2 p-2 rounded bg-surface border border-secondary border-opacity-25">
+                    <div class="fw-bold text-cyan small mb-1">
+                        <i class="fa-solid fa-chevron-right me-1 text-muted" style="font-size:0.7rem;"></i>${layerTitle}
+                    </div>
+                    <div class="ms-3 small text-secondary font-monospace" style="font-size: 0.75rem;">
+                        ${Object.entries(layer).filter(([k]) => k !== 'title').map(([k, v]) => {
+                            if (typeof v === 'object' && v !== null) {
+                                return `<div><strong class="text-muted">${k}:</strong> ${JSON.stringify(v)}</div>`;
+                            }
+                            return `<div><strong class="text-muted">${k}:</strong> <span class="text-white">${v}</span></div>`;
+                        }).join('')}
+                    </div>
+                </div>
+            `;
+        }
+        osiBox.innerHTML = html;
+
+        // Update Hex Dump
+        document.getElementById('pcap-hex-dump').textContent = p.hex_dump;
+    }
+
+    function getProtocolBadgeClass(proto) {
+        switch (proto?.toUpperCase()) {
+            case 'DNS': return 'bg-primary';
+            case 'HTTP': return 'bg-success';
+            case 'TCP': return 'bg-info text-dark';
+            case 'UDP': return 'bg-warning text-dark';
+            case 'ICMP': return 'bg-danger';
+            case 'ARP': return 'bg-purple';
+            default: return 'bg-secondary';
+        }
+    }
+
+    btnTrigger?.addEventListener('click', loadCapture);
+    btnFilter?.addEventListener('click', loadCapture);
+    btnClear?.addEventListener('click', () => {
+        filterInput.value = '';
+        loadCapture();
+    });
+
+    filterInput?.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') loadCapture();
+    });
+
+    btnPrev?.addEventListener('click', () => {
+        if (selectedIndex > 0) selectPacket(selectedIndex - 1);
+    });
+
+    btnNext?.addEventListener('click', () => {
+        if (selectedIndex < capturedPackets.length - 1) selectPacket(selectedIndex + 1);
+    });
+
+    // Auto-load initial capture
+    loadCapture();
+
+    function getCookie(name) {
+        let cookieValue = null;
+        if (document.cookie && document.cookie !== '') {
+            const cookies = document.cookie.split(';');
+            for (let i = 0; i < cookies.length; i++) {
+                const cookie = cookies[i].trim();
+                if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                    break;
+                }
+            }
+        }
+        return cookieValue;
+    }
+});
+</script>
+{% endblock %}

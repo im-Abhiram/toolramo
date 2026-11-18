@@ -365,3 +365,163 @@ def api_backup_restore(request):
         'gateway_issues': gateway_issues,
         'timestamp': datetime.utcnow().isoformat() + 'Z'
     })
+
+
+# ==============================================================================
+# NETWORK DIGITAL TWIN CONTROLLERS (Priority 1)
+# ==============================================================================
+from .digital_twin import DigitalTwinManager
+
+def digital_twin_view(request):
+    """
+    Renders the Network Digital Twin & Change Simulation Studio.
+    Provides isolated simulation sandboxing and before/after impact comparison.
+    """
+    if request.user.is_authenticated:
+        if request.user.is_staff or request.user.is_superuser:
+            all_projs = NetworkProject.objects.all()
+        else:
+            all_projs = NetworkProject.objects.filter(
+                models.Q(user=request.user) | models.Q(is_public=True)
+            )
+    else:
+        all_projs = NetworkProject.objects.filter(is_public=True)
+
+    production_projects = [p for p in all_projs if not p.metadata.get('twin_metadata', {}).get('is_digital_twin')]
+    active_twins = [p for p in all_projs if p.metadata.get('twin_metadata', {}).get('is_digital_twin')]
+
+    context = {
+        'page_title': 'Network Digital Twin & Sandbox Studio — Ramonet',
+        'production_projects': production_projects,
+        'active_twins': active_twins,
+    }
+    return render(request, 'projects/digital_twin.html', context)
+
+
+@api_view(['POST'])
+@permission_classes([AllowAny])
+def api_create_twin(request):
+    """
+    Creates an isolated Digital Twin clone of an authoritative network project.
+    """
+    try:
+        data = request.data if isinstance(request.data, dict) else json.loads(request.body.decode('utf-8'))
+    except Exception:
+        return Response({'success': False, 'error': 'Invalid JSON'}, status=400)
+
+    project_id = data.get('project_id')
+    twin_name = str(data.get('twin_name', ''))[:128]
+
+    if not project_id:
+        return Response({'success': False, 'error': 'project_id is required'}, status=400)
+
+    user = request.user if request.user.is_authenticated else None
+    success, twin, msg = DigitalTwinManager.create_twin(project_id, twin_name=twin_name or None, user=user)
+
+    if not success:
+        return Response({'success': False, 'error': msg}, status=400)
+
+    SecurityLogger.log_event(
+        action='CREATE_DIGITAL_TWIN',
+        module='projects',
+        request=request,
+        details={'source_project_id': project_id, 'twin_id': twin.id, 'twin_name': twin.name}
+    )
+
+    return Response({
+        'success': True,
+        'message': msg,
+        'twin': {
+            'id': twin.id,
+            'name': twin.name,
+            'version': twin.version,
+            'device_count': twin.device_count,
+            'connection_count': twin.connection_count,
+            'branched_at': twin.metadata.get('twin_metadata', {}).get('branched_at')
+        }
+    })
+
+
+@api_view(['POST'])
+@permission_classes([AllowAny])
+def api_compare_twin(request):
+    """
+    Computes before-and-after semantic differences between production project and digital twin.
+    """
+    try:
+        data = request.data if isinstance(request.data, dict) else json.loads(request.body.decode('utf-8'))
+    except Exception:
+        return Response({'success': False, 'error': 'Invalid JSON'}, status=400)
+
+    original_id = data.get('original_id')
+    twin_id = data.get('twin_id')
+
+    if not original_id or not twin_id:
+        return Response({'success': False, 'error': 'original_id and twin_id are required'}, status=400)
+
+    diff_result = DigitalTwinManager.compare_twin(original_id, twin_id)
+    if 'error' in diff_result:
+        return Response({'success': False, 'error': diff_result['error']}, status=400)
+
+    return Response({'success': True, 'diff': diff_result})
+
+
+@api_view(['POST'])
+@permission_classes([AllowAny])
+def api_commit_twin(request):
+    """
+    Promotes proposed changes from digital twin into the authoritative production network.
+    """
+    try:
+        data = request.data if isinstance(request.data, dict) else json.loads(request.body.decode('utf-8'))
+    except Exception:
+        return Response({'success': False, 'error': 'Invalid JSON'}, status=400)
+
+    original_id = data.get('original_id')
+    twin_id = data.get('twin_id')
+
+    if not original_id or not twin_id:
+        return Response({'success': False, 'error': 'original_id and twin_id are required'}, status=400)
+
+    success, msg = DigitalTwinManager.commit_to_production(original_id, twin_id)
+    if not success:
+        return Response({'success': False, 'error': msg}, status=400)
+
+    SecurityLogger.log_event(
+        action='PROMOTE_DIGITAL_TWIN',
+        module='projects',
+        request=request,
+        details={'original_id': original_id, 'twin_id': twin_id}
+    )
+
+    return Response({'success': True, 'message': msg})
+
+
+@api_view(['POST'])
+@permission_classes([AllowAny])
+def api_discard_twin(request):
+    """
+    Discards a digital twin sandbox without affecting production.
+    """
+    try:
+        data = request.data if isinstance(request.data, dict) else json.loads(request.body.decode('utf-8'))
+    except Exception:
+        return Response({'success': False, 'error': 'Invalid JSON'}, status=400)
+
+    twin_id = data.get('twin_id')
+    if not twin_id:
+        return Response({'success': False, 'error': 'twin_id is required'}, status=400)
+
+    success, msg = DigitalTwinManager.discard_twin(twin_id)
+    if not success:
+        return Response({'success': False, 'error': msg}, status=400)
+
+    SecurityLogger.log_event(
+        action='DISCARD_DIGITAL_TWIN',
+        module='projects',
+        request=request,
+        details={'twin_id': twin_id}
+    )
+
+    return Response({'success': True, 'message': msg})
+

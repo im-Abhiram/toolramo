@@ -1,0 +1,215 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}What-If Simulation Engine | Ramonet{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-0">
+    <!-- Header -->
+    <div class="d-flex align-items-center justify-content-between mb-3 flex-wrap gap-2">
+        <div>
+            <h4 class="text-white fw-bold mb-1">
+                <i class="fa-solid fa-flask-vial text-cyan me-2"></i>What-If Simulation Engine
+            </h4>
+            <p class="text-secondary small mb-0">
+                Non-destructive failure injection, bottleneck analysis, and architectural impact comparison in an isolated sandbox.
+            </p>
+        </div>
+        <div class="d-flex gap-2">
+            <a href="{% url 'projects:digital_twin' %}" class="btn btn-outline-cyan btn-sm">
+                <i class="fa-solid fa-clone me-1"></i> Digital Twin Studio
+            </a>
+            <a href="{% url 'simulation:visualizer' %}" class="btn btn-primary-blue btn-sm">
+                <i class="fa-solid fa-wave-pulse me-1"></i> Packet Visualizer
+            </a>
+        </div>
+    </div>
+
+    <!-- Scenario Cards Grid -->
+    <div class="row g-3 mb-4">
+        {% for sc in scenarios %}
+        <div class="col-xl-4 col-md-6">
+            <div class="p-3 rounded bg-card border border-secondary border-opacity-25 h-100 d-flex flex-column justify-content-between scenario-card" data-key="{{ sc.key }}">
+                <div>
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <span class="badge bg-secondary font-monospace" style="font-size:0.65rem;">{{ sc.category }}</span>
+                        <i class="fa-solid fa-triangle-exclamation text-warning"></i>
+                    </div>
+                    <h6 class="text-white fw-bold mb-1">{{ sc.title }}</h6>
+                    <p class="text-secondary small mb-3">{{ sc.description }}</p>
+                </div>
+                <div class="d-flex justify-content-between align-items-center pt-2 border-top border-secondary border-opacity-25">
+                    <span class="text-muted font-monospace small">{{ sc.key }}</span>
+                    <button class="btn btn-sm btn-outline-cyan btn-run-scenario" data-key="{{ sc.key }}">
+                        <i class="fa-solid fa-play me-1"></i> Simulate
+                    </button>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+
+    <!-- Active What-If Analysis Results Container -->
+    <div class="ramonet-card" id="whatif-results-box" style="display:none;">
+        <div class="ramonet-card-header d-flex justify-content-between align-items-center">
+            <span class="text-white fw-bold small">
+                <i class="fa-solid fa-chart-pie text-cyan me-2"></i>What-If Impact Evaluation & Risk Assessment
+            </span>
+            <span class="badge bg-danger fs-6" id="whatif-risk-badge">HIGH RISK</span>
+        </div>
+        <div class="ramonet-card-body">
+            <h5 class="text-white fw-bold mb-1" id="whatif-title">Scenario Name</h5>
+            <p class="text-secondary small mb-4" id="whatif-desc">Scenario Description</p>
+
+            <!-- Metrics Row -->
+            <div class="row g-3 mb-4">
+                <div class="col-md-3 col-sm-6">
+                    <div class="p-3 rounded bg-surface border border-secondary border-opacity-25 text-center">
+                        <span class="text-secondary small d-block mb-1">Baseline Reachability</span>
+                        <div class="fs-4 fw-bold text-success" id="metric-reach-before">98.5%</div>
+                        <span class="text-muted small">Before incident</span>
+                    </div>
+                </div>
+                <div class="col-md-3 col-sm-6">
+                    <div class="p-3 rounded bg-surface border border-secondary border-opacity-25 text-center">
+                        <span class="text-secondary small d-block mb-1">Impacted Reachability</span>
+                        <div class="fs-4 fw-bold text-danger" id="metric-reach-after">12.0%</div>
+                        <span class="text-danger small font-monospace" id="metric-reach-delta">-86.5% drop</span>
+                    </div>
+                </div>
+                <div class="col-md-3 col-sm-6">
+                    <div class="p-3 rounded bg-surface border border-secondary border-opacity-25 text-center">
+                        <span class="text-secondary small d-block mb-1">Baseline Latency</span>
+                        <div class="fs-4 fw-bold text-cyan" id="metric-latency-before">2.8 ms</div>
+                        <span class="text-muted small">Nominal RTT</span>
+                    </div>
+                </div>
+                <div class="col-md-3 col-sm-6">
+                    <div class="p-3 rounded bg-surface border border-secondary border-opacity-25 text-center">
+                        <span class="text-secondary small d-block mb-1">Impacted Latency / Loss</span>
+                        <div class="fs-4 fw-bold text-warning" id="metric-latency-after">999 ms</div>
+                        <span class="text-warning small">Packet drop or bottleneck</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Affected Devices Table -->
+            <div class="mb-4">
+                <h6 class="text-white fw-bold mb-2">
+                    <i class="fa-solid fa-server text-danger me-2"></i>Affected Network Assets & Endpoints (<span id="affected-count">0</span>)
+                </h6>
+                <div class="table-responsive">
+                    <table class="table table-ramonet mb-0">
+                        <thead>
+                            <tr>
+                                <th>Device Name</th>
+                                <th>Role</th>
+                                <th>Observed Topological Impact</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tbody-affected-devices">
+                            <!-- Populated dynamically -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Mitigation Recommendations -->
+            <div class="p-3 rounded bg-sidebar border border-secondary border-opacity-25">
+                <h6 class="text-cyan fw-bold mb-2">
+                    <i class="fa-solid fa-shield-halved me-2"></i>Architectural Mitigation Recommendations
+                </h6>
+                <ul class="mb-0 small text-secondary" id="ul-mitigations" style="padding-left: 1.2rem;">
+                    <!-- Populated dynamically -->
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    const scenarioButtons = document.querySelectorAll('.btn-run-scenario');
+    const resultsBox = document.getElementById('whatif-results-box');
+
+    scenarioButtons.forEach(btn => {
+        btn.addEventListener('click', async () => {
+            const scKey = btn.getAttribute('data-key');
+            btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin me-1"></i> Running...';
+
+            try {
+                const resp = await fetch('/simulation/api/what-if/simulate/', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCookie('csrftoken') },
+                    body: JSON.stringify({ scenario_key: scKey })
+                });
+                const res = await resp.json();
+                if (res.success) {
+                    renderWhatIf(res.result);
+                } else {
+                    alert('Simulation failed');
+                }
+            } catch (e) {
+                console.error(e);
+            } finally {
+                btn.innerHTML = '<i class="fa-solid fa-play me-1"></i> Simulate';
+            }
+        });
+    });
+
+    function renderWhatIf(data) {
+        resultsBox.style.display = 'block';
+        resultsBox.scrollIntoView({ behavior: 'smooth' });
+
+        document.getElementById('whatif-title').textContent = data.scenario.title;
+        document.getElementById('whatif-desc').textContent = data.scenario.description;
+
+        const badge = document.getElementById('whatif-risk-badge');
+        badge.textContent = data.risk_level + ' RISK';
+        badge.className = 'badge fs-6 ' + (data.risk_level === 'CRITICAL' ? 'bg-danger' : (data.risk_level === 'HIGH' ? 'bg-warning text-dark' : 'bg-info text-dark'));
+
+        document.getElementById('metric-reach-before').textContent = data.metrics.reachability_before + '%';
+        document.getElementById('metric-reach-after').textContent = data.metrics.reachability_after + '%';
+        document.getElementById('metric-reach-delta').textContent = data.metrics.reachability_delta + '% reachability';
+
+        document.getElementById('metric-latency-before').textContent = data.metrics.latency_before_ms + ' ms';
+        document.getElementById('metric-latency-after').textContent = (data.metrics.latency_after_ms >= 900 ? 'TIMEOUT (100% Drop)' : data.metrics.latency_after_ms + ' ms');
+
+        document.getElementById('affected-count').textContent = data.affected_devices.length;
+
+        // Render affected devices
+        const tbody = document.getElementById('tbody-affected-devices');
+        tbody.innerHTML = data.affected_devices.map(d => `
+            <tr>
+                <td class="text-white fw-bold">${d.name}</td>
+                <td><span class="badge bg-secondary font-monospace">${d.role}</span></td>
+                <td class="text-danger small font-monospace">${d.impact}</td>
+            </tr>
+        `).join('');
+
+        // Render mitigations
+        const ul = document.getElementById('ul-mitigations');
+        ul.innerHTML = data.mitigation_advice.map(m => `
+            <li class="mb-1 text-white">${m}</li>
+        `).join('');
+    }
+
+    function getCookie(name) {
+        let cookieValue = null;
+        if (document.cookie && document.cookie !== '') {
+            const cookies = document.cookie.split(';');
+            for (let i = 0; i < cookies.length; i++) {
+                const cookie = cookies[i].trim();
+                if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                    break;
+                }
+            }
+        }
+        return cookieValue;
+    }
+});
+</script>
+{% endblock %}

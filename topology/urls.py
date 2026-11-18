@@ -8,4 +8,6 @@ urlpatterns = [
     path('rack/', views.rack_designer_view, name='rack'),
     path('rack-designer/', views.rack_designer_view, name='rack_designer'),
     path('api/validate-rack/', views.api_validate_rack_layout, name='api_validate_rack'),
+    path('cable-trace/', views.cable_trace_view, name='cable_trace'),
+    path('api/cable-trace/trace/', views.api_trace_cable, name='api_trace_cable'),
 ]

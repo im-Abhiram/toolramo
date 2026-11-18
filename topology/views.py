@@ -147,3 +147,39 @@ def api_validate_rack_layout(request):
         'total_btu_hr': btu_hr,
         'total_power_watts': round(total_watts, 1)
     })
+
+
+# ==============================================================================
+# INTELLIGENT CABLE AND PORT TRACING (Priority 8)
+# ==============================================================================
+from .cable_tracer import CableTracer
+
+def cable_trace_view(request):
+    """
+    Renders the Intelligent Cable & Port Tracing Studio.
+    Provides end-to-end hop inspection through patch panels, racks, and switches.
+    """
+    return render(request, 'topology/cable_trace.html', {
+        'page_title': 'Intelligent Cable & Port Tracing — Ramonet'
+    })
+
+
+def api_trace_cable(request):
+    """
+    Performs end-to-end cable tracing between selected endpoints.
+    """
+    if request.method != 'POST':
+        return JsonResponse({'error': 'POST required'}, status=405)
+
+    try:
+        data = json.loads(request.body.decode('utf-8'))
+    except Exception:
+        data = {}
+
+    src_dev = data.get('source_device') or {'name': 'Camera-North-Gate', 'category': 'Camera', 'vlan': 30, 'ip': '192.168.30.14'}
+    src_port = str(data.get('source_port', 'eth0'))[:32]
+    dst_dev = data.get('destination_device') or {'name': 'NVR-Master', 'category': 'Server', 'vlan': 30, 'ip': '192.168.30.5'}
+
+    res = CableTracer.trace_path(src_dev, src_port, dst_dev)
+    return JsonResponse({'success': True, 'trace': res})
+

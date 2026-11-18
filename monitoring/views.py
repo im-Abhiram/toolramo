@@ -276,3 +276,70 @@ def api_resolve_alert(request):
             return JsonResponse({'success': True, 'alert': a})
 
     return JsonResponse({'error': 'Alert not found'}, status=404)
+
+
+# ==============================================================================
+# HIGH AVAILABILITY LAB & QOS TRAFFIC ENGINEERING (Priority 6 & 7)
+# ==============================================================================
+from .ha_engine import HighAvailabilityEngine
+from .qos_engine import QoSEngine
+
+def ha_lab_view(request):
+    """
+    Renders the High Availability & Redundancy Interactive Lab.
+    Provides live demonstrations of STP/RSTP, VRRP/HSRP, and LACP EtherChannel.
+    """
+    return render(request, 'monitoring/ha_lab.html', {
+        'page_title': 'High Availability & Redundancy Lab — Ramonet'
+    })
+
+
+def api_ha_simulate(request):
+    """
+    Simulates HA convergence, failover, and link-cut recovery.
+    """
+    if request.method != 'POST':
+        return JsonResponse({'error': 'POST required'}, status=405)
+
+    try:
+        data = json.loads(request.body.decode('utf-8'))
+    except Exception:
+        data = {}
+
+    proto = str(data.get('protocol', 'STP'))[:16]
+    fault_injected = bool(data.get('fault_injected', False))
+
+    res = HighAvailabilityEngine.simulate_ha_scenario(proto, fault_injected=fault_injected)
+    return JsonResponse({'success': True, 'scenario': res})
+
+
+def qos_view(request):
+    """
+    Renders the QoS & Traffic Engineering Simulation Studio.
+    Provides multi-class queueing comparisons (PQ, CBWFQ, LLQ, FIFO Tail Drop).
+    """
+    return render(request, 'monitoring/qos.html', {
+        'page_title': 'QoS & Traffic Engineering — Ramonet',
+        'classes': QoSEngine.TRAFFIC_CLASSES
+    })
+
+
+def api_qos_simulate(request):
+    """
+    Simulates traffic queueing, jitter, latency, and packet loss under congestion.
+    """
+    if request.method != 'POST':
+        return JsonResponse({'error': 'POST required'}, status=405)
+
+    try:
+        data = json.loads(request.body.decode('utf-8'))
+    except Exception:
+        data = {}
+
+    qos_enabled = bool(data.get('qos_enabled', False))
+    capacity = float(data.get('bottleneck_capacity_mbps', 10.0))
+    capacity = max(1.0, min(100.0, capacity))
+
+    res = QoSEngine.simulate_qos_comparison(qos_enabled, bottleneck_capacity_mbps=capacity)
+    return JsonResponse({'success': True, 'result': res})
+

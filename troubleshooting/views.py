@@ -86,3 +86,50 @@ def verify_solution_api(request):
         'root_cause': scenario.root_cause_explanation,
         'solution': scenario.recommended_solution
     })
+
+
+# ==============================================================================
+# NETWORK INCIDENT RESPONSE SIMULATOR (Priority 10)
+# ==============================================================================
+from .incident_engine import IncidentResponseEngine
+from audit.logger import SecurityLogger
+
+def incident_simulator_view(request):
+    """
+    Renders the Defensive Network Incident Response Learning Environment.
+    Simulates SOC alert triage, threat containment, eradication, and post-mortem reporting.
+    """
+    scenarios = [
+        {'key': k, **v} for k, v in IncidentResponseEngine.SCENARIOS.items()
+    ]
+    return render(request, 'troubleshooting/incident_simulator.html', {
+        'page_title': 'Network Incident Response Simulator — Ramonet',
+        'scenarios': scenarios
+    })
+
+
+@api_view(['POST'])
+@permission_classes([AllowAny])
+def api_incident_action(request):
+    """
+    Executes an incident response containment or remediation action.
+    """
+    try:
+        data = request.data if isinstance(request.data, dict) else json.loads(request.body.decode('utf-8'))
+    except Exception:
+        return Response({'success': False, 'error': 'Invalid JSON'}, status=400)
+
+    scenario_key = str(data.get('scenario_key', 'ROGUE_DHCP'))[:64]
+    action = str(data.get('action', 'Quarantine Switchport'))[:128]
+
+    res = IncidentResponseEngine.execute_containment(scenario_key, action)
+
+    SecurityLogger.log_event(
+        action='INCIDENT_RESPONSE_ACTION',
+        module='troubleshooting',
+        request=request,
+        details={'scenario': scenario_key, 'action': action, 'incident_id': res['incident_report']['incident_id']}
+    )
+
+    return Response(res)
+

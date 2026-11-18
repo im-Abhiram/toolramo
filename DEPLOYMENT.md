@@ -185,6 +185,16 @@ Click the green **Save** button (top right).
 - [ ] **Home Dashboard:** Page loads with dark theme, real-time clock, and navigation cards.
 - [ ] **Network Designer:** Accessible at `/topology/designer/`, canvas drag-and-drop renders.
 - [ ] **RAMONET Academy:** Accessible at `/academy/`, 14 courses listed.
+- [ ] **Digital Twin Studio:** Accessible at `/projects/digital-twin/` (sandbox cloning and diff comparison).
+- [ ] **Packet Capture & Analyzer:** Accessible at `/simulation/analyzer/` (OSI 7-layer Wireshark dissection).
+- [ ] **What-If Simulation:** Accessible at `/simulation/what-if/` (failure injection and reachability metrics).
+- [ ] **Network Automation Studio:** Accessible at `/configuration/automation/` (multi-device playbooks and dry-run).
+- [ ] **Compliance Centre:** Accessible at `/configuration/compliance/` (CIS/DISA STIG benchmarks and scoring).
+- [ ] **High Availability Lab:** Accessible at `/monitoring/ha-lab/` (STP, VRRP, LACP failover).
+- [ ] **QoS Traffic Engineering:** Accessible at `/monitoring/qos/` (LLQ/CBWFQ vs tail drop).
+- [ ] **Cable & Port Tracing:** Accessible at `/topology/cable-trace/` (TIA/EIA-568B pinout & run hops).
+- [ ] **Capacity & Cost BOM:** Accessible at `/networktools/capacity-cost/` (BOM sizing and Capex estimation).
+- [ ] **Incident Response Simulator:** Accessible at `/troubleshooting/incident-response/` (4-phase containment & post-mortem).
 - [ ] **Security Operations Center:** Accessible at `/storage/security/` (log in as `admin`).
 - [ ] **Static Assets:** CSS, fonts, and FontAwesome icons load without 404s.
 

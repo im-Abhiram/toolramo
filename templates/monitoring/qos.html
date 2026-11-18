@@ -1,0 +1,245 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}QoS & Traffic Engineering | Ramonet{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-0">
+    <!-- Header -->
+    <div class="d-flex align-items-center justify-content-between mb-3 flex-wrap gap-2">
+        <div>
+            <h4 class="text-white fw-bold mb-1">
+                <i class="fa-solid fa-sliders text-cyan me-2"></i>QoS & Traffic Engineering Studio
+            </h4>
+            <p class="text-secondary small mb-0">
+                Simulated traffic classification, DSCP/CoS marking, priority queue scheduling (LLQ/CBWFQ), and bottleneck congestion modeling.
+            </p>
+        </div>
+        <div class="d-flex gap-2">
+            <a href="{% url 'monitoring:capacity' %}" class="btn btn-outline-cyan btn-sm">
+                <i class="fa-solid fa-gauge me-1"></i> Capacity Planning
+            </a>
+            <a href="{% url 'monitoring:dashboard' %}" class="btn btn-primary-blue btn-sm">
+                <i class="fa-solid fa-chart-line me-1"></i> Network Monitor
+            </a>
+        </div>
+    </div>
+
+    <!-- QoS Mode Toggle & Capacity Slider -->
+    <div class="ramonet-card p-3 mb-4">
+        <div class="row g-3 align-items-center">
+            <div class="col-md-5">
+                <div class="d-flex align-items-center gap-3">
+                    <div class="form-check form-switch mb-0">
+                        <input class="form-check-input" type="checkbox" id="check-qos-active" style="width: 2.5em; height: 1.3em;">
+                        <label class="form-check-label text-white fw-bold ms-2" for="check-qos-active" id="lbl-qos-state">
+                            QoS Policy: <span class="text-danger">DISABLED (FIFO Tail Drop)</span>
+                        </label>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <label class="form-label text-secondary small fw-bold mb-1">
+                    Uplink Bottleneck Capacity: <span class="text-cyan font-monospace" id="val-capacity">10.0 Mbps</span>
+                </label>
+                <input type="range" class="form-range" id="range-capacity" min="5" max="30" step="1" value="10">
+            </div>
+            <div class="col-md-3 text-end">
+                <button class="btn btn-primary-blue btn-sm" id="btn-recalculate-qos">
+                    <i class="fa-solid fa-arrows-rotate me-1"></i> Simulate Traffic
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Charts & Metrics Comparison -->
+    <div class="row g-3 mb-4">
+        <div class="col-md-6">
+            <div class="ramonet-card h-100">
+                <div class="ramonet-card-header">
+                    <span class="text-white fw-bold small"><i class="fa-solid fa-chart-simple text-danger me-2"></i>Packet Loss Rate by Traffic Class (%)</span>
+                </div>
+                <div class="ramonet-card-body p-3">
+                    <canvas id="chart-loss" height="220"></canvas>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="ramonet-card h-100">
+                <div class="ramonet-card-header">
+                    <span class="text-white fw-bold small"><i class="fa-solid fa-stopwatch text-warning me-2"></i>Queueing Latency (ms)</span>
+                </div>
+                <div class="ramonet-card-body p-3">
+                    <canvas id="chart-latency" height="220"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Class-by-Class Queueing Details Table -->
+    <div class="ramonet-card">
+        <div class="ramonet-card-header d-flex justify-content-between align-items-center">
+            <span class="text-white fw-bold small"><i class="fa-solid fa-table-list text-info me-2"></i>Traffic Class Queueing & Delivery Telemetry</span>
+            <span class="badge bg-secondary font-monospace" id="badge-total-offered">Offered: 15.0 Mbps / Capacity: 10.0 Mbps</span>
+        </div>
+        <div class="table-responsive">
+            <table class="table table-ramonet mb-0">
+                <thead>
+                    <tr>
+                        <th>Traffic Stream</th>
+                        <th>DSCP (CoS)</th>
+                        <th>Offered Rate</th>
+                        <th>Delivered Rate</th>
+                        <th>Packet Loss</th>
+                        <th>Latency</th>
+                        <th>Jitter</th>
+                        <th>Queue Scheduling Action</th>
+                    </tr>
+                </thead>
+                <tbody id="tbody-qos-classes">
+                    <!-- Populated dynamically -->
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    let lossChart = null;
+    let latencyChart = null;
+
+    const checkQoS = document.getElementById('check-qos-active');
+    const rangeCap = document.getElementById('range-capacity');
+    const valCap = document.getElementById('val-capacity');
+    const btnSim = document.getElementById('btn-recalculate-qos');
+    const lblQoS = document.getElementById('lbl-qos-state');
+
+    rangeCap?.addEventListener('input', () => {
+        valCap.textContent = rangeCap.value + '.0 Mbps';
+    });
+
+    checkQoS?.addEventListener('change', () => {
+        if (checkQoS.checked) {
+            lblQoS.innerHTML = 'QoS Policy: <span class="text-success">ENABLED (LLQ / CBWFQ Active)</span>';
+        } else {
+            lblQoS.innerHTML = 'QoS Policy: <span class="text-danger">DISABLED (FIFO Tail Drop)</span>';
+        }
+        runSimulation();
+    });
+
+    btnSim?.addEventListener('click', runSimulation);
+
+    async function runSimulation() {
+        const qosEnabled = checkQoS.checked;
+        const cap = parseFloat(rangeCap.value);
+
+        try {
+            const resp = await fetch('/monitoring/api/qos/simulate/', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCookie('csrftoken') },
+                body: JSON.stringify({ qos_enabled: qosEnabled, bottleneck_capacity_mbps: cap })
+            });
+            const data = await resp.json();
+            if (data.success) {
+                renderQoS(data.result);
+            }
+        } catch (e) {
+            console.error(e);
+        }
+    }
+
+    function renderQoS(res) {
+        document.getElementById('badge-total-offered').textContent = `Offered: ${res.total_offered_load_mbps} Mbps | Delivered: ${res.total_delivered_mbps.toFixed(1)} Mbps`;
+
+        // Render Table
+        const tbody = document.getElementById('tbody-qos-classes');
+        tbody.innerHTML = res.classes.map(c => `
+            <tr>
+                <td class="text-white fw-bold">${c.name}</td>
+                <td><span class="badge bg-secondary font-monospace">${c.dscp}</span></td>
+                <td class="font-monospace text-cyan">${c.offered_mbps} Mbps</td>
+                <td class="font-monospace text-success">${c.delivered_mbps} Mbps</td>
+                <td><span class="badge ${c.loss_percentage === 0 ? 'bg-success' : 'bg-danger'} font-monospace">${c.loss_percentage}%</span></td>
+                <td class="font-monospace ${c.latency_ms > 100 ? 'text-danger' : 'text-warning'}">${c.latency_ms} ms</td>
+                <td class="font-monospace text-muted">${c.jitter_ms} ms</td>
+                <td class="small ${c.queue_status.includes('Drop') ? 'text-danger' : 'text-success'}">${c.queue_status}</td>
+            </tr>
+        `).join('');
+
+        // Render Charts
+        const labels = res.classes.map(c => c.name.split(' ')[0]);
+        const lossData = res.classes.map(c => c.loss_percentage);
+        const latencyData = res.classes.map(c => c.latency_ms);
+
+        if (lossChart) lossChart.destroy();
+        if (latencyChart) latencyChart.destroy();
+
+        const ctxLoss = document.getElementById('chart-loss').getContext('2d');
+        lossChart = new Chart(ctxLoss, {
+            type: 'bar',
+            data: {
+                labels: labels,
+                datasets: [{
+                    label: 'Packet Loss (%)',
+                    data: lossData,
+                    backgroundColor: ['#38bdf8', '#a78bfa', '#f59e0b', '#34d399', '#fb7185']
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: { beginAtZero: true, max: 100, grid: { color: 'rgba(255,255,255,0.05)' } },
+                    x: { grid: { display: false } }
+                }
+            }
+        });
+
+        const ctxLat = document.getElementById('chart-latency').getContext('2d');
+        latencyChart = new Chart(ctxLat, {
+            type: 'line',
+            data: {
+                labels: labels,
+                datasets: [{
+                    label: 'Latency (ms)',
+                    data: latencyData,
+                    borderColor: '#38bdf8',
+                    backgroundColor: 'rgba(56, 189, 248, 0.1)',
+                    fill: true,
+                    tension: 0.3
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: { beginAtZero: true, grid: { color: 'rgba(255,255,255,0.05)' } },
+                    x: { grid: { display: false } }
+                }
+            }
+        });
+    }
+
+    // Initial run
+    runSimulation();
+
+    function getCookie(name) {
+        let cookieValue = null;
+        if (document.cookie && document.cookie !== '') {
+            const cookies = document.cookie.split(';');
+            for (let i = 0; i < cookies.length; i++) {
+                const cookie = cookies[i].trim();
+                if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                    break;
+                }
+            }
+        }
+        return cookieValue;
+    }
+});
+</script>
+{% endblock %}

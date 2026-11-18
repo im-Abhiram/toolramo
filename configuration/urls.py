@@ -17,4 +17,8 @@ urlpatterns = [
     # API endpoints
     path('api/cctv-calc/', views.cctv_calculate_api, name='api_cctv_calc'),
     path('api/ipam-validate/', views.ipam_validate_api, name='api_ipam_validate'),
+    path('automation/', views.automation_studio_view, name='automation_studio'),
+    path('api/automation/execute/', views.api_run_automation, name='api_run_automation'),
+    path('compliance/', views.compliance_centre_view, name='compliance_centre'),
+    path('api/compliance/audit/', views.api_run_compliance_audit, name='api_run_compliance_audit'),
 ]

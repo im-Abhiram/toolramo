@@ -1,0 +1,186 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Intelligent Cable & Port Tracing | Ramonet{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-0">
+    <!-- Header -->
+    <div class="d-flex align-items-center justify-content-between mb-3 flex-wrap gap-2">
+        <div>
+            <h4 class="text-white fw-bold mb-1">
+                <i class="fa-solid fa-route text-cyan me-2"></i>Intelligent Cable & Port Tracing
+            </h4>
+            <p class="text-secondary small mb-0">
+                End-to-end physical-to-logical connection path tracing, patch panel mapping, cable attenuation, and port mismatch diagnostics.
+            </p>
+        </div>
+        <div class="d-flex gap-2">
+            <a href="{% url 'topology:rack' %}" class="btn btn-outline-cyan btn-sm">
+                <i class="fa-solid fa-bars-staggered me-1"></i> Physical Rack Designer
+            </a>
+            <a href="{% url 'topology:designer' %}" class="btn btn-primary-blue btn-sm">
+                <i class="fa-solid fa-diagram-project me-1"></i> Network Designer
+            </a>
+        </div>
+    </div>
+
+    <!-- Endpoint Selection Bar -->
+    <div class="ramonet-card p-3 mb-4">
+        <div class="row g-3 align-items-end">
+            <div class="col-md-4">
+                <label class="form-label text-secondary small fw-bold mb-1">1. Source Device</label>
+                <select class="form-select bg-surface border-secondary text-white small" id="select-trace-src">
+                    <option value="cam-01" selected>Camera-North-Gate [192.168.30.14] (VLAN 30)</option>
+                    <option value="ws-01">Engineering-WS01 [192.168.10.45] (VLAN 10)</option>
+                    <option value="ap-01">AccessPoint-Lobby [192.168.20.10] (VLAN 20)</option>
+                </select>
+            </div>
+            <div class="col-md-2">
+                <label class="form-label text-secondary small fw-bold mb-1">Interface Port</label>
+                <input type="text" class="form-control bg-surface border-secondary text-white small font-monospace" id="input-trace-port" value="eth0">
+            </div>
+            <div class="col-md-4">
+                <label class="form-label text-secondary small fw-bold mb-1">2. Target Destination Device</label>
+                <select class="form-select bg-surface border-secondary text-white small" id="select-trace-dst">
+                    <option value="nvr-01" selected>NVR-Master-Array [192.168.30.5] (VLAN 30)</option>
+                    <option value="gw-01">Core-Gateway-01 [192.168.10.1] (VLAN 10)</option>
+                    <option value="srv-01">Corporate-Database [10.50.0.10] (VLAN 50)</option>
+                </select>
+            </div>
+            <div class="col-md-2">
+                <button class="btn btn-primary-blue btn-sm w-100" id="btn-run-trace">
+                    <i class="fa-solid fa-shoe-prints me-1"></i> Trace Connection
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Diagnostics Banner -->
+    <div id="trace-diagnostics-box" class="mb-4"></div>
+
+    <!-- Hop-by-Hop Subway-Style Path Visualization -->
+    <div class="ramonet-card mb-4">
+        <div class="ramonet-card-header d-flex justify-content-between align-items-center">
+            <span class="text-white fw-bold small"><i class="fa-solid fa-list-ol text-cyan me-2"></i>Physical & Logical Hop Sequence (<span id="trace-hop-count">6 Hops</span>)</span>
+            <span class="badge bg-success font-monospace" id="trace-status-badge">Path Verified (Continuous)</span>
+        </div>
+        <div class="ramonet-card-body p-4">
+            <div class="d-flex flex-column gap-3" id="trace-hops-container">
+                <!-- Populated dynamically -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Pinout Standard Reference -->
+    <div class="ramonet-card">
+        <div class="ramonet-card-header">
+            <span class="text-white fw-bold small"><i class="fa-solid fa-microchip text-warning me-2"></i>TIA/EIA-568B Structured RJ45 Pinout Standard</span>
+        </div>
+        <div class="ramonet-card-body p-3">
+            <div class="row g-2 text-center small font-monospace">
+                <div class="col"><span class="badge bg-dark border border-secondary text-white w-100 py-2">Pin 1: White/Orange</span></div>
+                <div class="col"><span class="badge bg-warning text-dark w-100 py-2">Pin 2: Orange</span></div>
+                <div class="col"><span class="badge bg-dark border border-secondary text-white w-100 py-2">Pin 3: White/Green</span></div>
+                <div class="col"><span class="badge bg-primary text-white w-100 py-2">Pin 4: Blue</span></div>
+                <div class="col"><span class="badge bg-dark border border-secondary text-white w-100 py-2">Pin 5: White/Blue</span></div>
+                <div class="col"><span class="badge bg-success text-white w-100 py-2">Pin 6: Green</span></div>
+                <div class="col"><span class="badge bg-dark border border-secondary text-white w-100 py-2">Pin 7: White/Brown</span></div>
+                <div class="col"><span class="badge bg-secondary text-white w-100 py-2">Pin 8: Brown</span></div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    const btnTrace = document.getElementById('btn-run-trace');
+
+    async function executeTrace() {
+        btnTrace.innerHTML = '<i class="fa-solid fa-spinner fa-spin me-1"></i> Tracing...';
+
+        const srcDevName = document.getElementById('select-trace-src').options[document.getElementById('select-trace-src').selectedIndex].text;
+        const dstDevName = document.getElementById('select-trace-dst').options[document.getElementById('select-trace-dst').selectedIndex].text;
+        const port = document.getElementById('input-trace-port').value;
+
+        try {
+            const resp = await fetch('/topology/api/cable-trace/trace/', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCookie('csrftoken') },
+                body: JSON.stringify({
+                    source_device: { name: srcDevName.split(' [')[0], category: 'Camera', vlan: 30, ip: '192.168.30.14' },
+                    source_port: port,
+                    destination_device: { name: dstDevName.split(' [')[0], category: 'Server', vlan: 30, ip: '192.168.30.5' }
+                })
+            });
+            const data = await resp.json();
+            if (data.success) {
+                renderTrace(data.trace);
+            }
+        } catch (e) {
+            console.error(e);
+        } finally {
+            btnTrace.innerHTML = '<i class="fa-solid fa-shoe-prints me-1"></i> Trace Connection';
+        }
+    }
+
+    function renderTrace(trace) {
+        document.getElementById('trace-hop-count').textContent = trace.total_hops + ' Hops';
+        document.getElementById('trace-status-badge').textContent = trace.path_valid ? 'Path Verified (Continuous)' : 'Cabling Fault Detected';
+        document.getElementById('trace-status-badge').className = 'badge font-monospace ' + (trace.path_valid ? 'bg-success' : 'bg-danger');
+
+        // Diagnostics
+        const diagBox = document.getElementById('trace-diagnostics-box');
+        diagBox.innerHTML = trace.diagnostics.map(d => `
+            <div class="alert ${d.severity === 'CRITICAL' ? 'alert-danger' : (d.severity === 'WARNING' ? 'alert-warning' : 'alert-info')} border-0 py-2 small mb-2">
+                <i class="fa-solid fa-circle-info me-2"></i><strong>${d.severity}:</strong> ${d.message}
+            </div>
+        `).join('');
+
+        // Hops Sequence
+        const hopsContainer = document.getElementById('trace-hops-container');
+        hopsContainer.innerHTML = trace.hops.map((h, i) => `
+            <div class="p-3 rounded bg-surface border border-secondary border-opacity-25 position-relative">
+                <div class="d-flex justify-content-between align-items-center mb-1 flex-wrap gap-2">
+                    <div class="d-flex align-items-center gap-2">
+                        <span class="badge bg-primary rounded-circle" style="width:26px; height:26px; line-height:18px;">${h.hop_number}</span>
+                        <h6 class="text-white fw-bold mb-0">${h.node_name}</h6>
+                        <span class="badge bg-secondary font-monospace" style="font-size:0.65rem;">${h.stage}</span>
+                    </div>
+                    <span class="badge bg-success font-monospace">${h.status}</span>
+                </div>
+                <div class="ms-4 small text-secondary">
+                    <span class="me-3"><strong class="text-muted">Port:</strong> <span class="text-cyan font-monospace">${h.interface}</span></span>
+                    <span class="me-3"><strong class="text-muted">Media:</strong> ${h.media}</span>
+                    <span class="me-3"><strong class="text-muted">Speed/Duplex:</strong> ${h.speed} ${h.duplex}</span>
+                    ${h.vlan ? `<span class="me-3"><strong class="text-muted">VLAN:</strong> ${h.vlan}</span>` : ''}
+                    ${h.length ? `<span><strong class="text-muted">Run Length:</strong> ${h.length}</span>` : ''}
+                </div>
+            </div>
+        `).join('');
+    }
+
+    btnTrace?.addEventListener('click', executeTrace);
+
+    // Initial run
+    executeTrace();
+
+    function getCookie(name) {
+        let cookieValue = null;
+        if (document.cookie && document.cookie !== '') {
+            const cookies = document.cookie.split(';');
+            for (let i = 0; i < cookies.length; i++) {
+                const cookie = cookies[i].trim();
+                if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                    break;
+                }
+            }
+        }
+        return cookieValue;
+    }
+});
+</script>
+{% endblock %}

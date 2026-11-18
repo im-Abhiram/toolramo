@@ -1,0 +1,214 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Configuration Compliance Centre | Ramonet{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-0">
+    <!-- Header -->
+    <div class="d-flex align-items-center justify-content-between mb-3 flex-wrap gap-2">
+        <div>
+            <h4 class="text-white fw-bold mb-1">
+                <i class="fa-solid fa-clipboard-check text-cyan me-2"></i>Configuration Compliance Centre
+            </h4>
+            <p class="text-secondary small mb-0">
+                Audits actual infrastructure configurations against enterprise security baselines and generates remediation CLI scripts.
+            </p>
+        </div>
+        <div class="d-flex gap-2">
+            <button class="btn btn-primary-blue btn-sm" id="btn-run-audit">
+                <i class="fa-solid fa-arrows-rotate me-1"></i> Run Compliance Audit
+            </button>
+            <a href="{% url 'monitoring:security_audit' %}" class="btn btn-outline-cyan btn-sm">
+                <i class="fa-solid fa-shield-halved me-1"></i> Security Assessment
+            </a>
+        </div>
+    </div>
+
+    <!-- Compliance Score Dashboard -->
+    <div class="row g-3 mb-4">
+        <div class="col-md-3 col-sm-6">
+            <div class="p-3 rounded bg-card border border-secondary border-opacity-25 h-100 text-center">
+                <span class="text-secondary small d-block mb-1">Overall Compliance Score</span>
+                <div class="fs-2 fw-bold text-success" id="metric-comp-score">-- %</div>
+                <div class="progress mt-2" style="height: 6px; background: rgba(255,255,255,0.06);">
+                    <div class="progress-bar bg-success" id="comp-progress-bar" style="width: 0%;"></div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3 col-sm-6">
+            <div class="p-3 rounded bg-card border border-secondary border-opacity-25 h-100 text-center">
+                <span class="text-secondary small d-block mb-1">Rules Passed</span>
+                <div class="fs-2 fw-bold text-success" id="metric-rules-passed">--</div>
+                <span class="text-muted small">Compliant controls</span>
+            </div>
+        </div>
+        <div class="col-md-3 col-sm-6">
+            <div class="p-3 rounded bg-card border border-secondary border-opacity-25 h-100 text-center">
+                <span class="text-secondary small d-block mb-1">Rules Failed</span>
+                <div class="fs-2 fw-bold text-danger" id="metric-rules-failed">--</div>
+                <span class="text-danger small">Critical policy violations</span>
+            </div>
+        </div>
+        <div class="col-md-3 col-sm-6">
+            <div class="p-3 rounded bg-card border border-secondary border-opacity-25 h-100 text-center">
+                <span class="text-secondary small d-block mb-1">Warnings / Drift</span>
+                <div class="fs-2 fw-bold text-warning" id="metric-rules-warn">--</div>
+                <span class="text-warning small">Suboptimal parameters</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Benchmark Rules Evaluation List -->
+    <div class="ramonet-card">
+        <div class="ramonet-card-header d-flex justify-content-between align-items-center">
+            <span class="text-white fw-bold small">
+                <i class="fa-solid fa-shield-halved text-warning me-2"></i>Enterprise Security Benchmark Findings (8 Controls)
+            </span>
+            <button class="btn btn-sm btn-outline-cyan" id="btn-show-remediation" style="display:none;">
+                <i class="fa-solid fa-terminal me-1"></i> View Remediation Scripts
+            </button>
+        </div>
+        <div class="ramonet-card-body p-0">
+            <div class="list-group list-group-flush bg-transparent" id="rules-findings-container">
+                <div class="text-muted small text-center py-4">Click "Run Compliance Audit" above to audit all project devices.</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal: Remediation CLI Scripts -->
+<div class="modal fade" id="remediationModal" tabindex="-1">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header border-secondary">
+                <h6 class="modal-title text-white fw-bold">
+                    <i class="fa-solid fa-terminal text-cyan me-2"></i>Automated CLI Remediation Scripts
+                </h6>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p class="text-secondary small mb-3">Copy and paste these generated configuration snippets into device CLI terminals to remediate identified benchmark failures.</p>
+                <div id="remediation-scripts-box"></div>
+            </div>
+            <div class="modal-footer border-secondary">
+                <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    const btnRun = document.getElementById('btn-run-audit');
+    const btnRemediation = document.getElementById('btn-show-remediation');
+    let lastRemediationScripts = {};
+
+    async function runAudit() {
+        btnRun.innerHTML = '<i class="fa-solid fa-spinner fa-spin me-1"></i> Auditing...';
+
+        let devices = [];
+        if (window.ramonetStorage) {
+            const curProj = await window.ramonetStorage.getCurrentProject();
+            devices = curProj ? curProj.devices || [] : [];
+        }
+
+        try {
+            const resp = await fetch('/configuration/api/compliance/audit/', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCookie('csrftoken') },
+                body: JSON.stringify({ devices: devices })
+            });
+            const data = await resp.json();
+            if (data.success) {
+                renderAudit(data.audit);
+            }
+        } catch (e) {
+            console.error(e);
+        } finally {
+            btnRun.innerHTML = '<i class="fa-solid fa-arrows-rotate me-1"></i> Run Compliance Audit';
+        }
+    }
+
+    function renderAudit(audit) {
+        document.getElementById('metric-comp-score').textContent = audit.compliance_score + '%';
+        const pBar = document.getElementById('comp-progress-bar');
+        pBar.style.width = audit.compliance_score + '%';
+        pBar.className = 'progress-bar ' + (audit.compliance_score >= 80 ? 'bg-success' : (audit.compliance_score >= 50 ? 'bg-warning' : 'bg-danger'));
+
+        document.getElementById('metric-rules-passed').textContent = audit.summary.passed;
+        document.getElementById('metric-rules-failed').textContent = audit.summary.failed;
+        document.getElementById('metric-rules-warn').textContent = audit.summary.warnings;
+
+        lastRemediationScripts = audit.remediation_scripts;
+        if (Object.keys(lastRemediationScripts).length > 0) {
+            btnRemediation.style.display = 'inline-block';
+        }
+
+        const container = document.getElementById('rules-findings-container');
+        container.innerHTML = audit.rules.map(r => {
+            const badgeClass = r.status === 'PASS' ? 'bg-success' : (r.status === 'FAIL' ? 'bg-danger' : 'bg-warning text-dark');
+            const icon = r.status === 'PASS' ? 'fa-check' : (r.status === 'FAIL' ? 'fa-xmark' : 'fa-triangle-exclamation');
+
+            return `
+                <div class="list-group-item bg-transparent border-secondary border-opacity-25 p-3">
+                    <div class="d-flex justify-content-between align-items-center mb-1">
+                        <div class="d-flex align-items-center gap-2">
+                            <span class="badge ${badgeClass} font-monospace"><i class="fa-solid ${icon} me-1"></i>${r.status}</span>
+                            <strong class="text-white">${r.rule_id}: ${r.title}</strong>
+                            <span class="badge bg-secondary font-monospace" style="font-size:0.65rem;">${r.severity}</span>
+                        </div>
+                        <span class="text-muted small">${r.category}</span>
+                    </div>
+                    <p class="text-secondary small mb-2">${r.description}</p>
+                    ${r.findings.length > 0 ? `
+                        <div class="p-2 rounded bg-surface border border-secondary border-opacity-25 small text-danger font-monospace">
+                            ${r.findings.map(f => `<div><i class="fa-solid fa-circle-exclamation me-1"></i>${f}</div>`).join('')}
+                        </div>
+                    ` : '<div class="small text-success"><i class="fa-solid fa-shield-check me-1"></i>Compliant on all assessed nodes.</div>'}
+                </div>
+            `;
+        }).join('');
+    }
+
+    btnRemediation?.addEventListener('click', () => {
+        const box = document.getElementById('remediation-scripts-box');
+        let html = '';
+        for (const [dev, scripts] of Object.entries(lastRemediationScripts)) {
+            html += `
+                <div class="mb-3">
+                    <h6 class="text-cyan fw-bold mb-1"><i class="fa-solid fa-terminal me-2"></i>${dev} Configuration Fix</h6>
+                    <pre class="bg-surface p-3 rounded font-monospace small text-white border border-secondary border-opacity-25 mb-0" style="line-height:1.4;">${scripts.join('\n!\n')}</pre>
+                </div>
+            `;
+        }
+        box.innerHTML = html || '<div class="text-muted">No remediations required. All rules passed!</div>';
+        const modal = new bootstrap.Modal(document.getElementById('remediationModal'));
+        modal.show();
+    });
+
+    btnRun?.addEventListener('click', runAudit);
+
+    // Initial run
+    runAudit();
+
+    function getCookie(name) {
+        let cookieValue = null;
+        if (document.cookie && document.cookie !== '') {
+            const cookies = document.cookie.split(';');
+            for (let i = 0; i < cookies.length; i++) {
+                const cookie = cookies[i].trim();
+                if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                    break;
+                }
+            }
+        }
+        return cookieValue;
+    }
+});
+</script>
+{% endblock %}

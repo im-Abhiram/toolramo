@@ -112,10 +112,15 @@
                     <i class="fa-solid fa-gauge-high"></i>
                     <span>Dashboard</span>
                 </a>
-                <a href="{% url 'topology:designer' %}" class="sidebar-nav-item {% if 'topology' in request.path and 'rack' not in request.path %}active{% endif %}">
+                <a href="{% url 'topology:designer' %}" class="sidebar-nav-item {% if 'topology' in request.path and 'rack' not in request.path and 'cable-trace' not in request.path %}active{% endif %}">
                     <i class="fa-solid fa-diagram-project"></i>
                     <span>Network Designer</span>
                     <span class="badge bg-primary ms-auto" style="font-size:0.6rem;">Canvas</span>
+                </a>
+                <a href="{% url 'projects:digital_twin' %}" class="sidebar-nav-item {% if 'digital-twin' in request.path %}active{% endif %}">
+                    <i class="fa-solid fa-clone text-info"></i>
+                    <span>Digital Twin Studio</span>
+                    <span class="badge bg-info text-dark ms-auto" style="font-size:0.6rem;">Twin</span>
                 </a>
                 <a href="{% url 'projects:manager' %}" class="sidebar-nav-item {% if request.resolver_match.url_name == 'manager' and 'projects' in request.path %}active{% endif %}">
                     <i class="fa-solid fa-folder-open"></i>
@@ -162,6 +167,16 @@
                     <i class="fa-solid fa-wand-magic-sparkles text-info"></i>
                     <span>Config Assistant</span>
                 </a>
+                <a href="{% url 'configuration:automation_studio' %}" class="sidebar-nav-item {% if 'automation' in request.path %}active{% endif %}">
+                    <i class="fa-solid fa-bolt text-warning"></i>
+                    <span>Automation Studio</span>
+                    <span class="badge bg-warning text-dark ms-auto" style="font-size:0.6rem;">Playbooks</span>
+                </a>
+                <a href="{% url 'configuration:compliance_centre' %}" class="sidebar-nav-item {% if 'compliance' in request.path %}active{% endif %}">
+                    <i class="fa-solid fa-clipboard-check text-success"></i>
+                    <span>Compliance Centre</span>
+                    <span class="badge bg-success ms-auto" style="font-size:0.6rem;">Audit</span>
+                </a>
                 <a href="{% url 'commands:library' %}" class="sidebar-nav-item {% if 'commands' in request.path %}active{% endif %}">
                     <i class="fa-solid fa-terminal text-success"></i>
                     <span>Command Library</span>
@@ -186,7 +201,22 @@
                     <i class="fa-solid fa-chart-line text-success"></i>
                     <span>Network Monitoring</span>
                 </a>
-                <a href="{% url 'troubleshooting:lab' %}" class="sidebar-nav-item {% if 'troubleshooting' in request.path %}active{% endif %}">
+                <a href="{% url 'monitoring:ha_lab' %}" class="sidebar-nav-item {% if 'ha-lab' in request.path %}active{% endif %}">
+                    <i class="fa-solid fa-shield-halved text-primary"></i>
+                    <span>High Availability Lab</span>
+                    <span class="badge bg-primary ms-auto" style="font-size:0.6rem;">STP/VRRP</span>
+                </a>
+                <a href="{% url 'monitoring:qos' %}" class="sidebar-nav-item {% if 'qos' in request.path %}active{% endif %}">
+                    <i class="fa-solid fa-arrows-split-up-and-left text-info"></i>
+                    <span>QoS & Traffic Lab</span>
+                    <span class="badge bg-info text-dark ms-auto" style="font-size:0.6rem;">DSCP</span>
+                </a>
+                <a href="{% url 'troubleshooting:incident_simulator' %}" class="sidebar-nav-item {% if 'incident-response' in request.path %}active{% endif %}">
+                    <i class="fa-solid fa-biohazard text-danger"></i>
+                    <span>Incident Simulator</span>
+                    <span class="badge bg-danger ms-auto" style="font-size:0.6rem;">IR</span>
+                </a>
+                <a href="{% url 'troubleshooting:lab' %}" class="sidebar-nav-item {% if 'troubleshooting' in request.path and 'incident' not in request.path %}active{% endif %}">
                     <i class="fa-solid fa-stethoscope text-danger"></i>
                     <span>Troubleshooting</span>
                 </a>
@@ -219,6 +249,11 @@
                     <span>Physical Rack Designer</span>
                     <span class="badge bg-info text-dark ms-auto" style="font-size:0.6rem;">19" MDF</span>
                 </a>
+                <a href="{% url 'topology:cable_trace' %}" class="sidebar-nav-item {% if 'cable-trace' in request.path %}active{% endif %}">
+                    <i class="fa-solid fa-route text-cyan"></i>
+                    <span>Cable & Port Tracing</span>
+                    <span class="badge bg-cyan text-dark ms-auto" style="font-size:0.6rem;">568B</span>
+                </a>
                 <a href="{% url 'configuration:cctv' %}" class="sidebar-nav-item {% if 'cctv' in request.path %}active{% endif %}">
                     <i class="fa-solid fa-video text-warning"></i>
                     <span>CCTV Planner</span>
@@ -235,10 +270,25 @@
 
             <!-- GROUP 6: TOOLS & SETTINGS -->
             <div class="nav-group-header" data-bs-toggle="collapse" data-bs-target="#nav-group-tools">
-                <span><i class="fa-solid fa-toolbox me-2 text-secondary"></i>Tools & Settings</span>
+                <span><i class="fa-solid fa-toolbox me-2 text-secondary"></i>Tools & Simulation</span>
                 <i class="fa-solid fa-chevron-down group-chevron"></i>
             </div>
             <div class="collapse show" id="nav-group-tools">
+                <a href="{% url 'simulation:packet_analyzer' %}" class="sidebar-nav-item {% if 'analyzer' in request.path %}active{% endif %}">
+                    <i class="fa-solid fa-network-wired text-purple"></i>
+                    <span>Packet Analyzer (PCAP)</span>
+                    <span class="badge bg-purple ms-auto" style="font-size:0.6rem;">Wireshark</span>
+                </a>
+                <a href="{% url 'simulation:what_if' %}" class="sidebar-nav-item {% if 'what-if' in request.path %}active{% endif %}">
+                    <i class="fa-solid fa-flask-vial text-warning"></i>
+                    <span>What-If Simulation</span>
+                    <span class="badge bg-warning text-dark ms-auto" style="font-size:0.6rem;">Scenarios</span>
+                </a>
+                <a href="{% url 'networktools:capacity_cost' %}" class="sidebar-nav-item {% if 'capacity-cost' in request.path %}active{% endif %}">
+                    <i class="fa-solid fa-money-bill-trend-up text-success"></i>
+                    <span>Capacity & Cost BOM</span>
+                    <span class="badge bg-success ms-auto" style="font-size:0.6rem;">BOM</span>
+                </a>
                 <a href="{% url 'networktools:toolbox' %}" class="sidebar-nav-item {% if 'toolbox' in request.path %}active{% endif %}">
                     <i class="fa-solid fa-calculator text-info"></i>
                     <span>Network Calculators</span>
@@ -451,6 +501,16 @@
         const commandIndex = [
             { title: 'Dashboard', icon: 'fa-gauge-high', url: '{% url "dashboard" %}', cat: 'Workspace' },
             { title: 'Network Designer', icon: 'fa-diagram-project', url: '{% url "topology:designer" %}', cat: 'Workspace' },
+            { title: 'Digital Twin Studio', icon: 'fa-clone text-info', url: '{% url "projects:digital_twin" %}', cat: 'Workspace' },
+            { title: 'Packet Capture & Protocol Analyzer', icon: 'fa-network-wired text-purple', url: '{% url "simulation:packet_analyzer" %}', cat: 'Simulation' },
+            { title: 'What-If Simulation Engine', icon: 'fa-flask-vial text-warning', url: '{% url "simulation:what_if" %}', cat: 'Simulation' },
+            { title: 'Network Automation Studio', icon: 'fa-bolt text-warning', url: '{% url "configuration:automation_studio" %}', cat: 'Configuration' },
+            { title: 'Configuration Compliance Centre', icon: 'fa-clipboard-check text-success', url: '{% url "configuration:compliance_centre" %}', cat: 'Configuration' },
+            { title: 'High Availability & Redundancy Lab', icon: 'fa-shield-halved text-primary', url: '{% url "monitoring:ha_lab" %}', cat: 'Operations' },
+            { title: 'QoS & Traffic Engineering', icon: 'fa-arrows-split-up-and-left text-info', url: '{% url "monitoring:qos" %}', cat: 'Operations' },
+            { title: 'Cable & Port Tracing', icon: 'fa-route text-cyan', url: '{% url "topology:cable_trace" %}', cat: 'Infrastructure' },
+            { title: 'Capacity & Cost Planner', icon: 'fa-money-bill-trend-up text-success', url: '{% url "networktools:capacity_cost" %}', cat: 'Tools' },
+            { title: 'Incident Response Simulator', icon: 'fa-biohazard text-danger', url: '{% url "troubleshooting:incident_simulator" %}', cat: 'Operations' },
             { title: 'Physical Rack Designer', icon: 'fa-bars-staggered', url: '{% url "topology:rack" %}', cat: 'Infrastructure' },
             { title: 'CCTV Surveillance Planner', icon: 'fa-video', url: '{% url "configuration:cctv" %}', cat: 'Infrastructure' },
             { title: 'IP Address Manager (IPAM)', icon: 'fa-sitemap', url: '{% url "configuration:ipam" %}', cat: 'Configuration' },

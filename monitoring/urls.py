@@ -14,4 +14,8 @@ urlpatterns = [
     path('api/alerts/list/', views.api_get_alerts, name='api_get_alerts'),
     path('api/alerts/acknowledge/', views.api_acknowledge_alert, name='api_acknowledge_alert'),
     path('api/alerts/resolve/', views.api_resolve_alert, name='api_resolve_alert'),
+    path('ha-lab/', views.ha_lab_view, name='ha_lab'),
+    path('api/ha-lab/simulate/', views.api_ha_simulate, name='api_ha_simulate'),
+    path('qos/', views.qos_view, name='qos'),
+    path('api/qos/simulate/', views.api_qos_simulate, name='api_qos_simulate'),
 ]

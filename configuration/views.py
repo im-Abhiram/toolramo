@@ -224,3 +224,93 @@ def ipam_validate_api(request):
         'gateway_issues': gateway_issues,
         'device_count': len(devices)
     })
+
+
+# ==============================================================================
+# NETWORK AUTOMATION STUDIO & COMPLIANCE CENTRE (Priority 4 & 5)
+# ==============================================================================
+from .automation_studio import NetworkAutomationStudio
+from .compliance_engine import ComplianceEngine
+from audit.logger import SecurityLogger
+
+def automation_studio_view(request):
+    """
+    Renders the Visual Network Automation Studio.
+    Provides multi-device workflow playbooks, dry-run validation, and automated rollback.
+    """
+    playbooks = [
+        {'key': k, **v} for k, v in NetworkAutomationStudio.PLAYBOOKS.items()
+    ]
+    return render(request, 'configuration/automation_studio.html', {
+        'page_title': 'Network Automation Studio — Ramonet',
+        'playbooks': playbooks
+    })
+
+
+def api_run_automation(request):
+    """
+    Executes an automation playbook with atomic dry-run and live apply.
+    """
+    if request.method != 'POST':
+        return JsonResponse({'error': 'POST required'}, status=405)
+
+    try:
+        data = json.loads(request.body.decode('utf-8'))
+    except Exception:
+        return JsonResponse({'error': 'Invalid JSON'}, status=400)
+
+    playbook_key = str(data.get('playbook_key', 'PROVISION_VLANS'))[:64]
+    devices = data.get('devices', [])
+    dry_run = bool(data.get('dry_run', False))
+    params = data.get('params', {})
+
+    if not isinstance(devices, list):
+        return JsonResponse({'error': '"devices" must be a list'}, status=400)
+
+    result = NetworkAutomationStudio.execute_playbook(playbook_key, devices, dry_run=dry_run, custom_params=params)
+
+    SecurityLogger.log_event(
+        action='EXECUTE_AUTOMATION_PLAYBOOK',
+        module='configuration',
+        request=request,
+        details={'playbook': playbook_key, 'dry_run': dry_run, 'modified': result['summary']['devices_modified']}
+    )
+
+    return JsonResponse({'success': True, 'result': result})
+
+
+def compliance_centre_view(request):
+    """
+    Renders the Enterprise Configuration Compliance Centre.
+    Audits actual configurations against benchmark policies and generates remediation scripts.
+    """
+    return render(request, 'configuration/compliance.html', {
+        'page_title': 'Configuration Compliance Centre — Ramonet',
+        'benchmarks': ComplianceEngine.BENCHMARK_RULES
+    })
+
+
+def api_run_compliance_audit(request):
+    """
+    Runs compliance audit against the specified or currently active devices.
+    """
+    if request.method != 'POST':
+        return JsonResponse({'error': 'POST required'}, status=405)
+
+    try:
+        data = json.loads(request.body.decode('utf-8'))
+    except Exception:
+        data = {}
+
+    devices = data.get('devices', [])
+    audit_results = ComplianceEngine.audit_topology(devices)
+
+    SecurityLogger.log_event(
+        action='RUN_COMPLIANCE_AUDIT',
+        module='configuration',
+        request=request,
+        details={'score': audit_results['compliance_score'], 'device_count': len(devices)}
+    )
+
+    return JsonResponse({'success': True, 'audit': audit_results})
+

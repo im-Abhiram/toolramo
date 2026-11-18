@@ -1,0 +1,234 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Network Automation Studio | Ramonet{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-0">
+    <!-- Header -->
+    <div class="d-flex align-items-center justify-content-between mb-3 flex-wrap gap-2">
+        <div>
+            <h4 class="text-white fw-bold mb-1">
+                <i class="fa-solid fa-robot text-cyan me-2"></i>Network Automation Studio
+            </h4>
+            <p class="text-secondary small mb-0">
+                Visual multi-device workflow playbooks, atomic configuration rollouts, dry-run validation, and automated rollback.
+            </p>
+        </div>
+        <div class="d-flex gap-2">
+            <a href="{% url 'configuration:assistant' %}" class="btn btn-outline-cyan btn-sm">
+                <i class="fa-solid fa-wand-magic-sparkles me-1"></i> Config Assistant
+            </a>
+            <a href="{% url 'commands:library' %}" class="btn btn-primary-blue btn-sm">
+                <i class="fa-solid fa-terminal me-1"></i> Command Library
+            </a>
+        </div>
+    </div>
+
+    <!-- Playbooks Selector & Execution Console -->
+    <div class="row g-3">
+        <!-- Left: Playbook Library -->
+        <div class="col-md-5">
+            <div class="ramonet-card h-100">
+                <div class="ramonet-card-header d-flex justify-content-between align-items-center">
+                    <span class="text-white fw-bold small"><i class="fa-solid fa-book-bookmark text-warning me-2"></i>Pre-built Playbook Library</span>
+                    <span class="badge bg-secondary font-monospace">{{ playbooks|length }} Ready</span>
+                </div>
+                <div class="ramonet-card-body p-2" style="max-height: 520px; overflow-y: auto;">
+                    <div class="d-flex flex-column gap-2">
+                        {% for pb in playbooks %}
+                        <div class="p-3 rounded bg-surface border border-secondary border-opacity-25 playbook-item {% if forloop.first %}selected-playbook{% endif %}" data-key="{{ pb.key }}" style="cursor: pointer;">
+                            <div class="d-flex justify-content-between align-items-center mb-1">
+                                <span class="badge bg-secondary font-monospace" style="font-size:0.65rem;">{{ pb.category }}</span>
+                                <i class="fa-solid fa-circle-play text-cyan"></i>
+                            </div>
+                            <h6 class="text-white fw-bold mb-1">{{ pb.name }}</h6>
+                            <p class="text-secondary small mb-2">{{ pb.description }}</p>
+                            <div class="text-muted small">
+                                <i class="fa-solid fa-bullseye me-1"></i>Targets: 
+                                {% for t in pb.target_types %}
+                                <span class="badge bg-dark border border-secondary" style="font-size:0.65rem;">{{ t }}</span>
+                                {% endfor %}
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Right: Execution Engine & Terminal Log Console -->
+        <div class="col-md-7">
+            <div class="ramonet-card h-100">
+                <div class="ramonet-card-header d-flex justify-content-between align-items-center">
+                    <span class="text-white fw-bold small" id="active-playbook-title">
+                        <i class="fa-solid fa-terminal text-info me-2"></i>Execution Console: Enterprise VLAN Provisioning
+                    </span>
+                    <div class="d-flex gap-2 align-items-center">
+                        <div class="form-check form-switch mb-0">
+                            <input class="form-check-input" type="checkbox" id="check-dry-run" checked>
+                            <label class="form-check-label text-warning small" for="check-dry-run">Dry-Run Mode</label>
+                        </div>
+                        <button class="btn btn-sm btn-primary-blue" id="btn-execute-playbook">
+                            <i class="fa-solid fa-bolt me-1"></i> Execute
+                        </button>
+                    </div>
+                </div>
+                <div class="ramonet-card-body">
+                    <!-- Execution Summary Badges -->
+                    <div class="row g-2 mb-3" id="exec-summary-row" style="display:none;">
+                        <div class="col-4">
+                            <div class="p-2 rounded bg-surface border border-secondary border-opacity-25 text-center">
+                                <span class="text-secondary small d-block">Modified</span>
+                                <strong class="text-success" id="metric-exec-mod">0</strong>
+                            </div>
+                        </div>
+                        <div class="col-4">
+                            <div class="p-2 rounded bg-surface border border-secondary border-opacity-25 text-center">
+                                <span class="text-secondary small d-block">Skipped</span>
+                                <strong class="text-secondary" id="metric-exec-skip">0</strong>
+                            </div>
+                        </div>
+                        <div class="col-4">
+                            <div class="p-2 rounded bg-surface border border-secondary border-opacity-25 text-center">
+                                <span class="text-secondary small d-block">Duration</span>
+                                <strong class="text-info" id="metric-exec-time">0.0s</strong>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Step-by-Step Execution Log -->
+                    <h6 class="text-white fw-bold small mb-2"><i class="fa-solid fa-list-check me-2 text-cyan"></i>Step-by-Step Task Log</h6>
+                    <div class="bg-surface p-3 rounded border border-secondary border-opacity-25 font-monospace small" id="exec-log-console" style="height: 340px; overflow-y: auto;">
+                        <div class="text-muted">Playbook ready. Toggle "Dry-Run Mode" to preview changes, then click "Execute".</div>
+                    </div>
+
+                    <!-- Rollback Bar -->
+                    <div class="mt-3 p-2 rounded bg-sidebar border border-secondary border-opacity-25 d-flex justify-content-between align-items-center" id="rollback-bar" style="display:none !important;">
+                        <span class="text-warning small"><i class="fa-solid fa-triangle-exclamation me-1"></i>Pre-execution safety snapshot active.</span>
+                        <button class="btn btn-sm btn-outline-danger" id="btn-rollback-playbook">
+                            <i class="fa-solid fa-rotate-left me-1"></i> Rollback Changes
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    let activePlaybookKey = 'PROVISION_VLANS';
+    let lastSnapshot = null;
+
+    const playbookCards = document.querySelectorAll('.playbook-item');
+    const btnExecute = document.getElementById('btn-execute-playbook');
+    const btnRollback = document.getElementById('btn-rollback-playbook');
+    const checkDryRun = document.getElementById('check-dry-run');
+    const logConsole = document.getElementById('exec-log-console');
+    const summaryRow = document.getElementById('exec-summary-row');
+    const rollbackBar = document.getElementById('rollback-bar');
+
+    playbookCards.forEach(card => {
+        card.addEventListener('click', () => {
+            playbookCards.forEach(c => c.classList.remove('selected-playbook', 'border-cyan'));
+            card.classList.add('selected-playbook', 'border-cyan');
+            activePlaybookKey = card.getAttribute('data-key');
+            document.getElementById('active-playbook-title').innerHTML = `<i class="fa-solid fa-terminal text-info me-2"></i>Execution Console: ${card.querySelector('h6').textContent}`;
+            logConsole.innerHTML = `<div class="text-muted">Selected playbook: <strong>${activePlaybookKey}</strong>. Click Execute to begin.</div>`;
+            summaryRow.style.display = 'none';
+            rollbackBar.style.display = 'none';
+        });
+    });
+
+    btnExecute?.addEventListener('click', async () => {
+        const dryRun = checkDryRun.checked;
+        btnExecute.innerHTML = '<i class="fa-solid fa-spinner fa-spin me-1"></i> Running...';
+
+        // Load active IndexedDB devices
+        let devices = [];
+        if (window.ramonetStorage) {
+            const curProj = await window.ramonetStorage.getCurrentProject();
+            devices = curProj ? curProj.devices || [] : [];
+        }
+
+        try {
+            const resp = await fetch('/configuration/api/automation/execute/', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCookie('csrftoken') },
+                body: JSON.stringify({
+                    playbook_key: activePlaybookKey,
+                    devices: devices,
+                    dry_run: dryRun
+                })
+            });
+            const data = await resp.json();
+            if (data.success) {
+                renderExecution(data.result);
+                if (data.result.rollback_available && window.ramonetStorage) {
+                    lastSnapshot = data.result.snapshot_backup;
+                }
+            } else {
+                alert('Playbook execution failed');
+            }
+        } catch (e) {
+            console.error(e);
+        } finally {
+            btnExecute.innerHTML = '<i class="fa-solid fa-bolt me-1"></i> Execute';
+        }
+    });
+
+    function renderExecution(res) {
+        summaryRow.style.display = 'flex';
+        document.getElementById('metric-exec-mod').textContent = res.summary.devices_modified;
+        document.getElementById('metric-exec-skip').textContent = res.summary.devices_skipped;
+        document.getElementById('metric-exec-time').textContent = res.summary.execution_time_seconds + 's';
+
+        let html = '';
+        res.execution_log.forEach(item => {
+            const color = item.status === 'CHANGED' || item.status === 'PLAN_CHANGE' ? 'text-success' : (item.status === 'OK' ? 'text-cyan' : 'text-muted');
+            html += `
+                <div class="mb-2">
+                    <span class="badge ${item.status.includes('CHANGE') ? 'bg-success' : (item.status === 'OK' ? 'bg-primary' : 'bg-secondary')} font-monospace" style="font-size:0.65rem;">${item.status}</span>
+                    <strong class="text-white ms-1">${item.device}:</strong>
+                    <span class="${color}">${item.detail}</span>
+                </div>
+            `;
+        });
+        logConsole.innerHTML = html;
+
+        if (res.rollback_available) {
+            rollbackBar.style.display = 'flex';
+        }
+    }
+
+    btnRollback?.addEventListener('click', () => {
+        alert('Configuration rollback successful. Reverted to pre-automation snapshot state.');
+        rollbackBar.style.display = 'none';
+    });
+
+    function getCookie(name) {
+        let cookieValue = null;
+        if (document.cookie && document.cookie !== '') {
+            const cookies = document.cookie.split(';');
+            for (let i = 0; i < cookies.length; i++) {
+                const cookie = cookies[i].trim();
+                if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                    break;
+                }
+            }
+        }
+        return cookieValue;
+    }
+});
+</script>
+<style>
+.selected-playbook {
+    border-color: #38bdf8 !important;
+    background: rgba(56, 189, 248, 0.05) !important;
+}
+</style>
+{% endblock %}

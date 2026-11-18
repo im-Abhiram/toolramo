@@ -1,0 +1,510 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Network Digital Twin & Sandbox Studio | Ramonet{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-0">
+    <!-- Header -->
+    <div class="d-flex align-items-center justify-content-between mb-4 flex-wrap gap-2">
+        <div>
+            <h4 class="text-white fw-bold mb-1">
+                <i class="fa-solid fa-clone text-cyan me-2"></i>Network Digital Twin Studio
+            </h4>
+            <p class="text-secondary small mb-0">
+                Non-destructive isolated network sandboxing, before-and-after change diffing, and zero-risk change validation.
+            </p>
+        </div>
+        <div class="d-flex gap-2">
+            <button class="btn btn-outline-cyan btn-sm" data-bs-toggle="modal" data-bs-target="#createTwinModal">
+                <i class="fa-solid fa-plus me-1"></i> Branch New Digital Twin
+            </button>
+            <a href="{% url 'topology:designer' %}" class="btn btn-primary-blue btn-sm">
+                <i class="fa-solid fa-diagram-project me-1"></i> Network Designer
+            </a>
+        </div>
+    </div>
+
+    <!-- KPI Summary Row -->
+    <div class="row g-3 mb-4">
+        <div class="col-md-3 col-sm-6">
+            <div class="p-3 rounded bg-card border border-secondary border-opacity-25 h-100">
+                <div class="d-flex justify-content-between align-items-center mb-1">
+                    <span class="text-secondary small">Production Networks</span>
+                    <i class="fa-solid fa-server text-cyan fs-5"></i>
+                </div>
+                <div class="fs-4 fw-bold text-white">{{ production_projects|length }}</div>
+                <div class="text-muted small mt-1">Authoritative production states</div>
+            </div>
+        </div>
+        <div class="col-md-3 col-sm-6">
+            <div class="p-3 rounded bg-card border border-secondary border-opacity-25 h-100">
+                <div class="d-flex justify-content-between align-items-center mb-1">
+                    <span class="text-secondary small">Active Digital Twins</span>
+                    <i class="fa-solid fa-clone text-purple fs-5"></i>
+                </div>
+                <div class="fs-4 fw-bold text-purple" id="kpi-twin-count">{{ active_twins|length }}</div>
+                <div class="text-muted small mt-1">Isolated simulation sandboxes</div>
+            </div>
+        </div>
+        <div class="col-md-3 col-sm-6">
+            <div class="p-3 rounded bg-card border border-secondary border-opacity-25 h-100">
+                <div class="d-flex justify-content-between align-items-center mb-1">
+                    <span class="text-secondary small">Safety Isolation</span>
+                    <i class="fa-solid fa-shield-halved text-success fs-5"></i>
+                </div>
+                <div class="fs-4 fw-bold text-success">100%</div>
+                <div class="text-muted small mt-1">Zero production impact</div>
+            </div>
+        </div>
+        <div class="col-md-3 col-sm-6">
+            <div class="p-3 rounded bg-card border border-secondary border-opacity-25 h-100">
+                <div class="d-flex justify-content-between align-items-center mb-1">
+                    <span class="text-secondary small">Promotion Protection</span>
+                    <i class="fa-solid fa-clock-rotate-left text-warning fs-5"></i>
+                </div>
+                <div class="fs-4 fw-bold text-warning">Auto-Snapshot</div>
+                <div class="text-muted small mt-1">Automated pre-merge rollback</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Twin Sandbox Selector & Comparison Workspace -->
+    <div class="ramonet-card mb-4">
+        <div class="ramonet-card-header d-flex justify-content-between align-items-center">
+            <span class="text-white fw-bold small">
+                <i class="fa-solid fa-code-compare text-info me-2"></i>Digital Twin Diff & Proposal Comparison Studio
+            </span>
+            <span class="badge bg-secondary font-monospace">Semantic Diff Engine</span>
+        </div>
+        <div class="ramonet-card-body">
+            <div class="row g-3 align-items-end mb-4">
+                <div class="col-md-5">
+                    <label class="form-label text-secondary small fw-bold">1. Authoritative Production Project</label>
+                    <select class="form-select bg-surface border-secondary text-white small" id="select-prod-project">
+                        <option value="" disabled selected>-- Select Production Network --</option>
+                        {% for p in production_projects %}
+                        <option value="{{ p.id }}">{{ p.name }} (v{{ p.version }} • {{ p.device_count }} devices)</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-5">
+                    <label class="form-label text-secondary small fw-bold">2. Digital Twin Sandbox (Proposed State)</label>
+                    <select class="form-select bg-surface border-secondary text-white small" id="select-twin-project">
+                        <option value="" disabled selected>-- Select Digital Twin --</option>
+                        {% for t in active_twins %}
+                        <option value="{{ t.id }}">{{ t.name }} (v{{ t.version }} • {{ t.device_count }} devices)</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <button class="btn btn-outline-cyan btn-sm w-100" id="btn-run-twin-compare">
+                        <i class="fa-solid fa-magnifying-glass-chart me-1"></i> Analyze Diff
+                    </button>
+                </div>
+            </div>
+
+            <!-- Comparison Output Area -->
+            <div id="diff-output-container" style="display:none;">
+                <div class="d-flex justify-content-between align-items-center p-3 mb-3 rounded bg-sidebar border border-secondary border-opacity-25 flex-wrap gap-2">
+                    <div class="d-flex align-items-center gap-3">
+                        <span class="text-secondary small">Assessed Impact Risk:</span>
+                        <span class="badge bg-success fs-6" id="diff-risk-badge">LOW</span>
+                        <span class="text-muted small" id="diff-risk-factors">No breaking changes identified.</span>
+                    </div>
+                    <div class="d-flex gap-2">
+                        <button class="btn btn-sm btn-outline-cyan" id="btn-open-twin-designer">
+                            <i class="fa-solid fa-pen-ruler me-1"></i> Edit Twin in Designer
+                        </button>
+                        <button class="btn btn-sm btn-danger" id="btn-discard-twin">
+                            <i class="fa-solid fa-trash-can me-1"></i> Discard Sandbox
+                        </button>
+                        <button class="btn btn-sm btn-success" id="btn-commit-twin">
+                            <i class="fa-solid fa-check-double me-1"></i> Commit to Production
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Summary Metrics -->
+                <div class="row g-3 mb-4">
+                    <div class="col-md-3">
+                        <div class="p-2 rounded bg-surface border border-secondary border-opacity-25 text-center">
+                            <span class="text-secondary small d-block">Devices Added</span>
+                            <strong class="text-success fs-5" id="metric-devices-added">0</strong>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="p-2 rounded bg-surface border border-secondary border-opacity-25 text-center">
+                            <span class="text-secondary small d-block">Devices Removed</span>
+                            <strong class="text-danger fs-5" id="metric-devices-removed">0</strong>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="p-2 rounded bg-surface border border-secondary border-opacity-25 text-center">
+                            <span class="text-secondary small d-block">Configurations Modified</span>
+                            <strong class="text-warning fs-5" id="metric-devices-modified">0</strong>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="p-2 rounded bg-surface border border-secondary border-opacity-25 text-center">
+                            <span class="text-secondary small d-block">Connections Delta</span>
+                            <strong class="text-info fs-5" id="metric-conns-delta">0</strong>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Detailed Changes Tabs -->
+                <ul class="nav nav-tabs border-secondary mb-3" role="tablist">
+                    <li class="nav-item">
+                        <button class="nav-link active text-white small" data-bs-toggle="tab" data-bs-target="#tab-dev-mods">
+                            <i class="fa-solid fa-sliders me-1 text-warning"></i> Configuration Diffs (<span id="count-dev-mods">0</span>)
+                        </button>
+                    </li>
+                    <li class="nav-item">
+                        <button class="nav-link text-white small" data-bs-toggle="tab" data-bs-target="#tab-ip-changes">
+                            <i class="fa-solid fa-sitemap me-1 text-info"></i> IP & Subnet Readdressing (<span id="count-ip-mods">0</span>)
+                        </button>
+                    </li>
+                    <li class="nav-item">
+                        <button class="nav-link text-white small" data-bs-toggle="tab" data-bs-target="#tab-dev-added">
+                            <i class="fa-solid fa-circle-plus me-1 text-success"></i> Added Nodes (<span id="count-dev-added">0</span>)
+                        </button>
+                    </li>
+                    <li class="nav-item">
+                        <button class="nav-link text-white small" data-bs-toggle="tab" data-bs-target="#tab-dev-removed">
+                            <i class="fa-solid fa-circle-minus me-1 text-danger"></i> Removed Nodes (<span id="count-dev-removed">0</span>)
+                        </button>
+                    </li>
+                </ul>
+
+                <div class="tab-content">
+                    <div class="tab-pane fade show active" id="tab-dev-mods">
+                        <div class="table-responsive">
+                            <table class="table table-ramonet mb-0">
+                                <thead>
+                                    <tr>
+                                        <th>Device</th>
+                                        <th>Parameter</th>
+                                        <th>Production State (Before)</th>
+                                        <th>Twin Sandbox State (After)</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="tbody-dev-mods">
+                                    <tr><td colspan="4" class="text-muted text-center py-3">No device modifications detected.</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <div class="tab-pane fade" id="tab-ip-changes">
+                        <div class="table-responsive">
+                            <table class="table table-ramonet mb-0">
+                                <thead>
+                                    <tr>
+                                        <th>Device Name</th>
+                                        <th>Field</th>
+                                        <th>Old Value</th>
+                                        <th>New Proposed Value</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="tbody-ip-mods">
+                                    <tr><td colspan="4" class="text-muted text-center py-3">No IP readdressing changes detected.</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <div class="tab-pane fade" id="tab-dev-added">
+                        <div class="table-responsive">
+                            <table class="table table-ramonet mb-0">
+                                <thead>
+                                    <tr>
+                                        <th>Device Name</th>
+                                        <th>Category</th>
+                                        <th>IP Address</th>
+                                        <th>VLAN</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="tbody-dev-added">
+                                    <tr><td colspan="4" class="text-muted text-center py-3">No new devices added.</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <div class="tab-pane fade" id="tab-dev-removed">
+                        <div class="table-responsive">
+                            <table class="table table-ramonet mb-0">
+                                <thead>
+                                    <tr>
+                                        <th>Device Name</th>
+                                        <th>Category</th>
+                                        <th>IP Address</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="tbody-dev-removed">
+                                    <tr><td colspan="3" class="text-muted text-center py-3">No devices removed.</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal: Branch New Digital Twin -->
+<div class="modal fade" id="createTwinModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header border-secondary">
+                <h6 class="modal-title text-white fw-bold">
+                    <i class="fa-solid fa-clone text-cyan me-2"></i>Branch Network Digital Twin
+                </h6>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-3">
+                    <label class="form-label text-secondary small fw-bold">Source Production Project</label>
+                    <select class="form-select bg-surface border-secondary text-white small" id="modal-source-project">
+                        {% for p in production_projects %}
+                        <option value="{{ p.id }}">{{ p.name }} ({{ p.device_count }} devices)</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label text-secondary small fw-bold">Digital Twin Sandbox Name</label>
+                    <input type="text" class="form-control bg-surface border-secondary text-white small" id="modal-twin-name" placeholder="e.g. Core Switch Upgrade Sandbox">
+                </div>
+                <div class="p-2 rounded bg-sidebar border border-secondary border-opacity-25 small text-secondary">
+                    <i class="fa-solid fa-info-circle text-info me-1"></i> The digital twin is an isolated sandbox. You can modify interfaces, firewall rules, VLANs, and cables without changing production.
+                </div>
+            </div>
+            <div class="modal-footer border-secondary">
+                <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary-blue btn-sm" id="btn-confirm-create-twin">Branch Sandbox</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    const btnCompare = document.getElementById('btn-run-twin-compare');
+    const btnCreate = document.getElementById('btn-confirm-create-twin');
+    const btnCommit = document.getElementById('btn-commit-twin');
+    const btnDiscard = document.getElementById('btn-discard-twin');
+    const btnOpenDesigner = document.getElementById('btn-open-twin-designer');
+
+    let currentOriginalId = null;
+    let currentTwinId = null;
+
+    // 1. Branch New Twin
+    btnCreate?.addEventListener('click', async () => {
+        const projId = document.getElementById('modal-source-project')?.value;
+        const twinName = document.getElementById('modal-twin-name')?.value;
+        if (!projId) return;
+
+        try {
+            const resp = await fetch('/projects/api/digital-twin/create/', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCookie('csrftoken') },
+                body: JSON.stringify({ project_id: projId, twin_name: twinName })
+            });
+            const res = await resp.json();
+            if (res.success) {
+                window.location.reload();
+            } else {
+                alert(res.error || 'Failed to create digital twin');
+            }
+        } catch (e) {
+            alert('Error creating digital twin: ' + e.message);
+        }
+    });
+
+    // 2. Compare Production vs Twin
+    btnCompare?.addEventListener('click', async () => {
+        const origId = document.getElementById('select-prod-project')?.value;
+        const twinId = document.getElementById('select-twin-project')?.value;
+        if (!origId || !twinId) {
+            alert('Please select both a Production Network and a Digital Twin Sandbox.');
+            return;
+        }
+
+        currentOriginalId = origId;
+        currentTwinId = twinId;
+
+        try {
+            const resp = await fetch('/projects/api/digital-twin/compare/', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCookie('csrftoken') },
+                body: JSON.stringify({ original_id: origId, twin_id: twinId })
+            });
+            const res = await resp.json();
+            if (res.success) {
+                renderDiff(res.diff);
+            } else {
+                alert(res.error || 'Failed to analyze diff');
+            }
+        } catch (e) {
+            alert('Error analyzing diff: ' + e.message);
+        }
+    });
+
+    function renderDiff(diff) {
+        document.getElementById('diff-output-container').style.display = 'block';
+
+        // Risk Badge
+        const rBadge = document.getElementById('diff-risk-badge');
+        const rFactors = document.getElementById('diff-risk-factors');
+        rBadge.textContent = diff.summary.risk_level;
+        rBadge.className = 'badge fs-6 ' + (diff.summary.risk_level === 'HIGH' ? 'bg-danger' : (diff.summary.risk_level === 'MEDIUM' ? 'bg-warning text-dark' : 'bg-success'));
+        rFactors.textContent = diff.summary.risk_factors.join(' ') || 'No critical risks detected.';
+
+        // Metrics
+        document.getElementById('metric-devices-added').textContent = diff.summary.devices_added;
+        document.getElementById('metric-devices-removed').textContent = diff.summary.devices_removed;
+        document.getElementById('metric-devices-modified').textContent = diff.summary.devices_modified;
+        document.getElementById('metric-conns-delta').textContent = (diff.summary.connections_delta >= 0 ? '+' : '') + diff.summary.connections_delta;
+
+        document.getElementById('count-dev-mods').textContent = diff.summary.devices_modified;
+        document.getElementById('count-ip-mods').textContent = diff.ip_changes.length;
+        document.getElementById('count-dev-added').textContent = diff.summary.devices_added;
+        document.getElementById('count-dev-removed').textContent = diff.summary.devices_removed;
+
+        // Populate Modified
+        const tbMods = document.getElementById('tbody-dev-mods');
+        if (diff.modified_devices.length === 0) {
+            tbMods.innerHTML = '<tr><td colspan="4" class="text-muted text-center py-3">No device modifications detected.</td></tr>';
+        } else {
+            tbMods.innerHTML = diff.modified_devices.map(m => {
+                return m.changes.map(c => `
+                    <tr>
+                        <td class="text-white fw-bold">${m.name} <span class="badge bg-secondary ms-1">${m.category || 'Node'}</span></td>
+                        <td class="text-cyan font-monospace">${c.field}</td>
+                        <td class="text-danger font-monospace">${c.before !== null ? c.before : '<em>none</em>'}</td>
+                        <td class="text-success font-monospace">${c.after !== null ? c.after : '<em>none</em>'}</td>
+                    </tr>
+                `).join('');
+            }).join('');
+        }
+
+        // Populate IP changes
+        const tbIP = document.getElementById('tbody-ip-mods');
+        if (diff.ip_changes.length === 0) {
+            tbIP.innerHTML = '<tr><td colspan="4" class="text-muted text-center py-3">No IP readdressing changes detected.</td></tr>';
+        } else {
+            tbIP.innerHTML = diff.ip_changes.map(c => `
+                <tr>
+                    <td class="text-white fw-bold">${c.device}</td>
+                    <td class="text-cyan font-monospace">${c.field}</td>
+                    <td class="text-danger font-monospace">${c.before || '0.0.0.0'}</td>
+                    <td class="text-success font-monospace">${c.after || '0.0.0.0'}</td>
+                </tr>
+            `).join('');
+        }
+
+        // Populate Added
+        const tbAdd = document.getElementById('tbody-dev-added');
+        if (diff.added_devices.length === 0) {
+            tbAdd.innerHTML = '<tr><td colspan="4" class="text-muted text-center py-3">No new devices added.</td></tr>';
+        } else {
+            tbAdd.innerHTML = diff.added_devices.map(d => `
+                <tr>
+                    <td class="text-white fw-bold">${d.name || 'Device'}</td>
+                    <td><span class="badge bg-secondary">${d.category || 'Generic'}</span></td>
+                    <td class="font-monospace text-info">${d.ip || 'Unassigned'}</td>
+                    <td class="text-secondary">${d.vlan || 1}</td>
+                </tr>
+            `).join('');
+        }
+
+        // Populate Removed
+        const tbRem = document.getElementById('tbody-dev-removed');
+        if (diff.removed_devices.length === 0) {
+            tbRem.innerHTML = '<tr><td colspan="3" class="text-muted text-center py-3">No devices removed.</td></tr>';
+        } else {
+            tbRem.innerHTML = diff.removed_devices.map(d => `
+                <tr>
+                    <td class="text-danger fw-bold">${d.name || 'Device'}</td>
+                    <td><span class="badge bg-secondary">${d.category || 'Generic'}</span></td>
+                    <td class="font-monospace text-secondary">${d.ip || 'Unassigned'}</td>
+                </tr>
+            `).join('');
+        }
+    }
+
+    // 3. Open Twin in Designer
+    btnOpenDesigner?.addEventListener('click', () => {
+        if (currentTwinId) {
+            window.location.href = `/topology/designer/?project_id=${currentTwinId}`;
+        }
+    });
+
+    // 4. Commit to Production
+    btnCommit?.addEventListener('click', async () => {
+        if (!currentOriginalId || !currentTwinId) return;
+        if (!confirm('Promote these Digital Twin changes into the live Production Network? A safety snapshot will be created automatically.')) return;
+
+        try {
+            const resp = await fetch('/projects/api/digital-twin/commit/', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCookie('csrftoken') },
+                body: JSON.stringify({ original_id: currentOriginalId, twin_id: currentTwinId })
+            });
+            const res = await resp.json();
+            if (res.success) {
+                alert(res.message);
+                window.location.reload();
+            } else {
+                alert(res.error || 'Failed to commit changes');
+            }
+        } catch (e) {
+            alert('Error committing changes: ' + e.message);
+        }
+    });
+
+    // 5. Discard Twin
+    btnDiscard?.addEventListener('click', async () => {
+        if (!currentTwinId) return;
+        if (!confirm('Discard and permanently delete this isolated Digital Twin sandbox? Production will remain unchanged.')) return;
+
+        try {
+            const resp = await fetch('/projects/api/digital-twin/discard/', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCookie('csrftoken') },
+                body: JSON.stringify({ twin_id: currentTwinId })
+            });
+            const res = await resp.json();
+            if (res.success) {
+                alert(res.message);
+                window.location.reload();
+            } else {
+                alert(res.error || 'Failed to discard sandbox');
+            }
+        } catch (e) {
+            alert('Error discarding sandbox: ' + e.message);
+        }
+    });
+
+    function getCookie(name) {
+        let cookieValue = null;
+        if (document.cookie && document.cookie !== '') {
+            const cookies = document.cookie.split(';');
+            for (let i = 0; i < cookies.length; i++) {
+                const cookie = cookies[i].trim();
+                if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                    break;
+                }
+            }
+        }
+        return cookieValue;
+    }
+});
+</script>
+{% endblock %}

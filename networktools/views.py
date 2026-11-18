@@ -102,3 +102,37 @@ def api_run_discovery(request):
             {'ip': '192.168.1.199', 'mac': '48:2a:e3:11:22:33', 'port': 'Gig1/0/14', 'warning': 'Unrecognized MAC vendor: Unauthorized personal device connected to switchport Gig1/0/14'}
         ]
     })
+
+
+# ==============================================================================
+# NETWORK CAPACITY AND COST PLANNER (Priority 9)
+# ==============================================================================
+from .capacity_cost_planner import CapacityCostPlanner
+
+def capacity_cost_view(request):
+    """
+    Renders the Infrastructure Capacity & Budgetary Cost Planner.
+    Calculates switch port density, PoE budgets, rack units, thermal dissipation, and Bill of Materials.
+    """
+    default_plan = CapacityCostPlanner.calculate_plan({})
+    return render(request, 'networktools/capacity_cost.html', {
+        'page_title': 'Capacity & Cost Planner — Ramonet',
+        'default_plan': default_plan
+    })
+
+
+def api_calculate_capacity_cost(request):
+    """
+    Recalculates infrastructure capacity and budgetary BOM based on input parameters.
+    """
+    if request.method != 'POST':
+        return JsonResponse({'error': 'POST required'}, status=405)
+
+    try:
+        data = json.loads(request.body.decode('utf-8'))
+    except Exception:
+        data = {}
+
+    plan = CapacityCostPlanner.calculate_plan(data)
+    return JsonResponse({'success': True, 'plan': plan})
+

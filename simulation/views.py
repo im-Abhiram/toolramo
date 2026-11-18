@@ -88,3 +88,91 @@ def trace_packet_api(request):
         src_port=src_port
     )
     return Response(result)
+
+
+# ==============================================================================
+# PROTOCOL ANALYZER & WHAT-IF SIMULATION ENGINES (Priority 2 & 3)
+# ==============================================================================
+from .protocol_analyzer import ProtocolAnalyzerEngine
+from .what_if_engine import WhatIfEngine
+
+def packet_analyzer_view(request):
+    """
+    Renders the Interactive Packet Capture & Protocol Inspection Studio.
+    Provides Wireshark-inspired frame dissection, OSI layering, and packet filtering.
+    """
+    scenarios = [
+        {'id': 'dns_query', 'name': 'DNS Query & Resolution (UDP 53)'},
+        {'id': 'dhcp_dora', 'name': 'DHCP 4-Way DORA Lease Handshake'},
+        {'id': 'http_session', 'name': 'HTTP/1.1 Web Session & TCP 3-Way Handshake'},
+        {'id': 'arp_resolution', 'name': 'ARP Resolution & MAC Learning'},
+        {'id': 'icmp_ping', 'name': 'ICMP Echo Ping & RTT Verification'},
+        {'id': 'vlan_trunk', 'name': '802.1Q Tagged Trunk Ingress/Egress'}
+    ]
+    return render(request, 'simulation/protocol_analyzer.html', {
+        'page_title': 'Packet Capture & Protocol Analyzer — Ramonet',
+        'scenarios': scenarios
+    })
+
+
+@api_view(['POST'])
+@permission_classes([AllowAny])
+def api_generate_packet_capture(request):
+    """
+    Generates realistic, dissected simulation packets for the selected protocol scenario.
+    Applies optional Wireshark-syntax filters.
+    """
+    try:
+        data = request.data if isinstance(request.data, dict) else json.loads(request.body.decode('utf-8'))
+    except Exception:
+        return Response({'success': False, 'error': 'Invalid JSON'}, status=400)
+
+    scenario = str(data.get('scenario', 'dns_query'))[:32]
+    filter_query = str(data.get('filter', '')).strip()[:100]
+    context = data.get('context', {})
+
+    packets = ProtocolAnalyzerEngine.generate_capture(scenario, topology_context=context)
+    if filter_query:
+        packets = ProtocolAnalyzerEngine.filter_packets(packets, filter_query)
+
+    return Response({
+        'success': True,
+        'scenario': scenario,
+        'filter_applied': filter_query,
+        'packet_count': len(packets),
+        'packets': packets
+    })
+
+
+def what_if_view(request):
+    """
+    Renders the What-If Simulation & Scenario Comparison Studio.
+    Provides non-destructive architectural failure simulation in an isolated sandbox.
+    """
+    scenarios = [
+        {'key': k, **v} for k, v in WhatIfEngine.SCENARIOS.items()
+    ]
+    return render(request, 'simulation/what_if.html', {
+        'page_title': 'What-If Simulation Engine — Ramonet',
+        'scenarios': scenarios
+    })
+
+
+@api_view(['POST'])
+@permission_classes([AllowAny])
+def api_run_what_if(request):
+    """
+    Executes a What-If failure or capacity scenario against an isolated copy of the topology.
+    """
+    try:
+        data = request.data if isinstance(request.data, dict) else json.loads(request.body.decode('utf-8'))
+    except Exception:
+        return Response({'success': False, 'error': 'Invalid JSON'}, status=400)
+
+    scenario_key = str(data.get('scenario_key', 'CORE_SWITCH_FAIL'))[:64]
+    topology_data = data.get('topology', {})
+    params = data.get('params', {})
+
+    result = WhatIfEngine.evaluate_scenario(scenario_key, topology_data, params)
+    return Response({'success': True, 'result': result})
+
