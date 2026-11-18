@@ -80,7 +80,7 @@
                     <li><a class="dropdown-item text-secondary" href="{% url 'projects:scenarios' %}"><i class="fa-solid fa-shapes me-2 text-warning"></i>Scenario Library (16)</a></li>
                     <li><a class="dropdown-item text-secondary" href="{% url 'projects:documentation' %}"><i class="fa-solid fa-file-contract me-2 text-cyan"></i>Documentation</a></li>
                     <li><a class="dropdown-item text-secondary" href="{% url 'audit:storage' %}"><i class="fa-solid fa-hard-drive me-2 text-warning"></i>Storage Allocation</a></li>
-                    {% if request.user.is_staff or request.user.is_superuser or request.user.profile.role == 'instructor' or request.user.profile.role == 'architect' %}
+                    {% if request.user.is_authenticated and request.user.is_staff %}
                     <li><a class="dropdown-item text-danger" href="{% url 'audit:security_dashboard' %}"><i class="fa-solid fa-shield-halved me-2"></i>Security Operations</a></li>
                     {% endif %}
                     <li><a class="dropdown-item text-secondary" href="{% url 'accounts:settings' %}"><i class="fa-solid fa-gear me-2"></i>Preferences & Settings</a></li>
@@ -107,7 +107,7 @@
                 <span><i class="fa-solid fa-desktop me-2 text-cyan"></i>Workspace</span>
                 <i class="fa-solid fa-chevron-down group-chevron"></i>
             </div>
-            <div class="collapse show" id="nav-group-workspace">
+            <div class="collapse {% if 'academy' not in request.path and 'configuration' not in request.path and 'commands' not in request.path and 'monitoring' not in request.path and 'troubleshooting' not in request.path and 'rack' not in request.path and 'cable-trace' not in request.path and 'analyzer' not in request.path and 'what-if' not in request.path and 'capacity-cost' not in request.path and 'toolbox' not in request.path %}show{% endif %}" id="nav-group-workspace">
                 <a href="{% url 'dashboard' %}" class="sidebar-nav-item {% if request.resolver_match.url_name == 'dashboard' %}active{% endif %}">
                     <i class="fa-solid fa-gauge-high"></i>
                     <span>Dashboard</span>
@@ -137,7 +137,7 @@
                 <span><i class="fa-solid fa-graduation-cap me-2 text-purple"></i>Learning</span>
                 <i class="fa-solid fa-chevron-down group-chevron"></i>
             </div>
-            <div class="collapse show" id="nav-group-learning">
+            <div class="collapse {% if 'academy' in request.path or 'learning' in request.path %}show{% endif %}" id="nav-group-learning">
                 <a href="{% url 'academy:dashboard' %}" class="sidebar-nav-item {% if 'academy' in request.path and 'devices' not in request.path %}active{% endif %}">
                     <i class="fa-solid fa-graduation-cap text-warning"></i>
                     <span>RAMONET Academy</span>
@@ -162,7 +162,7 @@
                 <span><i class="fa-solid fa-sliders me-2 text-warning"></i>Configuration</span>
                 <i class="fa-solid fa-chevron-down group-chevron"></i>
             </div>
-            <div class="collapse show" id="nav-group-configuration">
+            <div class="collapse {% if 'configuration' in request.path or 'commands' in request.path %}show{% endif %}" id="nav-group-configuration">
                 <a href="{% url 'configuration:assistant' %}" class="sidebar-nav-item {% if 'assistant' in request.path %}active{% endif %}">
                     <i class="fa-solid fa-wand-magic-sparkles text-info"></i>
                     <span>Config Assistant</span>
@@ -196,7 +196,7 @@
                 <span><i class="fa-solid fa-network-wired me-2 text-success"></i>Operations</span>
                 <i class="fa-solid fa-chevron-down group-chevron"></i>
             </div>
-            <div class="collapse show" id="nav-group-operations">
+            <div class="collapse {% if 'monitoring' in request.path or 'troubleshooting' in request.path %}show{% endif %}" id="nav-group-operations">
                 <a href="{% url 'monitoring:dashboard' %}" class="sidebar-nav-item {% if request.resolver_match.url_name == 'dashboard' and 'monitoring' in request.path %}active{% endif %}">
                     <i class="fa-solid fa-chart-line text-success"></i>
                     <span>Network Monitoring</span>
@@ -229,7 +229,7 @@
                     <span>Event Centre</span>
                     <span class="badge bg-danger ms-auto" style="font-size:0.6rem;">Live</span>
                 </a>
-                {% if request.user.is_staff or request.user.is_superuser or request.user.profile.role == 'instructor' or request.user.profile.role == 'architect' %}
+                {% if request.user.is_authenticated and request.user.is_staff %}
                 <a href="{% url 'audit:security_dashboard' %}" class="sidebar-nav-item {% if 'security' in request.path and 'storage' in request.path %}active{% endif %}">
                     <i class="fa-solid fa-user-shield text-danger"></i>
                     <span>Security Operations</span>
@@ -243,7 +243,7 @@
                 <span><i class="fa-solid fa-server me-2 text-info"></i>Infrastructure</span>
                 <i class="fa-solid fa-chevron-down group-chevron"></i>
             </div>
-            <div class="collapse show" id="nav-group-infrastructure">
+            <div class="collapse {% if 'rack' in request.path or 'cable-trace' in request.path or 'cctv' in request.path or 'storage' in request.path or 'documentation' in request.path %}show{% endif %}" id="nav-group-infrastructure">
                 <a href="{% url 'topology:rack' %}" class="sidebar-nav-item {% if 'rack' in request.path %}active{% endif %}">
                     <i class="fa-solid fa-bars-staggered text-cyan"></i>
                     <span>Physical Rack Designer</span>
@@ -273,7 +273,7 @@
                 <span><i class="fa-solid fa-toolbox me-2 text-secondary"></i>Tools & Simulation</span>
                 <i class="fa-solid fa-chevron-down group-chevron"></i>
             </div>
-            <div class="collapse show" id="nav-group-tools">
+            <div class="collapse {% if 'analyzer' in request.path or 'what-if' in request.path or 'capacity-cost' in request.path or 'toolbox' in request.path or 'changes' in request.path or 'backups' in request.path %}show{% endif %}" id="nav-group-tools">
                 <a href="{% url 'simulation:packet_analyzer' %}" class="sidebar-nav-item {% if 'analyzer' in request.path %}active{% endif %}">
                     <i class="fa-solid fa-network-wired text-purple"></i>
                     <span>Packet Analyzer (PCAP)</span>

@@ -1,0 +1,145 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en" data-bs-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Create Account — RAMONET Enterprise Network Platform</title>
+    <link rel="stylesheet" href="{% static 'vendor/bootstrap/bootstrap.min.css' %}">
+    <link rel="stylesheet" href="{% static 'vendor/fontawesome/css/all.min.css' %}">
+    <link rel="stylesheet" href="{% static 'css/ramonet-theme.css' %}">
+    <style>
+        body {
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: radial-gradient(circle at 50% 20%, #15213b 0%, #0b1020 80%);
+            padding: 1.5rem;
+            color: var(--text-primary);
+            font-family: var(--font-sans);
+        }
+        .auth-card {
+            width: 100%;
+            max-width: 460px;
+            background: rgba(26, 39, 64, 0.88);
+            backdrop-filter: blur(16px);
+            border: 1px solid rgba(56, 189, 248, 0.2);
+            border-radius: 14px;
+            padding: 2.25rem 2rem;
+            box-shadow: 0 20px 45px rgba(0, 0, 0, 0.6), 0 0 25px rgba(56, 189, 248, 0.1);
+        }
+        .auth-brand-badge {
+            font-size: 0.65rem;
+            background: linear-gradient(135deg, #38BDF8, #A78BFA);
+            color: #0B1020;
+            padding: 0.2rem 0.5rem;
+            border-radius: 4px;
+            font-weight: 700;
+        }
+        .input-group-text {
+            background-color: var(--bg-surface);
+            border-color: var(--border-color);
+            color: var(--text-secondary);
+        }
+        .form-control {
+            background-color: var(--bg-surface);
+            border-color: var(--border-color);
+            color: var(--text-primary);
+        }
+        .form-control:focus {
+            background-color: var(--bg-surface);
+            border-color: var(--primary-accent);
+            box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.2);
+            color: var(--text-primary);
+        }
+        .form-text {
+            color: var(--text-muted);
+            font-size: 0.75rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="auth-card">
+        <!-- Brand Header -->
+        <div class="text-center mb-4">
+            <div class="d-inline-flex align-items-center justify-content-center p-3 rounded-circle mb-3" style="background: rgba(56, 189, 248, 0.1); width: 64px; height: 64px; border: 1px solid rgba(56, 189, 248, 0.25);">
+                <i class="fa-solid fa-user-plus text-cyan fa-2x"></i>
+            </div>
+            <div class="d-flex align-items-center justify-content-center gap-2 mb-1">
+                <h3 class="fw-bold text-white mb-0 tracking-wide">RAMONET</h3>
+                <span class="auth-brand-badge">Register</span>
+            </div>
+            <p class="text-secondary small mb-0">Create your network engineer account</p>
+        </div>
+
+        <!-- Alert Messages -->
+        {% if messages %}
+        {% for m in messages %}
+        <div class="alert alert-{{ m.tags }} alert-dismissible fade show small py-2 px-3 mb-3 border-0 rounded" role="alert">
+            {{ m }}
+            <button type="button" class="btn-close py-2" data-bs-dismiss="alert"></button>
+        </div>
+        {% endfor %}
+        {% endif %}
+
+        {% if form.errors %}
+        <div class="alert alert-danger small py-2 px-3 mb-3 border-0 rounded">
+            <strong class="d-block mb-1"><i class="fa-solid fa-triangle-exclamation me-1"></i>Please fix the following:</strong>
+            <ul class="mb-0 ps-3">
+            {% for field, errors in form.errors.items %}
+                {% for error in errors %}
+                <li>{{ error }}</li>
+                {% endfor %}
+            {% endfor %}
+            </ul>
+        </div>
+        {% endif %}
+
+        <!-- Clean Registration Form -->
+        <form method="POST" action="{% url 'accounts:register' %}">
+            {% csrf_token %}
+
+            <div class="mb-3">
+                <label class="form-label small text-secondary fw-semibold mb-1" for="id_username">Username</label>
+                <div class="input-group">
+                    <span class="input-group-text"><i class="fa-regular fa-user"></i></span>
+                    <input type="text" name="username" id="id_username" class="form-control" placeholder="Choose a username" required autofocus autocomplete="username" value="{{ form.username.value|default:'' }}">
+                </div>
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label small text-secondary fw-semibold mb-1" for="id_password1">Password</label>
+                <div class="input-group">
+                    <span class="input-group-text"><i class="fa-solid fa-lock"></i></span>
+                    <input type="password" name="password1" id="id_password1" class="form-control" placeholder="Create a strong password" required autocomplete="new-password">
+                </div>
+                <div class="form-text mt-1">Must be at least 8 characters.</div>
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label small text-secondary fw-semibold mb-1" for="id_password2">Confirm Password</label>
+                <div class="input-group">
+                    <span class="input-group-text"><i class="fa-solid fa-shield-halved"></i></span>
+                    <input type="password" name="password2" id="id_password2" class="form-control" placeholder="Repeat your password" required autocomplete="new-password">
+                </div>
+            </div>
+
+            <button type="submit" class="btn btn-primary-blue w-100 py-2 mt-2 fw-semibold d-flex align-items-center justify-content-center gap-2">
+                <span>Create Workspace Account</span>
+                <i class="fa-solid fa-check"></i>
+            </button>
+        </form>
+
+        <!-- Back to Login -->
+        <div class="text-center mt-4 pt-3 border-top border-secondary border-opacity-25">
+            <span class="text-secondary small">Already have an account?</span>
+            <a href="{% url 'accounts:login' %}" class="small text-cyan fw-semibold ms-1 text-decoration-none">
+                Sign In <i class="fa-solid fa-chevron-right fa-xs"></i>
+            </a>
+        </div>
+    </div>
+
+    <script src="{% static 'vendor/bootstrap/bootstrap.bundle.min.js' %}"></script>
+</body>
+</html>

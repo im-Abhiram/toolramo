@@ -121,22 +121,47 @@ class TopologyCanvas {
         this.container.addEventListener('dragover', (e) => {
             e.preventDefault();
             e.dataTransfer.dropEffect = 'copy';
+            this.container.classList.add('drag-over-active');
+        });
+
+        this.container.addEventListener('dragleave', (e) => {
+            if (e.target === this.container) {
+                this.container.classList.remove('drag-over-active');
+            }
         });
 
         this.container.addEventListener('drop', (e) => {
             e.preventDefault();
-            const rawData = e.dataTransfer.getData('application/json');
-            if (!rawData) return;
+            this.container.classList.remove('drag-over-active');
+
+            let devData = null;
+            const rawData = e.dataTransfer.getData('application/json') || e.dataTransfer.getData('text/plain');
+            if (rawData) {
+                try {
+                    devData = JSON.parse(rawData);
+                } catch (err) {
+                    console.warn('Could not parse drop JSON:', err);
+                }
+            }
+
+            // Fallback to in-memory dragged object
+            if (!devData && window.__draggedDeviceDefinition) {
+                devData = window.__draggedDeviceDefinition;
+            }
+
+            if (!devData) return;
 
             try {
-                const devData = JSON.parse(rawData);
                 const rect = this.container.getBoundingClientRect();
                 const dropX = (e.clientX - rect.left - this.panX) / this.scale - 50;
                 const dropY = (e.clientY - rect.top - this.panY) / this.scale - 40;
 
-                this.addDevice(devData, Math.max(20, dropX), Math.max(20, dropY));
+                const added = this.addDevice(devData, Math.max(20, Math.round(dropX)), Math.max(20, Math.round(dropY)));
+                window.ramonetUI?.showToast('Device Placed', `${added.name} placed on canvas.`, 'success');
             } catch (err) {
                 console.error('Drop device failed:', err);
+            } finally {
+                window.__draggedDeviceDefinition = null;
             }
         });
 
@@ -298,6 +323,7 @@ class TopologyCanvas {
             el = document.createElement('div');
             el.id = device.id;
             el.className = `device-node ${this.getCategoryClass(device.category)}`;
+            el.style.pointerEvents = 'auto';
             el.innerHTML = `
                 <div class="port-connector-anchor top" data-anchor="top"></div>
                 <div class="port-connector-anchor bottom" data-anchor="bottom"></div>

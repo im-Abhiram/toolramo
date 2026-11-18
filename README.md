@@ -143,14 +143,14 @@ python manage.py seed_data
 # 5. Run automated test suite
 python manage.py test
 
-# 6. Start development server
+# 6. Create your personal administrator account
+python manage.py createsuperuser
+
+# 7. Start development server
 python manage.py runserver
 ```
 
-Open `http://127.0.0.1:8000/` in your browser.
-
-- **Admin Login:** `admin` / `admin123`
-- **Student Login:** `student` / `student123`
+Open `http://127.0.0.1:8000/` in your browser. Unauthenticated visitors are automatically greeted by the clean Sign In / Register portal.
 
 ---
 

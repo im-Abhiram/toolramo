@@ -217,11 +217,16 @@
     flex-direction: column;
     align-items: center;
     padding: 0.6rem 0.5rem;
-    cursor: move;
+    cursor: grab;
     user-select: none;
+    pointer-events: auto !important;
     z-index: 10;
     box-shadow: 0 4px 14px rgba(0, 0, 0, 0.4);
     transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.device-node:active {
+    cursor: grabbing;
 }
 
 .device-node:hover {

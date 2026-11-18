@@ -14,23 +14,8 @@ class Command(BaseCommand):
     def handle(self, *args, **options):
         self.stdout.write(self.style.NOTICE('Starting Ramonet database seeding...'))
 
-        # 1. Create Default Admin User
-        admin_user, created = User.objects.get_or_create(username='admin', defaults={
-            'email': 'admin@ramonet.local',
-            'is_staff': True,
-            'is_superuser': True
-        })
-        if created:
-            admin_user.set_password('admin123')
-            admin_user.save()
-            self.stdout.write(self.style.SUCCESS('Created default admin user (admin / admin123)'))
-
-        demo_user, _ = User.objects.get_or_create(username='student', defaults={
-            'email': 'student@ramonet.local',
-        })
-        if _:
-            demo_user.set_password('student123')
-            demo_user.save()
+        # 1. User Account Notice (No default admin/student seeded - users manage their own accounts)
+        self.stdout.write(self.style.NOTICE('User accounts: No default credentials created. Create an administrator via: python manage.py createsuperuser or sign up via the web UI.'))
 
         # 2. Seed Device Categories
         categories_data = [

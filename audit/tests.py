@@ -273,6 +273,7 @@ class SecurityAuditTestSuite(TestCase):
     # 7. Security Headers Middleware Verification
     def test_security_headers_present_on_responses(self):
         """Verify custom middleware injects nosniff, CSP, and Permissions-Policy headers."""
+        self.client.force_login(self.user_alice)
         resp = self.client.get(reverse('dashboard'))
         self.assertEqual(resp.status_code, 200)
         self.assertEqual(resp['X-Content-Type-Options'], 'nosniff')

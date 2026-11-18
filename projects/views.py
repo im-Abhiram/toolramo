@@ -71,32 +71,34 @@ def project_template_api(request):
     """
     Returns prebuilt network topology template JSON.
     Generates devices, interfaces, and cable links.
+    Recognizes template names, scenario IDs, and keyword searches.
     """
-    raw_name = request.GET.get('name', 'Basic Home Network')
+    raw_name = request.GET.get('name') or request.GET.get('scenario') or 'Basic Home Network'
     name = sanitize_filename(raw_name, default='Basic Home Network').replace('_', ' ')
+    name_lower = name.lower()
     
     devices = []
     connections = []
 
-    if 'VLAN' in name:
+    if 'vlan' in name_lower or 'segmentation' in name_lower:
         devices = [
-            {'id': 'sw1', 'name': 'Switch-VLAN', 'category': 'switches', 'icon': 'fa-network-wired', 'x': 340, 'y': 150, 'interfaces': [{'name': 'Fa0/1', 'status': 'up'}, {'name': 'Fa0/2', 'status': 'up'}, {'name': 'Gi0/1', 'status': 'up'}], 'vlans': {'10': {'name': 'Sales'}, '20': {'name': 'Engineering'}}},
-            {'id': 'pc1', 'name': 'Sales-PC', 'category': 'computers', 'icon': 'fa-desktop', 'x': 140, 'y': 80, 'ip': '192.168.10.10', 'subnet_mask': '255.255.255.0', 'gateway': '192.168.10.1', 'interfaces': [{'name': 'eth0', 'status': 'up'}]},
-            {'id': 'pc2', 'name': 'Eng-PC', 'category': 'computers', 'icon': 'fa-desktop', 'x': 140, 'y': 240, 'ip': '192.168.20.10', 'subnet_mask': '255.255.255.0', 'gateway': '192.168.20.1', 'interfaces': [{'name': 'eth0', 'status': 'up'}]},
-            {'id': 'r1', 'name': 'CoreRouter', 'category': 'routers', 'icon': 'fa-route', 'x': 580, 'y': 150, 'ip': '192.168.10.1', 'interfaces': [{'name': 'Gi0/0.10', 'ip': '192.168.10.1', 'mask': '255.255.255.0', 'status': 'up'}, {'name': 'Gi0/0.20', 'ip': '192.168.20.1', 'mask': '255.255.255.0', 'status': 'up'}]}
+            {'id': 'sw1', 'name': 'Switch-VLAN', 'category': 'switches', 'icon': 'fa-network-wired', 'x': 360, 'y': 180, 'interfaces': [{'name': 'Fa0/1', 'status': 'up'}, {'name': 'Fa0/2', 'status': 'up'}, {'name': 'Gi0/1', 'status': 'up'}], 'vlans': {'10': {'name': 'Sales'}, '20': {'name': 'Engineering'}}},
+            {'id': 'pc1', 'name': 'Sales-PC', 'category': 'computers', 'icon': 'fa-desktop', 'x': 140, 'y': 100, 'ip': '192.168.10.10', 'subnet_mask': '255.255.255.0', 'gateway': '192.168.10.1', 'interfaces': [{'name': 'eth0', 'status': 'up'}]},
+            {'id': 'pc2', 'name': 'Eng-PC', 'category': 'computers', 'icon': 'fa-desktop', 'x': 140, 'y': 260, 'ip': '192.168.20.10', 'subnet_mask': '255.255.255.0', 'gateway': '192.168.20.1', 'interfaces': [{'name': 'eth0', 'status': 'up'}]},
+            {'id': 'r1', 'name': 'CoreRouter', 'category': 'routers', 'icon': 'fa-route', 'x': 600, 'y': 180, 'ip': '192.168.10.1', 'interfaces': [{'name': 'Gi0/0.10', 'ip': '192.168.10.1', 'mask': '255.255.255.0', 'status': 'up'}, {'name': 'Gi0/0.20', 'ip': '192.168.20.1', 'mask': '255.255.255.0', 'status': 'up'}]}
         ]
         connections = [
             {'id': 'c1', 'source_device': 'pc1', 'source_port': 'eth0', 'target_device': 'sw1', 'target_port': 'Fa0/1', 'type': 'copper_straight', 'status': 'connected'},
             {'id': 'c2', 'source_device': 'pc2', 'source_port': 'eth0', 'target_device': 'sw1', 'target_port': 'Fa0/2', 'type': 'copper_straight', 'status': 'connected'},
             {'id': 'c3', 'source_device': 'sw1', 'source_port': 'Gi0/1', 'target_device': 'r1', 'target_port': 'Gi0/0.10', 'type': 'copper_straight', 'status': 'connected'}
         ]
-    elif 'CCTV' in name or 'Camera' in name:
+    elif 'cctv' in name_lower or 'camera' in name_lower or 'surveillance' in name_lower:
         devices = [
             {'id': 'cam1', 'name': 'DomeCamera1', 'category': 'cctv', 'icon': 'fa-camera', 'x': 100, 'y': 100, 'ip': '192.168.50.11', 'subnet_mask': '255.255.255.0', 'gateway': '192.168.50.1', 'interfaces': [{'name': 'eth0_PoE', 'status': 'up'}]},
-            {'id': 'cam2', 'name': 'DomeCamera2', 'category': 'cctv', 'icon': 'fa-camera', 'x': 100, 'y': 220, 'ip': '192.168.50.12', 'subnet_mask': '255.255.255.0', 'gateway': '192.168.50.1', 'interfaces': [{'name': 'eth0_PoE', 'status': 'up'}]},
-            {'id': 'sw_poe', 'name': 'PoE-Switch', 'category': 'switches', 'icon': 'fa-bolt', 'x': 320, 'y': 160, 'interfaces': [{'name': 'Port1', 'status': 'up'}, {'name': 'Port2', 'status': 'up'}, {'name': 'Port8', 'status': 'up'}]},
-            {'id': 'nvr1', 'name': 'NVR-16CH', 'category': 'cctv', 'icon': 'fa-video', 'x': 540, 'y': 160, 'ip': '192.168.10.100', 'subnet_mask': '255.255.255.0', 'gateway': '192.168.10.1', 'interfaces': [{'name': 'LAN1', 'status': 'up'}]},
-            {'id': 'pc_mon', 'name': 'SecurityPC', 'category': 'computers', 'icon': 'fa-desktop', 'x': 740, 'y': 160, 'ip': '192.168.10.50', 'subnet_mask': '255.255.255.0', 'gateway': '192.168.10.1', 'interfaces': [{'name': 'eth0', 'status': 'up'}]}
+            {'id': 'cam2', 'name': 'DomeCamera2', 'category': 'cctv', 'icon': 'fa-camera', 'x': 100, 'y': 240, 'ip': '192.168.50.12', 'subnet_mask': '255.255.255.0', 'gateway': '192.168.50.1', 'interfaces': [{'name': 'eth0_PoE', 'status': 'up'}]},
+            {'id': 'sw_poe', 'name': 'PoE-Switch', 'category': 'switches', 'icon': 'fa-bolt', 'x': 320, 'y': 170, 'interfaces': [{'name': 'Port1', 'status': 'up'}, {'name': 'Port2', 'status': 'up'}, {'name': 'Port8', 'status': 'up'}]},
+            {'id': 'nvr1', 'name': 'NVR-16CH', 'category': 'cctv', 'icon': 'fa-video', 'x': 540, 'y': 170, 'ip': '192.168.10.100', 'subnet_mask': '255.255.255.0', 'gateway': '192.168.10.1', 'interfaces': [{'name': 'LAN1', 'status': 'up'}]},
+            {'id': 'pc_mon', 'name': 'SecurityPC', 'category': 'computers', 'icon': 'fa-desktop', 'x': 760, 'y': 170, 'ip': '192.168.10.50', 'subnet_mask': '255.255.255.0', 'gateway': '192.168.10.1', 'interfaces': [{'name': 'eth0', 'status': 'up'}]}
         ]
         connections = [
             {'id': 'c1', 'source_device': 'cam1', 'source_port': 'eth0_PoE', 'target_device': 'sw_poe', 'target_port': 'Port1', 'type': 'copper_straight', 'status': 'connected'},
@@ -104,7 +106,7 @@ def project_template_api(request):
             {'id': 'c3', 'source_device': 'sw_poe', 'source_port': 'Port8', 'target_device': 'nvr1', 'target_port': 'LAN1', 'type': 'copper_straight', 'status': 'connected'},
             {'id': 'c4', 'source_device': 'nvr1', 'source_port': 'LAN1', 'target_device': 'pc_mon', 'target_port': 'eth0', 'type': 'copper_straight', 'status': 'connected'}
         ]
-    elif 'Firewall' in name or 'DMZ' in name:
+    elif 'firewall' in name_lower or 'dmz' in name_lower:
         devices = [
             {'id': 'pc_lan', 'name': 'LAN-Workstation', 'category': 'computers', 'icon': 'fa-desktop', 'x': 100, 'y': 160, 'ip': '192.168.1.10', 'subnet_mask': '255.255.255.0', 'gateway': '192.168.1.1', 'interfaces': [{'name': 'eth0', 'status': 'up'}]},
             {'id': 'fw1', 'name': 'NetGate-NGFW', 'category': 'firewalls', 'icon': 'fa-shield-halved', 'x': 350, 'y': 160, 'ip': '192.168.1.1', 'interfaces': [{'name': 'igb1_LAN', 'ip': '192.168.1.1', 'mask': '255.255.255.0', 'status': 'up'}, {'name': 'igb2_DMZ', 'ip': '172.16.1.1', 'mask': '255.255.255.0', 'status': 'up'}, {'name': 'igb0_WAN', 'ip': '203.0.113.2', 'mask': '255.255.255.0', 'status': 'up'}]},
@@ -116,7 +118,58 @@ def project_template_api(request):
             {'id': 'c2', 'source_device': 'fw1', 'source_port': 'igb2_DMZ', 'target_device': 'srv_dmz', 'target_port': 'eth0', 'type': 'copper_straight', 'status': 'connected'},
             {'id': 'c3', 'source_device': 'fw1', 'source_port': 'igb0_WAN', 'target_device': 'wan_gw', 'target_port': 'Gi0/0', 'type': 'fiber', 'status': 'connected'}
         ]
-    else:
+    elif 'ospf' in name_lower or 'wan' in name_lower or 'branch' in name_lower:
+        devices = [
+            {'id': 'hq_r', 'name': 'HQ-Core-Router', 'category': 'routers', 'icon': 'fa-route', 'x': 400, 'y': 120, 'ip': '10.0.0.1', 'interfaces': [{'name': 'Gi0/0', 'ip': '10.0.0.1', 'status': 'up'}, {'name': 'Gi0/1', 'ip': '10.1.1.1', 'status': 'up'}, {'name': 'Gi0/2', 'ip': '10.2.2.1', 'status': 'up'}]},
+            {'id': 'br1_r', 'name': 'Branch1-Router', 'category': 'routers', 'icon': 'fa-route', 'x': 180, 'y': 280, 'ip': '10.1.1.2', 'interfaces': [{'name': 'Gi0/0', 'ip': '10.1.1.2', 'status': 'up'}, {'name': 'Fa0/1', 'ip': '192.168.10.1', 'status': 'up'}]},
+            {'id': 'br2_r', 'name': 'Branch2-Router', 'category': 'routers', 'icon': 'fa-route', 'x': 620, 'y': 280, 'ip': '10.2.2.2', 'interfaces': [{'name': 'Gi0/0', 'ip': '10.2.2.2', 'status': 'up'}, {'name': 'Fa0/1', 'ip': '192.168.20.1', 'status': 'up'}]},
+            {'id': 'pc_br1', 'name': 'Branch1-PC', 'category': 'computers', 'icon': 'fa-desktop', 'x': 100, 'y': 400, 'ip': '192.168.10.15', 'subnet_mask': '255.255.255.0', 'gateway': '192.168.10.1', 'interfaces': [{'name': 'eth0', 'status': 'up'}]},
+            {'id': 'pc_br2', 'name': 'Branch2-PC', 'category': 'computers', 'icon': 'fa-desktop', 'x': 700, 'y': 400, 'ip': '192.168.20.15', 'subnet_mask': '255.255.255.0', 'gateway': '192.168.20.1', 'interfaces': [{'name': 'eth0', 'status': 'up'}]}
+        ]
+        connections = [
+            {'id': 'c1', 'source_device': 'hq_r', 'source_port': 'Gi0/1', 'target_device': 'br1_r', 'target_port': 'Gi0/0', 'type': 'serial', 'status': 'connected'},
+            {'id': 'c2', 'source_device': 'hq_r', 'source_port': 'Gi0/2', 'target_device': 'br2_r', 'target_port': 'Gi0/0', 'type': 'serial', 'status': 'connected'},
+            {'id': 'c3', 'source_device': 'br1_r', 'source_port': 'Fa0/1', 'target_device': 'pc_br1', 'target_port': 'eth0', 'type': 'copper_straight', 'status': 'connected'},
+            {'id': 'c4', 'source_device': 'br2_r', 'source_port': 'Fa0/1', 'target_device': 'pc_br2', 'target_port': 'eth0', 'type': 'copper_straight', 'status': 'connected'}
+        ]
+    elif 'hsrp' in name_lower or 'vrrp' in name_lower or 'redundant' in name_lower:
+        devices = [
+            {'id': 'r1_act', 'name': 'Router1-Primary', 'category': 'routers', 'icon': 'fa-route', 'x': 250, 'y': 100, 'ip': '192.168.1.252', 'interfaces': [{'name': 'Gi0/1', 'ip': '192.168.1.252', 'status': 'up'}, {'name': 'Gi0/0', 'status': 'up'}]},
+            {'id': 'r2_sby', 'name': 'Router2-Standby', 'category': 'routers', 'icon': 'fa-route', 'x': 550, 'y': 100, 'ip': '192.168.1.253', 'interfaces': [{'name': 'Gi0/1', 'ip': '192.168.1.253', 'status': 'up'}, {'name': 'Gi0/0', 'status': 'up'}]},
+            {'id': 'sw_core', 'name': 'Core-Switch', 'category': 'switches', 'icon': 'fa-network-wired', 'x': 400, 'y': 240, 'interfaces': [{'name': 'Gi0/1', 'status': 'up'}, {'name': 'Gi0/2', 'status': 'up'}, {'name': 'Fa0/1', 'status': 'up'}]},
+            {'id': 'pc_client', 'name': 'Corporate-Host', 'category': 'computers', 'icon': 'fa-desktop', 'x': 400, 'y': 380, 'ip': '192.168.1.50', 'subnet_mask': '255.255.255.0', 'gateway': '192.168.1.1', 'interfaces': [{'name': 'eth0', 'status': 'up'}]}
+        ]
+        connections = [
+            {'id': 'c1', 'source_device': 'r1_act', 'source_port': 'Gi0/1', 'target_device': 'sw_core', 'target_port': 'Gi0/1', 'type': 'copper_straight', 'status': 'connected'},
+            {'id': 'c2', 'source_device': 'r2_sby', 'source_port': 'Gi0/1', 'target_device': 'sw_core', 'target_port': 'Gi0/2', 'type': 'copper_straight', 'status': 'connected'},
+            {'id': 'c3', 'source_device': 'sw_core', 'source_port': 'Fa0/1', 'target_device': 'pc_client', 'target_port': 'eth0', 'type': 'copper_straight', 'status': 'connected'}
+        ]
+    elif 'stp' in name_lower or 'loop' in name_lower:
+        devices = [
+            {'id': 'sw_root', 'name': 'Root-Switch', 'category': 'switches', 'icon': 'fa-network-wired', 'x': 400, 'y': 100, 'interfaces': [{'name': 'Gi0/1', 'status': 'up'}, {'name': 'Gi0/2', 'status': 'up'}]},
+            {'id': 'sw_dist1', 'name': 'Dist-Switch1', 'category': 'switches', 'icon': 'fa-network-wired', 'x': 200, 'y': 280, 'interfaces': [{'name': 'Gi0/1', 'status': 'up'}, {'name': 'Gi0/2', 'status': 'up'}]},
+            {'id': 'sw_dist2', 'name': 'Dist-Switch2', 'category': 'switches', 'icon': 'fa-network-wired', 'x': 600, 'y': 280, 'interfaces': [{'name': 'Gi0/1', 'status': 'up'}, {'name': 'Gi0/2', 'status': 'up'}]}
+        ]
+        connections = [
+            {'id': 'c1', 'source_device': 'sw_root', 'source_port': 'Gi0/1', 'target_device': 'sw_dist1', 'target_port': 'Gi0/1', 'type': 'copper_straight', 'status': 'connected'},
+            {'id': 'c2', 'source_device': 'sw_root', 'source_port': 'Gi0/2', 'target_device': 'sw_dist2', 'target_port': 'Gi0/1', 'type': 'copper_straight', 'status': 'connected'},
+            {'id': 'c3', 'source_device': 'sw_dist1', 'source_port': 'Gi0/2', 'target_device': 'sw_dist2', 'target_port': 'Gi0/2', 'type': 'copper_straight', 'status': 'connected'}
+        ]
+    elif 'wireless' in name_lower or 'wifi' in name_lower:
+        devices = [
+            {'id': 'wlc', 'name': 'Cisco-WLC-9800', 'category': 'wireless', 'icon': 'fa-wifi', 'x': 400, 'y': 100, 'ip': '10.10.0.10', 'interfaces': [{'name': 'Gi0/1', 'status': 'up'}]},
+            {'id': 'sw_poe', 'name': 'PoE-CoreSwitch', 'category': 'switches', 'icon': 'fa-network-wired', 'x': 400, 'y': 220, 'interfaces': [{'name': 'Gi0/1', 'status': 'up'}, {'name': 'PoE1', 'status': 'up'}, {'name': 'PoE2', 'status': 'up'}]},
+            {'id': 'ap1', 'name': 'AP-NorthWing', 'category': 'wireless', 'icon': 'fa-wifi', 'x': 200, 'y': 340, 'ip': '10.10.0.21', 'interfaces': [{'name': 'eth0', 'status': 'up'}]},
+            {'id': 'ap2', 'name': 'AP-SouthWing', 'category': 'wireless', 'icon': 'fa-wifi', 'x': 600, 'y': 340, 'ip': '10.10.0.22', 'interfaces': [{'name': 'eth0', 'status': 'up'}]},
+            {'id': 'laptop1', 'name': 'Executive-Laptop', 'category': 'computers', 'icon': 'fa-laptop', 'x': 200, 'y': 460, 'ip': '10.20.0.55', 'subnet_mask': '255.255.255.0', 'gateway': '10.20.0.1', 'interfaces': [{'name': 'wlan0', 'status': 'up'}]}
+        ]
+        connections = [
+            {'id': 'c1', 'source_device': 'wlc', 'source_port': 'Gi0/1', 'target_device': 'sw_poe', 'target_port': 'Gi0/1', 'type': 'copper_straight', 'status': 'connected'},
+            {'id': 'c2', 'source_device': 'sw_poe', 'source_port': 'PoE1', 'target_device': 'ap1', 'target_port': 'eth0', 'type': 'copper_straight', 'status': 'connected'},
+            {'id': 'c3', 'source_device': 'sw_poe', 'source_port': 'PoE2', 'target_device': 'ap2', 'target_port': 'eth0', 'type': 'copper_straight', 'status': 'connected'},
+            {'id': 'c4', 'source_device': 'ap1', 'source_port': 'wlan0', 'target_device': 'laptop1', 'target_port': 'wlan0', 'type': 'wireless', 'status': 'connected'}
+        ]
+    else: # Basic Home / SOHO / Default Starter
         devices = [
             {'id': 'pc1', 'name': 'PC1', 'category': 'computers', 'icon': 'fa-desktop', 'x': 120, 'y': 180, 'ip': '192.168.1.10', 'subnet_mask': '255.255.255.0', 'gateway': '192.168.1.1', 'interfaces': [{'name': 'eth0', 'status': 'up'}]},
             {'id': 'sw1', 'name': 'Switch1', 'category': 'switches', 'icon': 'fa-network-wired', 'x': 340, 'y': 180, 'interfaces': [{'name': 'Fa0/1', 'status': 'up'}, {'name': 'Fa0/2', 'status': 'up'}, {'name': 'Gi0/1', 'status': 'up'}]},
@@ -128,6 +181,13 @@ def project_template_api(request):
             {'id': 'c2', 'source_device': 'sw1', 'source_port': 'Gi0/1', 'target_device': 'r1', 'target_port': 'Gi0/0', 'type': 'copper_straight', 'status': 'connected'},
             {'id': 'c3', 'source_device': 'r1', 'source_port': 'Gi0/1', 'target_device': 'srv1', 'target_port': 'eth0', 'type': 'copper_straight', 'status': 'connected'}
         ]
+
+    return Response({
+        'id': 'proj_' + sanitize_filename(name).lower(),
+        'name': name,
+        'devices': devices,
+        'connections': connections
+    })
 
     return Response({
         'id': 'proj_' + sanitize_filename(name).lower(),

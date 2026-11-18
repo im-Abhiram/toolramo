@@ -304,14 +304,17 @@ class RamonetUI {
 
     // Load any of the 18 prebuilt network templates into canvas
     async loadNetworkTemplate(templateName) {
-        this.showToast('Loading Template', `Generating ${templateName}...`, 'info');
+        this.showToast('Loading Topology', `Configuring ${templateName}...`, 'info');
         try {
-            const resp = await fetch(`/api/projects/template/?name=${encodeURIComponent(templateName)}`);
+            let resp = await fetch(`/api/projects/template/?name=${encodeURIComponent(templateName)}`);
+            if (!resp.ok) {
+                resp = await fetch(`/projects/template/?name=${encodeURIComponent(templateName)}`);
+            }
             if (resp.ok) {
                 const projectData = await resp.json();
                 window.ramonetCanvas?.loadProjectData(projectData);
-                window.ramonetCanvas?.fitToScreen();
-                this.showToast('Template Loaded', `Loaded "${templateName}" with ${projectData.devices?.length || 0} devices.`, 'success');
+                setTimeout(() => window.ramonetCanvas?.fitToScreen(), 100);
+                this.showToast('Topology Ready', `Loaded "${templateName}" with ${projectData.devices?.length || 0} devices.`, 'success');
             } else {
                 throw new Error('Template not found on server');
             }

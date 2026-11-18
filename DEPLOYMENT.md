@@ -1,12 +1,57 @@
 # RAMONET 2.0 — PythonAnywhere WSGI Production Deployment Guide
 
-This guide provides complete, production-tested, step-by-step instructions for deploying **RAMONET** to PythonAnywhere under the account **`ramonet`**.
+This guide provides complete, production-tested instructions for deploying and updating **RAMONET** on PythonAnywhere under the account **`ramonet`**.
 
 - **Production Domain:** `https://ramonet.pythonanywhere.com`
 - **Application Directory:** `/home/ramonet/ramonet`
 - **Virtualenv Directory:** `/home/ramonet/.virtualenvs/ramonet-env`
 - **WSGI Configuration File:** `/var/www/ramonet_pythonanywhere_com_wsgi.py`
 - **GitHub Repository:** `https://github.com/im-Abhiram/toolramo.git`
+
+---
+
+## ⚡ FAST UPDATE: How to Update Your Already Deployed App on PythonAnywhere
+
+If you have already deployed RAMONET on PythonAnywhere, updating with the latest fixes (drag & drop, clean login, bug fixes) takes only 30 seconds:
+
+1. Open your **Bash console** on PythonAnywhere ([pythonanywhere.com/user/ramonet/consoles/](https://www.pythonanywhere.com/user/ramonet/consoles/)).
+2. Run the following update sequence:
+
+```bash
+# 1. Go to project directory
+cd /home/ramonet/ramonet
+
+# 2. Activate virtualenv
+workon ramonet-env
+
+# 3. Pull latest updates from GitHub
+git pull origin main
+
+# 4. Install any package requirements
+pip install -r requirements.txt
+
+# 5. Apply migrations
+python manage.py migrate
+
+# 6. Re-seed device library and Academy courses (safe, skips existing)
+python manage.py seed_data
+python manage.py seed_academy
+
+# 7. Collect updated static assets (CSS, JS, icons)
+python manage.py collectstatic --noinput
+
+# 8. Reload your web app instantly:
+touch /var/www/ramonet_pythonanywhere_com_wsgi.py
+```
+
+*Or go to the **Web** tab in PythonAnywhere and click the green **Reload ramonet.pythonanywhere.com** button.*
+
+### Creating Your Administrator Account (No Default Passwords):
+To create your personal admin account, simply run in the Bash console:
+```bash
+python manage.py createsuperuser
+```
+Follow the prompt to type your chosen username, email, and password.
 
 ---
 
@@ -91,14 +136,14 @@ python manage.py seed_data
 python manage.py seed_academy
 ```
 
-This creates:
-- Default Admin Account: `admin` / `admin123`
-- Default Student Account: `student` / `student123`
-- 10 Device Categories & 13+ Hardware Models
+This seeds:
+- 10 Hardware Categories & 13+ Device Models
 - 18 Prebuilt Production Network Templates
 - 14 RAMONET Academy Courses & Practical Lab Scenarios
 - 27 Device Configuration Guides
 - Central CLI Command Library (Cisco IOS, Linux, Windows, MikroTik, iptables)
+
+*Note: For security, no default admin credentials are created. Run `python manage.py createsuperuser` or register via the web UI.*
 
 ---
 

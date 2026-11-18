@@ -14,17 +14,17 @@
     <!-- Left Device Palette Sidebar -->
     <div class="device-palette-sidebar">
         <div class="device-palette-header d-flex align-items-center justify-content-between">
-            <span class="text-white fw-bold small"><i class="fa-solid fa-boxes-stacked text-info me-2"></i>Device Library</span>
-            <span class="badge bg-secondary" style="font-size:0.65rem;">Drag & Drop</span>
+            <span class="text-white fw-bold small"><i class="fa-solid fa-boxes-stacked text-cyan me-2"></i>Device Library</span>
+            <span class="badge bg-info text-dark" style="font-size:0.65rem;" title="Drag device onto canvas or click to place"><i class="fa-solid fa-hand-pointer me-1"></i>Click or Drag</span>
         </div>
         <div class="device-palette-search">
-            <input type="text" class="form-control form-control-sm" id="palette-search-input" placeholder="Filter devices...">
+            <input type="text" class="form-control form-control-sm" id="palette-search-input" placeholder="Search devices (e.g. switch, router)...">
         </div>
         <div class="device-palette-list" id="palette-device-list">
             {% for cat in categories %}
             <div class="palette-category-title">{{ cat.name }}</div>
             {% for dev in cat.devices.all %}
-            <div class="palette-device-item" draggable="true" data-definition-id="{{ dev.id }}" data-json='{{ dev.to_palette_json|safe }}'>
+            <div class="palette-device-item" draggable="true" data-definition-id="{{ dev.id }}" data-json='{{ dev.to_palette_json|safe }}' title="Click to add or drag onto canvas">
                 <div class="palette-device-icon">
                     <i class="fa-solid {{ dev.icon }}"></i>
                 </div>
@@ -32,6 +32,7 @@
                     <div class="palette-device-name" title="{{ dev.name }}">{{ dev.name }}</div>
                     <div class="palette-device-desc">{{ dev.manufacturer }}</div>
                 </div>
+                <i class="fa-solid fa-plus text-secondary ms-auto small opacity-50" title="Click to add"></i>
             </div>
             {% endfor %}
             {% endfor %}
@@ -288,14 +289,69 @@ document.addEventListener('DOMContentLoaded', async () => {
     window.ramonetVisualizer = new PacketVisualizer(window.ramonetCanvas);
     window.ramonetTerminal = new RamonetTerminal('ramonet-terminal-mount');
 
-    // Check if a template parameter is in URL
+    // Palette Drag & Drop + Click-to-Add Setup
+    const paletteList = document.getElementById('palette-device-list');
+    if (paletteList) {
+        // 1. Dragstart: attach data to dataTransfer & global window fallback
+        paletteList.addEventListener('dragstart', (e) => {
+            const item = e.target.closest('.palette-device-item');
+            if (!item) return;
+            const rawJson = item.getAttribute('data-json');
+            if (rawJson) {
+                try {
+                    const parsed = JSON.parse(rawJson);
+                    window.__draggedDeviceDefinition = parsed;
+                    e.dataTransfer.setData('application/json', rawJson);
+                    e.dataTransfer.setData('text/plain', rawJson);
+                    e.dataTransfer.effectAllowed = 'copy';
+                } catch(err) {
+                    console.error('Invalid device JSON on dragstart', err);
+                }
+            }
+        });
+
+        // 2. Click-to-Add: Click any device in palette to instantly add near center
+        paletteList.addEventListener('click', (e) => {
+            const item = e.target.closest('.palette-device-item');
+            if (!item) return;
+            const rawJson = item.getAttribute('data-json');
+            if (rawJson && window.ramonetCanvas) {
+                try {
+                    const devData = JSON.parse(rawJson);
+                    const container = document.getElementById('topology-container');
+                    const contW = container?.clientWidth || 800;
+                    const contH = container?.clientHeight || 600;
+
+                    const centerX = (contW / 2 - window.ramonetCanvas.panX) / window.ramonetCanvas.scale;
+                    const centerY = (contH / 2 - window.ramonetCanvas.panY) / window.ramonetCanvas.scale;
+
+                    const count = window.ramonetCanvas.project.devices.length;
+                    const offsetX = (count % 4) * 45 - 60;
+                    const offsetY = Math.floor((count % 8) / 4) * 45 - 30;
+
+                    const newDev = window.ramonetCanvas.addDevice(devData, Math.max(30, Math.round(centerX + offsetX)), Math.max(30, Math.round(centerY + offsetY)));
+                    window.ramonetUI?.showToast('Device Added', `${newDev.name} added to canvas. Drag to position.`, 'success');
+                } catch(err) {
+                    console.error('Click to add device failed:', err);
+                }
+            }
+        });
+    }
+
+    // Check if scenario, template, or project parameter is in URL
     const urlParams = new URLSearchParams(window.location.search);
-    const templateName = urlParams.get('template');
+    const templateName = urlParams.get('scenario') || urlParams.get('template') || urlParams.get('project');
     if (templateName) {
-        window.ramonetUI.loadNetworkTemplate(templateName);
+        window.ramonetUI?.loadNetworkTemplate(templateName);
     } else {
-        // Load default starter project or previous project
-        window.ramonetUI.loadNetworkTemplate('Basic Home Network');
+        window.ramonetUI?.loadNetworkTemplate('Basic Home Network');
+    }
+
+    // Check if CLI should be opened directly
+    if (urlParams.get('open') === 'cli') {
+        setTimeout(() => {
+            window.ramonetUI?.showWorkbenchTab('cli-terminal');
+        }, 400);
     }
 
     // Bind Toolbar Buttons
