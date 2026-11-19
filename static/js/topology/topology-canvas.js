@@ -615,10 +615,26 @@ class TopologyCanvas {
             source_port: sPort,
             target_device: dId,
             target_port: dPort,
+            from: sId,
+            to: dId,
+            from_port: sPort,
+            to_port: dPort,
             type: cableType,
             status: 'connected',
             speed: 1000
         };
+
+        // Mark interfaces as active/up on devices
+        const srcDev = this.project.devices.find(d => String(d.id) === sId);
+        const destDev = this.project.devices.find(d => String(d.id) === dId);
+        if (srcDev?.interfaces) {
+            const ifc = srcDev.interfaces.find(i => typeof i === 'object' && i.name === sPort);
+            if (ifc) ifc.status = 'up';
+        }
+        if (destDev?.interfaces) {
+            const ifc = destDev.interfaces.find(i => typeof i === 'object' && i.name === dPort);
+            if (ifc) ifc.status = 'up';
+        }
 
         this.project.connections.push(connection);
         this.renderConnections();

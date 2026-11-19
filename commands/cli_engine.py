@@ -38,7 +38,20 @@ class DeviceCLISession:
     def __init__(self, device_data: Dict[str, Any], topology_data: Optional[Dict[str, Any]] = None, session_state: Optional[Dict[str, Any]] = None):
         self.device = device_data
         self.topology = topology_data or {'devices': [self.device], 'connections': []}
-        self.platform = self.device.get('cli_platform', 'cisco_ios')
+        
+        # Determine platform intelligently based on explicit platform or device category
+        self.platform = self.device.get('cli_platform')
+        if not self.platform:
+            cat = (self.device.get('category') or self.device.get('type') or '').lower()
+            if 'server' in cat or 'linux' in cat:
+                self.platform = 'linux_shell'
+            elif any(c in cat for c in ('pc', 'computer', 'workstation', 'endpoint', 'client', 'desktop', 'laptop')):
+                self.platform = 'windows_cmd'
+            elif 'mikrotik' in cat:
+                self.platform = 'mikrotik'
+            else:
+                self.platform = 'cisco_ios'
+        self.device['cli_platform'] = self.platform
         
         # State tracking for Cisco IOS (check passed parameter first, then device state)
         session_state = session_state or self.device.get('cli_session_state') or {}
@@ -125,8 +138,8 @@ class DeviceCLISession:
         first = parts[0].lower()
         output = ""
 
-        # Context-sensitive help '?'
-        if cmd == '?' or cmd.endswith('?'):
+        # Context-sensitive help '?' or 'help'
+        if cmd == '?' or cmd.endswith('?') or first in ('help', '?'):
             return self._cisco_help(cmd)
 
         # Mode navigation: exit / end / disable / quit
@@ -176,16 +189,36 @@ class DeviceCLISession:
                     output = "Enter configuration commands, one per line. End with CNTL/Z or 'end'."
                     return {'output': output, 'prompt': self.get_prompt(), 'mode': self.mode, 'device': self.device}
                 else:
-                    return {'output': "% Command requires privileged mode.", 'prompt': self.get_prompt(), 'mode': self.mode, 'device': self.device}
+                    return {'output': "% Command requires privileged mode. Type 'enable' first.", 'prompt': self.get_prompt(), 'mode': self.mode, 'device': self.device}
             elif self.mode in ('priv_exec', 'global_config'):
                 self.mode = 'global_config'
                 output = "Configuring from terminal, memory, or network [terminal]? \nEnter configuration commands, one per line. End with CNTL/Z or 'end'."
                 return {'output': output, 'prompt': self.get_prompt(), 'mode': self.mode, 'device': self.device}
 
+        # Allow entering interface configuration directly from privileged mode (student convenience)
+        if self.mode == 'priv_exec' and (first in ('interface', 'int')) and len(parts) > 1:
+            self.mode = 'global_config'
+
         # Write memory / save config
         if first in ('write', 'wr') or (first == 'copy' and len(parts) >= 3 and parts[1].startswith('run') and parts[2].startswith('start')):
             output = "Building configuration...\n[OK]\nConfiguration saved to NVRAM."
             return {'output': output, 'prompt': self.get_prompt(), 'mode': self.mode, 'device': self.device}
+
+        # Friendly cross-platform hint for ipconfig / ifconfig on Cisco IOS
+        if first in ('ipconfig', 'ifconfig'):
+            lines = [
+                "% Notice: 'ipconfig' is a host command. Showing Cisco interface table:",
+                "Interface              IP-Address      OK? Method Status                Protocol",
+                "--------------------------------------------------------------------------------"
+            ]
+            for ifc in self.device.get('interfaces', []):
+                name = ifc.get('name', 'eth0').ljust(22)
+                ip = (ifc.get('ip') or 'unassigned').ljust(15)
+                status = ifc.get('status', 'up')
+                stat_str = "up".ljust(21) if status == 'up' else "administratively down"
+                proto_str = "up" if status == 'up' else "down"
+                lines.append(f"{name} {ip} YES manual {stat_str} {proto_str}")
+            return {'output': "\n".join(lines), 'prompt': self.get_prompt(), 'mode': self.mode, 'device': self.device}
 
         # Global config commands
         if self.mode == 'global_config':
@@ -194,7 +227,7 @@ class DeviceCLISession:
                 return {'output': '', 'prompt': self.get_prompt(), 'mode': self.mode, 'device': self.device}
 
             if (first in ('interface', 'int')) and len(parts) > 1:
-                iface_arg = parts[1]
+                iface_arg = "".join(parts[1:])
                 norm_name = normalize_interface_name(iface_arg)
                 
                 # Match or create interface
@@ -217,6 +250,10 @@ class DeviceCLISession:
                     self.device['vlans'][vlan_id] = {'name': f"VLAN{vlan_id}", 'ports': []}
                 self.current_vlan = vlan_id
                 self.mode = 'vlan_config'
+                return {'output': '', 'prompt': self.get_prompt(), 'mode': self.mode, 'device': self.device}
+
+            if first == 'ip' and len(parts) >= 3 and parts[1].lower() in ('default-gateway', 'default-gw'):
+                self.device['gateway'] = parts[2]
                 return {'output': '', 'prompt': self.get_prompt(), 'mode': self.mode, 'device': self.device}
 
             if first == 'ip' and len(parts) >= 4 and parts[1].lower() == 'route':
@@ -247,9 +284,22 @@ class DeviceCLISession:
                     break
 
             if curr_iface is not None:
-                if first == 'ip' and len(parts) >= 4 and parts[1].lower() in ('address', 'addr'):
-                    ip_val = parts[2]
-                    mask_val = parts[3]
+                if first == 'ip' and len(parts) >= 3 and parts[1].lower() in ('address', 'addr', 'add'):
+                    if '/' in parts[2]:
+                        try:
+                            net_obj = ipaddress.IPv4Interface(parts[2])
+                            ip_val = str(net_obj.ip)
+                            mask_val = str(net_obj.netmask)
+                        except Exception:
+                            ip_val = parts[2].split('/')[0]
+                            mask_val = '255.255.255.0'
+                    elif len(parts) >= 4:
+                        ip_val = parts[2]
+                        mask_val = parts[3]
+                    else:
+                        ip_val = parts[2]
+                        mask_val = '255.255.255.0'
+
                     curr_iface['ip'] = ip_val
                     curr_iface['mask'] = mask_val
                     if not self.device.get('ip') or self.device.get('ip') == '0.0.0.0':
@@ -257,7 +307,7 @@ class DeviceCLISession:
                         self.device['subnet_mask'] = mask_val
                     return {'output': '', 'prompt': self.get_prompt(), 'mode': self.mode, 'device': self.device}
 
-                if first == 'no' and len(parts) > 1 and parts[1].lower() in ('shutdown', 'shut'):
+                if first == 'no' and len(parts) > 1 and parts[1].lower() in ('shutdown', 'shut', 'sh'):
                     curr_iface['status'] = 'up'
                     return {'output': f"% Interface {self.current_interface}, changed state to up\n% LINEPROTO-5-UPDOWN: Line protocol on Interface {self.current_interface}, changed state to up", 'prompt': self.get_prompt(), 'mode': self.mode, 'device': self.device}
 
@@ -324,7 +374,7 @@ class DeviceCLISession:
         sub = " ".join(parts[1:]).lower()
         hostname = self.device.get('name', 'Router')
 
-        if any(k in sub for k in ('ip interface brief', 'ip int br', 'ip int brief')):
+        if any(k in sub for k in ('ip interface brief', 'ip int br', 'ip int brief', 'ip int', 'ip interface', 'int br', 'interface brief')):
             lines = [
                 "Interface              IP-Address      OK? Method Status                Protocol",
                 "--------------------------------------------------------------------------------"
@@ -338,7 +388,7 @@ class DeviceCLISession:
                 lines.append(f"{name} {ip} YES manual {stat_str} {proto_str}")
             return {'output': "\n".join(lines), 'prompt': self.get_prompt(), 'mode': self.mode, 'device': self.device}
 
-        if any(k in sub for k in ('ip route', 'ip ro')):
+        if any(k in sub for k in ('ip route', 'ip ro', 'route')):
             lines = [
                 "Codes: L - local, C - connected, S - static, R - RIP, O - OSPF, B - BGP",
                 "Gateway of last resort is not set",
@@ -355,6 +405,41 @@ class DeviceCLISession:
             for r in self.device.get('routes', []):
                 lines.append(f"S    {r.get('network')}/{r.get('mask')} [1/0] via {r.get('gateway', '0.0.0.0')}")
             return {'output': "\n".join(lines), 'prompt': self.get_prompt(), 'mode': self.mode, 'device': self.device}
+
+        if 'arp' in sub:
+            lines = [
+                "Protocol  Address          Age (min)  Hardware Addr   Type   Interface",
+                f"Internet  {self.device.get('ip', '192.168.1.1').ljust(16)} -          0014.2201.2341  ARPA   Vlan1",
+                f"Internet  {self.device.get('gateway', '192.168.1.254').ljust(16)} 5          0014.2201.5582  ARPA   Vlan1"
+            ]
+            return {'output': "\n".join(lines), 'prompt': self.get_prompt(), 'mode': self.mode, 'device': self.device}
+
+        if any(k in sub for k in ('cdp', 'neighbor', 'neighbours')):
+            lines = [
+                "Capability Codes: R - Router, T - Trans Bridge, B - Source Route Bridge",
+                "                  S - Switch, H - Host, I - IGMP, r - Repeater, P - Phone",
+                "",
+                "Device ID        Local Intrfce     Holdtme    Capability  Platform  Port ID",
+                "---------------------------------------------------------------------------"
+            ]
+            for conn in self.topology.get('connections', []):
+                s_id = str(conn.get('source_device') or conn.get('from') or '')
+                t_id = str(conn.get('target_device') or conn.get('to') or '')
+                my_id = str(self.device.get('id', ''))
+                if s_id == my_id:
+                    nbr = str(conn.get('target_device') or conn.get('to') or 'Device').ljust(16)
+                    loc = str(conn.get('source_port') or conn.get('from_port') or 'Gi0/1').ljust(17)
+                    rem = str(conn.get('target_port') or conn.get('to_port') or 'Gi0/1')
+                    lines.append(f"{nbr} {loc} 145        S I         WS-C2960  {rem}")
+                elif t_id == my_id:
+                    nbr = str(conn.get('source_device') or conn.get('from') or 'Device').ljust(16)
+                    loc = str(conn.get('target_port') or conn.get('to_port') or 'Gi0/1').ljust(17)
+                    rem = str(conn.get('source_port') or conn.get('from_port') or 'Gi0/1')
+                    lines.append(f"{nbr} {loc} 145        S I         WS-C2960  {rem}")
+            return {'output': "\n".join(lines), 'prompt': self.get_prompt(), 'mode': self.mode, 'device': self.device}
+
+        if 'clock' in sub:
+            return {'output': "*12:00:00.000 UTC Wed Nov 19 2026", 'prompt': self.get_prompt(), 'mode': self.mode, 'device': self.device}
 
         if 'vlan' in sub:
             lines = [
@@ -613,6 +698,23 @@ class DeviceCLISession:
     def _execute_windows(self, cmd: str) -> Dict[str, Any]:
         parts = cmd.split()
         first = parts[0].lower()
+
+        # Helpful hint if user attempts Cisco IOS commands on a PC
+        if first in ('enable', 'en', 'configure', 'conf', 'config'):
+            return {
+                'output': f"% '{first}' is a Cisco IOS command. You are on a Windows Workstation.\nType 'ipconfig [/all]' to view IP settings or 'ping <destination>' to test connectivity.",
+                'prompt': self.get_prompt(),
+                'mode': self.mode,
+                'device': self.device
+            }
+
+        if first in ('show', 'sh'):
+            return {
+                'output': "% 'show' is a Cisco IOS command. Use 'ipconfig' to view IP addresses or 'route print' to view routes.",
+                'prompt': self.get_prompt(),
+                'mode': self.mode,
+                'device': self.device
+            }
 
         if first == 'ipconfig':
             is_all = '/all' in cmd.lower()

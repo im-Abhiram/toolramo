@@ -165,3 +165,26 @@ class NetworkSimulationEngineTests(TestCase):
         engine = NetworkSimulationEngine(print_topo)
         res = engine.simulate_packet('pc', '192.168.1.200', protocol='TCP', dest_port=9100)
         self.assertTrue(res['success'])
+
+    def test_mixed_shorthand_port_names_routing(self):
+        """Verify logical connections route accurately across mismatched port aliases (e.g. g0/1 vs Gi0/1 vs GigabitEthernet0/1)"""
+        mixed_topo = {
+            'devices': [
+                {'id': 'pc1', 'name': 'PC1', 'category': 'computers', 'ip': '192.168.1.10', 'subnet_mask': '255.255.255.0', 'gateway': '192.168.1.1', 'interfaces': [{'name': 'eth0', 'status': 'up'}]},
+                {'id': 'sw1', 'name': 'Switch1', 'category': 'switches', 'interfaces': [{'name': 'FastEthernet0/1', 'status': 'up'}, {'name': 'GigabitEthernet0/1', 'status': 'up'}]},
+                {'id': 'r1', 'name': 'Router1', 'category': 'routers', 'ip': '192.168.1.1', 'interfaces': [
+                    {'name': 'Gi0/0', 'ip': '192.168.1.1', 'mask': '255.255.255.0', 'status': 'up'},
+                    {'name': 'Gi0/1', 'ip': '10.0.0.1', 'mask': '255.255.255.0', 'status': 'up'}
+                ]},
+                {'id': 'srv1', 'name': 'WebServer', 'category': 'servers', 'ip': '10.0.0.100', 'subnet_mask': '255.255.255.0', 'gateway': '10.0.0.1', 'interfaces': [{'name': 'eth0', 'status': 'up'}]}
+            ],
+            'connections': [
+                {'id': 'c1', 'source_device': 'pc1', 'source_port': 'eth0', 'target_device': 'sw1', 'target_port': 'fa0/1', 'status': 'connected'},
+                {'id': 'c2', 'source_device': 'sw1', 'source_port': 'Gi0/1', 'target_device': 'r1', 'target_port': 'g0/0', 'status': 'connected'},
+                {'id': 'c3', 'source_device': 'r1', 'source_port': 'GigabitEthernet 0/1', 'target_device': 'srv1', 'target_port': 'eth0', 'status': 'connected'}
+            ]
+        }
+        engine = NetworkSimulationEngine(mixed_topo)
+        res = engine.simulate_packet('pc1', '10.0.0.100', protocol='ICMP')
+        self.assertTrue(res['success'], f"Failed: {res.get('drop_reason')} - {res.get('details')}")
+        self.assertEqual(res['hops'][-1]['device_name'], 'WebServer')

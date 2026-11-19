@@ -10,6 +10,7 @@
 {% endblock %}
 
 {% block content %}
+{% csrf_token %}
 <div class="topology-workspace-wrapper">
     <!-- Left Device Palette Sidebar -->
     <div class="device-palette-sidebar">
@@ -457,14 +458,19 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     // Run Packet Simulation Dialog
     document.getElementById('btn-run-packet-sim')?.addEventListener('click', () => {
-        const devs = window.ramonetCanvas.project.devices;
+        const devs = window.ramonetCanvas?.project?.devices || [];
         if (devs.length < 2) {
-            window.ramonetUI.showToast('Notice', 'Add at least 2 connected devices to run packet simulation.', 'warning');
+            window.ramonetUI?.showToast('Notice', 'Add at least 2 connected devices to run packet simulation.', 'warning');
             return;
         }
-        const src = devs[0];
-        const dest = devs[devs.length - 1];
-        window.ramonetVisualizer.tracePacket(src.id, dest.ip || '192.168.1.1', 'ICMP');
+        const src = window.ramonetCanvas?.selectedDevice || devs[0];
+        const dest = devs.find(d => d.id !== src.id && d.ip) || devs.find(d => d.id !== src.id) || devs[devs.length - 1];
+        if (!dest) {
+            window.ramonetUI?.showToast('Simulation', 'No target destination found with IP address.', 'warning');
+            return;
+        }
+        window.ramonetUI?.showToast('Packet Simulation', `Simulating ICMP Ping from ${src.name} to ${dest.name} (${dest.ip || 'unassigned'})...`, 'info');
+        window.ramonetVisualizer?.tracePacket(src.id, dest.ip || '192.168.1.1', 'ICMP');
     });
 
     // Inspector Close

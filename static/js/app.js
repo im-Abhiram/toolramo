@@ -327,14 +327,24 @@ class RamonetUI {
 
         // Find ports currently in use
         const connections = window.ramonetCanvas?.project?.connections || [];
-        const getUsedPorts = (devId) => {
+        const getUsedPorts = (dev) => {
+            const devId = String(dev?.id || '');
+            const devName = String(dev?.name || '').toLowerCase();
             return connections
-                .filter(c => String(c.source_device) === String(devId) || String(c.target_device) === String(devId))
-                .map(c => String(c.source_device) === String(devId) ? c.source_port : c.target_port);
+                .filter(c => {
+                    const s = String(c.source_device || c.from || c.source || '');
+                    const t = String(c.target_device || c.to || c.target || '');
+                    return s === devId || s.toLowerCase() === devName || t === devId || t.toLowerCase() === devName;
+                })
+                .map(c => {
+                    const s = String(c.source_device || c.from || c.source || '');
+                    const isSrc = (s === devId || s.toLowerCase() === devName);
+                    return isSrc ? (c.source_port || c.from_port || c.src_port) : (c.target_port || c.to_port || c.dest_port);
+                });
         };
 
-        const srcUsed = getUsedPorts(srcDevice.id);
-        const destUsed = getUsedPorts(destDevice.id);
+        const srcUsed = getUsedPorts(srcDevice);
+        const destUsed = getUsedPorts(destDevice);
 
         // Helper to generate default interfaces if none defined
         const getOrGenerateInterfaces = (dev) => {
@@ -531,10 +541,10 @@ class RamonetUI {
             id: 'proj_' + Date.now(),
             name: name,
             devices: [
-                { id: 'pc1', name: 'PC1', category: 'computers', icon: 'fa-desktop', x: 120, y: 180, ip: '192.168.1.10', subnet_mask: '255.255.255.0', gateway: '192.168.1.1', interfaces: [{ name: 'eth0', status: 'up' }] },
-                { id: 'sw1', name: 'Switch1', category: 'switches', icon: 'fa-network-wired', x: 340, y: 180, interfaces: [{ name: 'Fa0/1', status: 'up' }, { name: 'Fa0/2', status: 'up' }, { name: 'Gi0/1', status: 'up' }] },
-                { id: 'r1', name: 'Router1', category: 'routers', icon: 'fa-route', x: 560, y: 180, ip: '192.168.1.1', interfaces: [{ name: 'Gi0/0', ip: '192.168.1.1', mask: '255.255.255.0', status: 'up' }, { name: 'Gi0/1', ip: '10.0.0.1', mask: '255.255.255.0', status: 'up' }] },
-                { id: 'srv1', name: 'WebServer', category: 'servers', icon: 'fa-server', x: 780, y: 180, ip: '10.0.0.100', subnet_mask: '255.255.255.0', gateway: '10.0.0.1', interfaces: [{ name: 'eth0', status: 'up' }] }
+                { id: 'pc1', name: 'PC1', category: 'computers', cli_platform: 'windows_cmd', icon: 'fa-desktop', x: 120, y: 180, ip: '192.168.1.10', subnet_mask: '255.255.255.0', gateway: '192.168.1.1', interfaces: [{ name: 'eth0', ip: '192.168.1.10', mask: '255.255.255.0', status: 'up' }] },
+                { id: 'sw1', name: 'Switch1', category: 'switches', cli_platform: 'cisco_ios', icon: 'fa-network-wired', x: 340, y: 180, interfaces: [{ name: 'Fa0/1', status: 'up' }, { name: 'Fa0/2', status: 'up' }, { name: 'Gi0/1', status: 'up' }] },
+                { id: 'r1', name: 'Router1', category: 'routers', cli_platform: 'cisco_ios', icon: 'fa-route', x: 560, y: 180, ip: '192.168.1.1', interfaces: [{ name: 'Gi0/0', ip: '192.168.1.1', mask: '255.255.255.0', status: 'up' }, { name: 'Gi0/1', ip: '10.0.0.1', mask: '255.255.255.0', status: 'up' }] },
+                { id: 'srv1', name: 'WebServer', category: 'servers', cli_platform: 'linux_shell', icon: 'fa-server', x: 780, y: 180, ip: '10.0.0.100', subnet_mask: '255.255.255.0', gateway: '10.0.0.1', interfaces: [{ name: 'eth0', ip: '10.0.0.100', mask: '255.255.255.0', status: 'up' }] }
             ],
             connections: [
                 { id: 'c1', source_device: 'pc1', source_port: 'eth0', target_device: 'sw1', target_port: 'Fa0/1', type: 'copper_straight', status: 'connected' },

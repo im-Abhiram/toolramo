@@ -4,8 +4,32 @@ A modular Python-based simulation engine for Layer 2 through Layer 7 networking.
 Operates without Docker or physical networking hardware.
 """
 import ipaddress
+import re
 import time
 from typing import Dict, List, Any, Optional, Tuple
+
+def normalize_port_name(p: str) -> str:
+    """Normalize port variations: GigabitEthernet0/1, Gi0/1, g0/1, fa0/1, eth0."""
+    if not p:
+        return ''
+    low = str(p).strip().lower().replace('-', '').replace('_', '').replace(' ', '')
+    m = re.match(r'^([a-z]+)\s*(\d.*)$', low)
+    if m:
+        prefix, suffix = m.group(1), m.group(2)
+        if prefix in ('gigabitethernet', 'gigabit', 'gig', 'gi', 'ge', 'g'):
+            return f"gi{suffix}"
+        elif prefix in ('fastethernet', 'fasteth', 'fast', 'fa', 'fe', 'f'):
+            return f"fa{suffix}"
+        elif prefix in ('ethernet', 'eth', 'et', 'e'):
+            return f"eth{suffix}"
+        elif prefix in ('serial', 'ser', 'se', 's'):
+            return f"se{suffix}"
+        elif prefix in ('loopback', 'lo'):
+            return f"lo{suffix}"
+        elif prefix in ('vlan', 'v'):
+            return f"vlan{suffix}"
+        return f"{prefix}{suffix}"
+    return low
 
 class NetworkSimulationEngine:
     def __init__(self, topology_data: Optional[Dict[str, Any]] = None):
@@ -157,39 +181,31 @@ class NetworkSimulationEngine:
         dev_id_str = str(dev_id).strip().lower()
         dev_obj = self.get_device(dev_id)
         dev_name = (dev_obj.get('name', '') if dev_obj else '').strip().lower()
-
         iface_str = str(iface_name or '').strip().lower()
 
+        device_conns = []
         for conn in self.connections:
             if conn.get('status') == 'down' or conn.get('disabled'):
                 continue
-            src_id = str(conn.get('source_device', '')).strip().lower()
-            tgt_id = str(conn.get('target_device', '')).strip().lower()
-            src_p = str(conn.get('source_port', '')).strip().lower()
-            tgt_p = str(conn.get('target_port', '')).strip().lower()
+            src_id = str(conn.get('source_device') or conn.get('from') or conn.get('source') or '').strip().lower()
+            tgt_id = str(conn.get('target_device') or conn.get('to') or conn.get('target') or '').strip().lower()
+            src_p = str(conn.get('source_port') or conn.get('from_port') or conn.get('src_port') or '').strip()
+            tgt_p = str(conn.get('target_port') or conn.get('to_port') or conn.get('dest_port') or '').strip()
 
-            # Port alias matching helper (e.g. g0/0 vs gigabitethernet0/0, fa0/1 vs fastethernet0/1)
-            def ports_match(p_conn: str, p_req: str) -> bool:
-                if not p_req or not p_conn:
-                    return True
-                p_c = p_conn.replace('gigabitethernet', 'g').replace('fastethernet', 'fa').replace('ethernet', 'eth')
-                p_r = p_req.replace('gigabitethernet', 'g').replace('fastethernet', 'fa').replace('ethernet', 'eth')
-                return p_c == p_r or p_conn == p_req
+            is_src = (src_id in (dev_id_str, dev_name))
+            is_tgt = (tgt_id in (dev_id_str, dev_name))
 
-            if (src_id in (dev_id_str, dev_name)) and (not iface_str or ports_match(src_p, iface_str)):
+            if is_src or is_tgt:
+                device_conns.append(conn)
+
+            if is_src and (not iface_str or normalize_port_name(src_p) == normalize_port_name(iface_str)):
                 return conn
-            if (tgt_id in (dev_id_str, dev_name)) and (not iface_str or ports_match(tgt_p, iface_str)):
+            if is_tgt and (not iface_str or normalize_port_name(tgt_p) == normalize_port_name(iface_str)):
                 return conn
 
-        # Fallback: if specific port not found, match any link connected to this device
-        if iface_str:
-            for conn in self.connections:
-                if conn.get('status') == 'down' or conn.get('disabled'):
-                    continue
-                src_id = str(conn.get('source_device', '')).strip().lower()
-                tgt_id = str(conn.get('target_device', '')).strip().lower()
-                if src_id in (dev_id_str, dev_name) or tgt_id in (dev_id_str, dev_name):
-                    return conn
+        # Fallback: if single connection exists on this device, use it
+        if iface_str and len(device_conns) == 1:
+            return device_conns[0]
 
         return None
 
@@ -507,12 +523,12 @@ class NetworkSimulationEngine:
                         nbr_id, nbr_port, conn = neighbor
                         nbr_dev = self.get_device(nbr_id)
                         if nbr_dev:
-                            # If neighbor is destination or neighbor is a gateway towards destination
+                            # 1. Neighbor is destination
                             if nbr_dev.get('ip') == current_dest_ip:
                                 out_iface = iface_name
                                 found_egress = True
                                 break
-                            # Check if neighbor has interface with dest IP
+                            # 2. Neighbor interface has dest IP
                             for n_ifc in nbr_dev.get('interfaces', []):
                                 if isinstance(n_ifc, dict) and n_ifc.get('ip') == current_dest_ip:
                                     out_iface = iface_name
@@ -520,13 +536,23 @@ class NetworkSimulationEngine:
                                     break
                             if found_egress:
                                 break
-                            # Or if neighbor is a router
+                            # 3. Neighbor is the gateway (next_hop_ip)
+                            if next_hop_ip and (nbr_dev.get('ip') == next_hop_ip or any(isinstance(i, dict) and i.get('ip') == next_hop_ip for i in nbr_dev.get('interfaces', []))):
+                                out_iface = iface_name
+                                found_egress = True
+                                break
+                            # 4. Neighbor is a router that has a route to destination
                             nbr_type = (nbr_dev.get('category') or nbr_dev.get('type') or '').lower()
-                            if 'router' in nbr_type or 'firewall' in nbr_type or 'switch' in nbr_type:
-                                if nbr_id not in visited:
+                            if ('router' in nbr_type or 'firewall' in nbr_type) and nbr_id not in visited:
+                                if self.route_lookup(nbr_dev, current_dest_ip):
                                     out_iface = iface_name
                                     found_egress = True
                                     break
+                            # 5. Neighbor is a switch trunk
+                            elif 'switch' in nbr_type and nbr_id not in visited:
+                                out_iface = iface_name
+                                found_egress = True
+                                break
                 
                 if not found_egress:
                     # Broadcast / flood to connected ports

@@ -90,3 +90,50 @@ class CLISimulationEngineTests(TestCase):
         r4 = s4.execute('interface GigabitEthernet0/0')
         self.assertEqual(r4['mode'], 'interface_config')
         self.assertEqual(r4['session_state']['current_interface'], 'GigabitEthernet0/0')
+
+    def test_space_interface_and_cidr_ip(self):
+        """Verify interface with spaces and CIDR notation IP configuration"""
+        self.session.execute('enable')
+        self.session.execute('configure terminal')
+        res_if = self.session.execute('interface FastEthernet 0/1')
+        self.assertEqual(self.session.mode, 'interface_config')
+        self.assertEqual(self.session.current_interface, 'FastEthernet0/1')
+
+        self.session.execute('ip address 10.10.10.1/24')
+        self.session.execute('no shut')
+        ifc = [i for i in self.router_data['interfaces'] if i['name'] == 'FastEthernet0/1'][0]
+        self.assertEqual(ifc['ip'], '10.10.10.1')
+        self.assertEqual(ifc['mask'], '255.255.255.0')
+        self.assertEqual(ifc['status'], 'up')
+
+    def test_windows_workstation_cli(self):
+        """Verify PC / Windows command prompt execution and friendly hints"""
+        pc_data = {
+            'id': 'pc1',
+            'name': 'Client-PC',
+            'category': 'computers',
+            'ip': '192.168.1.55',
+            'subnet_mask': '255.255.255.0',
+            'gateway': '192.168.1.1'
+        }
+        session = DeviceCLISession(pc_data)
+        self.assertEqual(session.platform, 'windows_cmd')
+        self.assertIn('C:\\Users\\Admin>', session.get_prompt())
+
+        r_ip = session.execute('ipconfig')
+        self.assertIn('192.168.1.55', r_ip['output'])
+
+        r_hint = session.execute('enable')
+        self.assertIn('Cisco IOS command', r_hint['output'])
+
+    def test_api_execute_endpoint(self):
+        """Verify API /api/commands/execute/ works without CSRF restriction"""
+        client = self.client
+        payload = {
+            'command': 'enable',
+            'device': self.router_data,
+            'session_state': {'mode': 'user_exec'}
+        }
+        resp = client.post('/api/commands/execute/', payload, content_type='application/json')
+        self.assertEqual(resp.status_code, 200)
+        self.assertEqual(resp.data.get('mode'), 'priv_exec')
