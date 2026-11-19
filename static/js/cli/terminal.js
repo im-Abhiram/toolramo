@@ -140,8 +140,11 @@ class RamonetTerminal {
     }
 
     getSessionState() {
+        if (this.currentDevice?.cli_session_state) {
+            return { ...this.currentDevice.cli_session_state };
+        }
         if (this.currentDevice?.id && this.deviceSessions[this.currentDevice.id]) {
-            return this.deviceSessions[this.currentDevice.id];
+            return { ...this.deviceSessions[this.currentDevice.id] };
         }
         return {
             mode: this.mode || 'user_exec',
@@ -154,11 +157,17 @@ class RamonetTerminal {
     setSessionState(state) {
         if (!state) return;
         this.mode = state.mode || this.mode;
-        if (this.currentDevice?.id) {
-            this.deviceSessions[this.currentDevice.id] = {
-                ...(this.deviceSessions[this.currentDevice.id] || {}),
+        if (this.currentDevice) {
+            this.currentDevice.cli_session_state = {
+                ...(this.currentDevice.cli_session_state || {}),
                 ...state
             };
+            if (this.currentDevice.id) {
+                this.deviceSessions[this.currentDevice.id] = {
+                    ...(this.deviceSessions[this.currentDevice.id] || {}),
+                    ...state
+                };
+            }
         }
     }
 
@@ -183,9 +192,13 @@ class RamonetTerminal {
         if (this.platformBadgeEl) this.platformBadgeEl.textContent = platform.replace('_', ' ').toUpperCase();
 
         // Restore or initialize session state
-        const savedSession = this.deviceSessions[device.id];
+        const savedSession = device.cli_session_state || (device.id && this.deviceSessions[device.id]);
         if (savedSession) {
             this.mode = savedSession.mode || 'user_exec';
+            if (device.id) {
+                this.deviceSessions[device.id] = { ...savedSession };
+            }
+            device.cli_session_state = { ...savedSession };
             if (savedSession.prompt) {
                 this.setPrompt(savedSession.prompt);
             } else {
@@ -193,7 +206,11 @@ class RamonetTerminal {
             }
         } else {
             this.mode = 'user_exec';
-            this.deviceSessions[device.id] = { mode: 'user_exec' };
+            const initSession = { mode: 'user_exec' };
+            if (device.id) {
+                this.deviceSessions[device.id] = initSession;
+            }
+            device.cli_session_state = initSession;
             this.computeDefaultPrompt(device, platform);
         }
 
@@ -305,6 +322,9 @@ class RamonetTerminal {
                 if (data.device && this.currentDevice) {
                     const oldName = this.currentDevice.name;
                     Object.assign(this.currentDevice, data.device);
+                    if (data.session_state) {
+                        this.currentDevice.cli_session_state = { ...data.session_state };
+                    }
                     
                     // Update canvas UI
                     window.ramonetCanvas?.renderDeviceNode(this.currentDevice);
@@ -335,7 +355,7 @@ class RamonetTerminal {
         } else if (first === 'enable' || first === 'en') {
             this.mode = 'priv_exec';
             this.setPrompt(`${devName}# `);
-        } else if (first in ('configure', 'conf')) {
+        } else if (['configure', 'conf', 'config'].includes(first)) {
             this.mode = 'global_config';
             this.setPrompt(`${devName}(config)# `);
         } else if (first === 'exit') {

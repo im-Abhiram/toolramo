@@ -61,3 +61,32 @@ class CLISimulationEngineTests(TestCase):
         res = self.session.execute('?')
         self.assertIn('enable', res['output'])
         self.assertIn('ping', res['output'])
+
+    def test_stateful_session_across_requests(self):
+        """Verify that passing session_state preserves privileged mode and interfaces across requests"""
+        # Request 1: enable
+        s1 = DeviceCLISession(self.router_data, session_state={'mode': 'user_exec'})
+        r1 = s1.execute('enable')
+        self.assertEqual(r1['mode'], 'priv_exec')
+        self.assertEqual(r1['prompt'], 'EdgeRouter#')
+        state1 = r1['session_state']
+        self.assertEqual(state1['mode'], 'priv_exec')
+
+        # Request 2: ? in priv_exec mode
+        s2 = DeviceCLISession(self.router_data, session_state=state1)
+        r2 = s2.execute('?')
+        self.assertEqual(r2['mode'], 'priv_exec')
+        self.assertEqual(r2['prompt'], 'EdgeRouter#')
+        self.assertIn('configure', r2['output'])
+        self.assertNotIn('Turn on privileged commands', r2['output'])
+
+        # Request 3: configure terminal
+        r3 = s2.execute('configure terminal')
+        self.assertEqual(r3['mode'], 'global_config')
+        state3 = r3['session_state']
+
+        # Request 4: interface GigabitEthernet0/0
+        s4 = DeviceCLISession(self.router_data, session_state=state3)
+        r4 = s4.execute('interface GigabitEthernet0/0')
+        self.assertEqual(r4['mode'], 'interface_config')
+        self.assertEqual(r4['session_state']['current_interface'], 'GigabitEthernet0/0')

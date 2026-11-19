@@ -217,6 +217,14 @@
                 </div>
             </div>
         </div>
+
+        <!-- Inspector Persistent Footer -->
+        <div class="inspector-footer p-2 border-top border-secondary border-opacity-25 bg-dark d-flex justify-content-between align-items-center">
+            <span class="small text-muted" style="font-size:0.75rem;"><i class="fa-solid fa-circle-check text-success me-1"></i>Live Config</span>
+            <button class="btn btn-sm btn-cyan px-3 py-1" id="btn-save-inspector-settings" style="font-size:0.75rem;">
+                <i class="fa-solid fa-check me-1"></i>Apply Settings
+            </button>
+        </div>
     </div>
 
     <!-- Bottom Workbench Drawer (CLI, Packet Inspector, Logs) -->
@@ -483,19 +491,63 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
     });
 
-    // Inspector Live Fields Updates
+    // Inspector Live Fields Updates (both input and change events for real-time reactivity)
     ['inspector-dev-ip', 'inspector-dev-mask', 'inspector-dev-gw', 'inspector-dev-dns', 'inspector-dev-hostname'].forEach(id => {
-        document.getElementById(id)?.addEventListener('change', (e) => {
-            const dev = window.ramonetCanvas.selectedDevice;
+        const inputEl = document.getElementById(id);
+        if (!inputEl) return;
+        const handler = (e) => {
+            const dev = window.ramonetCanvas?.selectedDevice;
             if (!dev) return;
-            if (id === 'inspector-dev-ip') dev.ip = e.target.value.trim();
-            if (id === 'inspector-dev-mask') dev.subnet_mask = e.target.value.trim();
-            if (id === 'inspector-dev-gw') dev.gateway = e.target.value.trim();
-            if (id === 'inspector-dev-dns') dev.dns = e.target.value.trim();
-            if (id === 'inspector-dev-hostname') dev.name = e.target.value.trim();
-            window.ramonetCanvas.renderDeviceNode(dev);
-            window.ramonetCanvas.triggerChange('Updated Device Settings');
-        });
+            const val = e.target.value.trim();
+            if (id === 'inspector-dev-ip') {
+                dev.ip = val;
+                if (dev.interfaces && dev.interfaces.length > 0 && typeof dev.interfaces[0] === 'object') {
+                    dev.interfaces[0].ip = val;
+                }
+            } else if (id === 'inspector-dev-mask') {
+                dev.subnet_mask = val;
+                if (dev.interfaces && dev.interfaces.length > 0 && typeof dev.interfaces[0] === 'object') {
+                    dev.interfaces[0].mask = val;
+                }
+                const summaryEl = document.getElementById('inspector-subnet-summary');
+                if (summaryEl) {
+                    let prefix = '/24 (254 Usable Hosts)';
+                    if (val === '255.255.255.252') prefix = '/30 (2 Usable Hosts)';
+                    else if (val === '255.255.255.240') prefix = '/28 (14 Usable Hosts)';
+                    else if (val === '255.255.255.128') prefix = '/25 (126 Usable Hosts)';
+                    else if (val === '255.255.255.0') prefix = '/24 (254 Usable Hosts)';
+                    else if (val === '255.255.0.0') prefix = '/16 (65,534 Usable Hosts)';
+                    else if (val === '255.0.0.0') prefix = '/8 (16.7M Usable Hosts)';
+                    summaryEl.textContent = prefix;
+                }
+            } else if (id === 'inspector-dev-gw') {
+                dev.gateway = val;
+            } else if (id === 'inspector-dev-dns') {
+                dev.dns = val;
+            } else if (id === 'inspector-dev-hostname') {
+                dev.name = val || 'Device';
+                const headerName = document.getElementById('inspector-dev-name');
+                if (headerName) headerName.textContent = val || 'Device';
+                window.ramonetTerminal?.syncDeviceSelector();
+                if (window.ramonetTerminal?.currentDevice?.id === dev.id) {
+                    if (window.ramonetTerminal.devNameEl) {
+                        window.ramonetTerminal.devNameEl.textContent = val || 'Device';
+                    }
+                }
+            }
+            window.ramonetCanvas?.renderDeviceNode(dev);
+            window.ramonetCanvas?.triggerChange('Updated Device Settings');
+        };
+        inputEl.addEventListener('input', handler);
+        inputEl.addEventListener('change', handler);
+    });
+
+    // Inspector Save Button
+    document.getElementById('btn-save-inspector-settings')?.addEventListener('click', () => {
+        const dev = window.ramonetCanvas?.selectedDevice;
+        if (!dev) return;
+        window.ramonetStorage?.saveProject(window.ramonetCanvas.project);
+        window.ramonetUI?.showToast('Settings Saved', `Configuration for ${dev.name} applied to project.`, 'success');
     });
 
     // Context Menu Handlers

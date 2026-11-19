@@ -165,6 +165,15 @@ class RamonetUI {
         });
     }
 
+    openDeviceInspector(device) {
+        if (!device) return;
+        this.updateSelectedDevice(device);
+        const panel = document.getElementById('device-inspector-panel');
+        if (panel) {
+            panel.classList.remove('closed');
+        }
+    }
+
     updateSelectedDevice(device) {
         this.selectedDevice = device;
         const panel = document.getElementById('device-inspector-panel');
@@ -329,19 +338,29 @@ class RamonetUI {
 
         // Helper to generate default interfaces if none defined
         const getOrGenerateInterfaces = (dev) => {
-            if (dev.interfaces && dev.interfaces.length > 0) return [...dev.interfaces];
-            const cat = (dev.category || '').toLowerCase();
-            if (cat.includes('switch')) {
-                return Array.from({ length: 24 }, (_, i) => ({ name: `FastEthernet0/${i + 1}`, speed: 100 }));
-            } else if (cat.includes('router') || cat.includes('firewall')) {
-                return [
-                    { name: 'GigabitEthernet0/0', speed: 1000 },
-                    { name: 'GigabitEthernet0/1', speed: 1000 },
-                    { name: 'GigabitEthernet0/2', speed: 1000 }
-                ];
+            let ifaces = [];
+            if (dev.interfaces && dev.interfaces.length > 0) {
+                ifaces = [...dev.interfaces];
             } else {
-                return [{ name: 'eth0', speed: 1000 }, { name: 'eth1', speed: 1000 }];
+                const cat = (dev.category || '').toLowerCase();
+                if (cat.includes('switch')) {
+                    ifaces = Array.from({ length: 24 }, (_, i) => ({ name: `FastEthernet0/${i + 1}`, speed: 100 }));
+                } else if (cat.includes('router') || cat.includes('firewall')) {
+                    ifaces = [
+                        { name: 'GigabitEthernet0/0', speed: 1000 },
+                        { name: 'GigabitEthernet0/1', speed: 1000 },
+                        { name: 'GigabitEthernet0/2', speed: 1000 }
+                    ];
+                } else {
+                    ifaces = [{ name: 'eth0', speed: 1000 }, { name: 'eth1', speed: 1000 }];
+                }
             }
+            return ifaces.map(i => {
+                if (typeof i === 'string') {
+                    return { name: i, speed: 1000, status: 'up' };
+                }
+                return { name: i.name || 'eth0', speed: i.speed || 1000, status: i.status || 'up' };
+            });
         };
 
         const srcIfaces = getOrGenerateInterfaces(srcDevice);
@@ -395,6 +414,60 @@ class RamonetUI {
         });
 
         bsModal.show();
+    }
+
+    showConnectionInspector(conn) {
+        if (!conn) return;
+        const devices = window.ramonetCanvas?.project?.devices || [];
+        const srcId = String(conn.source_device || conn.from || conn.source || '');
+        const destId = String(conn.target_device || conn.to || conn.target || '');
+        const src = devices.find(d => String(d.id) === srcId || String(d.name).toLowerCase() === srcId.toLowerCase());
+        const dest = devices.find(d => String(d.id) === destId || String(d.name).toLowerCase() === destId.toLowerCase());
+        const srcName = src ? src.name : srcId;
+        const destName = dest ? dest.name : destId;
+        const srcPort = conn.source_port || conn.from_port || conn.src_port || 'port';
+        const destPort = conn.target_port || conn.to_port || conn.dest_port || 'port';
+        const cableType = (conn.type || 'copper_straight').replace(/_/g, ' ').toUpperCase();
+
+        const container = document.getElementById('toast-container');
+        if (!container) return;
+
+        // Remove any previous connection toast
+        document.querySelectorAll('.toast-cable-inspector').forEach(t => t.remove());
+
+        const toast = document.createElement('div');
+        toast.className = 'toast show ramonet-toast toast-cable-inspector mb-2 border border-info shadow-lg';
+        toast.setAttribute('role', 'alert');
+        toast.innerHTML = `
+            <div class="toast-header bg-dark text-white border-bottom border-secondary border-opacity-25 d-flex justify-content-between align-items-center">
+                <div><i class="fa-solid fa-plug text-cyan me-2"></i><strong>Cable Connection</strong></div>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="toast"></button>
+            </div>
+            <div class="toast-body small text-secondary bg-dark">
+                <div class="mb-2 text-white">
+                    <strong class="text-info">${srcName}</strong> [${srcPort}] <i class="fa-solid fa-arrows-left-right text-cyan mx-1"></i> <strong class="text-info">${destName}</strong> [${destPort}]
+                </div>
+                <div class="text-muted mb-3" style="font-size:0.75rem;">Type: <span class="text-cyan">${cableType}</span> | Status: <span class="text-success">${conn.status || 'connected'}</span></div>
+                <div class="d-flex gap-2">
+                    <button class="btn btn-sm btn-outline-danger py-1 px-2 disconnect-cable-btn" style="font-size:0.75rem;">
+                        <i class="fa-solid fa-scissors me-1"></i>Disconnect Cable
+                    </button>
+                </div>
+            </div>
+        `;
+        toast.querySelector('.disconnect-cable-btn')?.addEventListener('click', () => {
+            window.ramonetCanvas?.deleteConnection(conn.id);
+            toast.remove();
+            this.showToast('Cable Disconnected', `Removed connection between ${srcName} [${srcPort}] and ${destName} [${destPort}]`, 'info');
+        });
+        toast.querySelector('.btn-close')?.addEventListener('click', () => {
+            toast.remove();
+            if (window.ramonetCanvas) {
+                window.ramonetCanvas.selectedConnection = null;
+                window.ramonetCanvas.renderConnections();
+            }
+        });
+        container.appendChild(toast);
     }
 
     showToast(title, message, type = 'info') {

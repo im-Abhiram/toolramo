@@ -40,8 +40,8 @@ class DeviceCLISession:
         self.topology = topology_data or {'devices': [self.device], 'connections': []}
         self.platform = self.device.get('cli_platform', 'cisco_ios')
         
-        # State tracking for Cisco IOS
-        session_state = session_state or self.device.get('cli_session_state', {})
+        # State tracking for Cisco IOS (check passed parameter first, then device state)
+        session_state = session_state or self.device.get('cli_session_state') or {}
         self.mode = session_state.get('mode', 'user_exec')  # 'user_exec', 'priv_exec', 'global_config', 'interface_config', 'vlan_config', 'router_config'
         self.current_interface = session_state.get('current_interface')
         self.current_vlan = session_state.get('current_vlan')
@@ -111,7 +111,9 @@ class DeviceCLISession:
         else:
             res = self._execute_web_gui(raw_cmd)
 
-        res.setdefault('session_state', self.get_session_state())
+        curr_state = self.get_session_state()
+        self.device['cli_session_state'] = curr_state
+        res.setdefault('session_state', curr_state)
         res.setdefault('mode', self.mode)
         res.setdefault('prompt', self.get_prompt())
         res.setdefault('device', self.device)

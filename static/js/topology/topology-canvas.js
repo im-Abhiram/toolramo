@@ -63,7 +63,7 @@ class TopologyCanvas {
     initEventListeners() {
         // Panning with Mouse Drag
         this.container.addEventListener('mousedown', (e) => {
-            if (e.target === this.container || e.target === this.svg) {
+            if (e.target === this.container || e.target === this.svg || e.target.closest('#topology-svg') || e.target.classList.contains('canvas-container')) {
                 if (e.button === 0 || e.button === 1) { // Left click on background or Middle click
                     this.isPanningCanvas = true;
                     this.panStart = { x: e.clientX - this.panX, y: e.clientY - this.panY };
@@ -175,7 +175,12 @@ class TopologyCanvas {
             // Check if user is typing in an input or terminal
             if (['INPUT', 'TEXTAREA'].includes(document.activeElement.tagName)) return;
 
-            if (e.key === 'Delete' || e.key === 'Backspace') {
+            if (e.key === 'Escape') {
+                if (this.mode === 'connect') {
+                    this.cancelConnectMode();
+                }
+                this.deselectAll();
+            } else if (e.key === 'Delete' || e.key === 'Backspace') {
                 if (this.selectedDevice) {
                     this.deleteDevice(this.selectedDevice.id);
                 } else if (this.selectedConnection) {
@@ -438,9 +443,12 @@ class TopologyCanvas {
         if (el) el.remove();
 
         // Remove connected cables
-        this.project.connections = this.project.connections.filter(c => 
-            c.source_device !== deviceId && c.target_device !== deviceId
-        );
+        const strId = String(deviceId);
+        this.project.connections = this.project.connections.filter(c => {
+            const s = String(c.source_device || c.from || c.source || '');
+            const t = String(c.target_device || c.to || c.target || '');
+            return s !== strId && t !== strId;
+        });
 
         this.project.devices.splice(index, 1);
         this.selectedDevice = null;
@@ -478,6 +486,9 @@ class TopologyCanvas {
 
     deselectAll() {
         document.querySelectorAll('.device-node.selected').forEach(el => el.classList.remove('selected'));
+        if (this.svg) {
+            this.svg.querySelectorAll('.cable-line.selected').forEach(el => el.classList.remove('selected'));
+        }
         this.selectedDevice = null;
         this.selectedConnection = null;
         this.hideContextMenu();
@@ -637,8 +648,10 @@ class TopologyCanvas {
         if (tempLine) g.appendChild(tempLine);
 
         this.project.connections.forEach(conn => {
-            const src = this.project.devices.find(d => String(d.id) === String(conn.source_device));
-            const dest = this.project.devices.find(d => String(d.id) === String(conn.target_device));
+            const srcId = String(conn.source_device || conn.from || conn.source || '');
+            const destId = String(conn.target_device || conn.to || conn.target || '');
+            const src = this.project.devices.find(d => String(d.id) === srcId || String(d.name).toLowerCase() === srcId.toLowerCase());
+            const dest = this.project.devices.find(d => String(d.id) === destId || String(d.name).toLowerCase() === destId.toLowerCase());
             if (!src || !dest) return;
 
             // Compute center points of node boxes
@@ -652,12 +665,15 @@ class TopologyCanvas {
             path.setAttribute('y1', y1);
             path.setAttribute('x2', x2);
             path.setAttribute('y2', y2);
-            path.setAttribute('class', `cable-line ${conn.type ? conn.type.replace('_', '-') : 'copper-straight'}`);
+            const cableType = conn.type ? conn.type.replace(/_/g, '-') : 'copper-straight';
+            const isSelected = this.selectedConnection && String(this.selectedConnection.id) === String(conn.id);
+            path.setAttribute('class', `cable-line ${cableType}${isSelected ? ' selected' : ''}`);
             path.id = conn.id;
 
             path.addEventListener('click', (e) => {
                 e.stopPropagation();
                 this.selectedConnection = conn;
+                this.renderConnections();
                 window.ramonetUI?.showConnectionInspector?.(conn);
             });
 
@@ -673,7 +689,9 @@ class TopologyCanvas {
             label.setAttribute('fill', '#94A3B8');
             label.setAttribute('font-size', '10px');
             label.setAttribute('font-family', 'monospace');
-            label.textContent = `${conn.source_port} ↔ ${conn.target_port}`;
+            const sPort = conn.source_port || conn.from_port || conn.src_port || 'port';
+            const dPort = conn.target_port || conn.to_port || conn.dest_port || 'port';
+            label.textContent = `${sPort} ↔ ${dPort}`;
             g.appendChild(label);
         });
     }

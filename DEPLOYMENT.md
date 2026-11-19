@@ -24,9 +24,12 @@ cd /home/ramonet/ramonet
 # 2. Activate virtualenv
 workon ramonet-env
 
-# 3. Discard server-side db modifications and pull latest updates
-git checkout db.sqlite3
+# 3. Discard local database modifications to avoid merge conflict, then pull
+git checkout -- db.sqlite3
 git pull origin main
+
+# (If git pull still reports conflicts on any local file, simply run:)
+# git stash && git pull origin main
 
 # 4. Install any package requirements
 pip install -r requirements.txt
