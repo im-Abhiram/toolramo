@@ -245,31 +245,153 @@ class RamonetUI {
         listEl.innerHTML = html || '<div class="text-muted small">No interfaces available.</div>';
     }
 
+    ensureConnectModalDOM() {
+        let modalEl = document.getElementById('connectCableModal');
+        if (!modalEl) {
+            modalEl = document.createElement('div');
+            modalEl.className = 'modal fade';
+            modalEl.id = 'connectCableModal';
+            modalEl.tabIndex = -1;
+            modalEl.setAttribute('aria-labelledby', 'connectCableModalLabel');
+            modalEl.setAttribute('aria-hidden', 'true');
+            modalEl.innerHTML = `
+                <div class="modal-dialog modal-dialog-centered">
+                    <div class="modal-content bg-dark border border-cyan text-white shadow-lg">
+                        <div class="modal-header border-secondary border-opacity-25 py-2">
+                            <h6 class="modal-title fw-bold text-cyan" id="connectCableModalLabel">
+                                <i class="fa-solid fa-ethernet me-2"></i>Connect Network Cable
+                            </h6>
+                            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                        </div>
+                        <div class="modal-body py-3">
+                            <div class="row g-3 mb-3">
+                                <div class="col-6">
+                                    <label class="form-label small text-secondary fw-semibold">Source Device</label>
+                                    <div class="p-2 bg-sidebar rounded border border-secondary border-opacity-25 mb-2">
+                                        <div class="text-white small fw-bold text-truncate" id="connect-src-name">Device A</div>
+                                    </div>
+                                    <label class="form-label small text-secondary" for="connect-src-port">Select Port</label>
+                                    <select class="form-select form-select-sm bg-dark text-white border-secondary" id="connect-src-port">
+                                    </select>
+                                </div>
+                                <div class="col-6">
+                                    <label class="form-label small text-secondary fw-semibold">Destination Device</label>
+                                    <div class="p-2 bg-sidebar rounded border border-secondary border-opacity-25 mb-2">
+                                        <div class="text-white small fw-bold text-truncate" id="connect-dest-name">Device B</div>
+                                    </div>
+                                    <label class="form-label small text-secondary" for="connect-dest-port">Select Port</label>
+                                    <select class="form-select form-select-sm bg-dark text-white border-secondary" id="connect-dest-port">
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="mb-2">
+                                <label class="form-label small text-secondary fw-semibold" for="connect-cable-type">Cable / Media Type</label>
+                                <select class="form-select form-select-sm bg-dark text-white border-secondary" id="connect-cable-type">
+                                    <option value="copper_straight">Copper Straight-Through (RJ45 Cat6)</option>
+                                    <option value="copper_cross">Copper Crossover (RJ45)</option>
+                                    <option value="fiber">Fiber Optic (LC-LC Singlemode)</option>
+                                    <option value="serial">Serial WAN Cable (V.35 / Smart Serial)</option>
+                                    <option value="console">Rollover / Console Cable (RJ45-to-DB9 / USB)</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="modal-footer border-secondary border-opacity-25 py-2">
+                            <button type="button" class="btn btn-sm btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+                            <button type="button" class="btn btn-sm btn-cyan px-3" id="btn-confirm-connect">
+                                <i class="fa-solid fa-plug me-1"></i>Connect Devices
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `;
+            document.body.appendChild(modalEl);
+        }
+        return modalEl;
+    }
+
     openConnectModal(srcDevice, destDevice, onConfirm) {
-        const modalEl = document.getElementById('connectCableModal');
+        const modalEl = this.ensureConnectModalDOM();
         if (!modalEl) return;
 
-        document.getElementById('connect-src-name').textContent = srcDevice.name;
-        document.getElementById('connect-dest-name').textContent = destDevice.name;
+        document.getElementById('connect-src-name').textContent = srcDevice.name || 'Source Device';
+        document.getElementById('connect-dest-name').textContent = destDevice.name || 'Target Device';
 
-        // Populate interface dropdowns
+        // Find ports currently in use
+        const connections = window.ramonetCanvas?.project?.connections || [];
+        const getUsedPorts = (devId) => {
+            return connections
+                .filter(c => String(c.source_device) === String(devId) || String(c.target_device) === String(devId))
+                .map(c => String(c.source_device) === String(devId) ? c.source_port : c.target_port);
+        };
+
+        const srcUsed = getUsedPorts(srcDevice.id);
+        const destUsed = getUsedPorts(destDevice.id);
+
+        // Helper to generate default interfaces if none defined
+        const getOrGenerateInterfaces = (dev) => {
+            if (dev.interfaces && dev.interfaces.length > 0) return [...dev.interfaces];
+            const cat = (dev.category || '').toLowerCase();
+            if (cat.includes('switch')) {
+                return Array.from({ length: 24 }, (_, i) => ({ name: `FastEthernet0/${i + 1}`, speed: 100 }));
+            } else if (cat.includes('router') || cat.includes('firewall')) {
+                return [
+                    { name: 'GigabitEthernet0/0', speed: 1000 },
+                    { name: 'GigabitEthernet0/1', speed: 1000 },
+                    { name: 'GigabitEthernet0/2', speed: 1000 }
+                ];
+            } else {
+                return [{ name: 'eth0', speed: 1000 }, { name: 'eth1', speed: 1000 }];
+            }
+        };
+
+        const srcIfaces = getOrGenerateInterfaces(srcDevice);
+        const destIfaces = getOrGenerateInterfaces(destDevice);
+
         const srcPortSel = document.getElementById('connect-src-port');
         const destPortSel = document.getElementById('connect-dest-port');
 
-        srcPortSel.innerHTML = (srcDevice.interfaces || [{ name: 'eth0' }]).map(i => `<option value="${i.name}">${i.name} (${i.speed || 1000}M)</option>`).join('');
-        destPortSel.innerHTML = (destDevice.interfaces || [{ name: 'eth0' }]).map(i => `<option value="${i.name}">${i.name} (${i.speed || 1000}M)</option>`).join('');
+        let firstFreeSrc = null;
+        srcPortSel.innerHTML = srcIfaces.map(i => {
+            const isUsed = srcUsed.includes(i.name);
+            if (!isUsed && !firstFreeSrc) firstFreeSrc = i.name;
+            return `<option value="${i.name}" ${isUsed ? 'disabled' : ''}>${i.name} ${isUsed ? '(in use)' : ''}</option>`;
+        }).join('');
+        if (firstFreeSrc) srcPortSel.value = firstFreeSrc;
+
+        let firstFreeDest = null;
+        destPortSel.innerHTML = destIfaces.map(i => {
+            const isUsed = destUsed.includes(i.name);
+            if (!isUsed && !firstFreeDest) firstFreeDest = i.name;
+            return `<option value="${i.name}" ${isUsed ? 'disabled' : ''}>${i.name} ${isUsed ? '(in use)' : ''}</option>`;
+        }).join('');
+        if (firstFreeDest) destPortSel.value = firstFreeDest;
+
+        // Auto-recommend cable type based on device types
+        const cableTypeSel = document.getElementById('connect-cable-type');
+        const isSrcSwitch = (srcDevice.category || '').includes('switch');
+        const isDestSwitch = (destDevice.category || '').includes('switch');
+        const isSrcRouter = (srcDevice.category || '').includes('router');
+        const isDestRouter = (destDevice.category || '').includes('router');
+
+        if ((isSrcSwitch && isDestSwitch) || (isSrcRouter && isDestRouter)) {
+            cableTypeSel.value = 'copper_cross';
+        } else {
+            cableTypeSel.value = 'copper_straight';
+        }
 
         const confirmBtn = document.getElementById('btn-confirm-connect');
         const newConfirmBtn = confirmBtn.cloneNode(true);
         confirmBtn.parentNode.replaceChild(newConfirmBtn, confirmBtn);
 
-        const bsModal = new bootstrap.Modal(modalEl);
+        const bsModal = bootstrap.Modal.getOrCreateInstance(modalEl);
         newConfirmBtn.addEventListener('click', () => {
-            const cableType = document.getElementById('connect-cable-type').value;
-            const srcPort = srcPortSel.value;
-            const destPort = destPortSel.value;
+            const cableType = cableTypeSel.value;
+            const srcPort = srcPortSel.value || 'eth0';
+            const destPort = destPortSel.value || 'eth0';
             bsModal.hide();
-            onConfirm(cableType, srcPort, destPort);
+            if (typeof onConfirm === 'function') {
+                onConfirm(cableType, srcPort, destPort);
+            }
         });
 
         bsModal.show();
@@ -313,7 +435,14 @@ class RamonetUI {
             if (resp.ok) {
                 const projectData = await resp.json();
                 window.ramonetCanvas?.loadProjectData(projectData);
-                setTimeout(() => window.ramonetCanvas?.fitToScreen(), 100);
+                setTimeout(() => {
+                    window.ramonetCanvas?.fitToScreen();
+                    window.ramonetTerminal?.syncDeviceSelector();
+                    if (projectData.devices && projectData.devices.length > 0) {
+                        const targetDev = projectData.devices.find(d => (d.category || '').includes('router') || (d.category || '').includes('switch')) || projectData.devices[0];
+                        window.ramonetTerminal?.attachDevice(targetDev);
+                    }
+                }, 120);
                 this.showToast('Topology Ready', `Loaded "${templateName}" with ${projectData.devices?.length || 0} devices.`, 'success');
             } else {
                 throw new Error('Template not found on server');
@@ -342,6 +471,10 @@ class RamonetUI {
         };
         window.ramonetCanvas?.loadProjectData(starter);
         window.ramonetCanvas?.fitToScreen();
+        window.ramonetTerminal?.syncDeviceSelector();
+        if (starter.devices?.[0]) {
+            window.ramonetTerminal?.attachDevice(starter.devices[0]);
+        }
         this.showToast('Template Generated', `Generated ${name}`, 'success');
     }
 }

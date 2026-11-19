@@ -42,11 +42,22 @@ def execute_command_api(request):
     """
     Executes a command against a simulated device's state using the CLI session engine.
     Mutates device configuration in real-time and returns updated prompt and terminal output.
+    Preserves interactive session modes across multi-command sequences.
     """
-    cmd = request.data.get('command', '')
-    dev_data = request.data.get('device', {})
-    topology_data = request.data.get('topology', {})
+    try:
+        cmd = request.data.get('command', '')
+        dev_data = request.data.get('device', {})
+        topology_data = request.data.get('topology', {})
+        session_state = request.data.get('session_state', {})
 
-    session = DeviceCLISession(dev_data, topology_data)
-    result = session.execute(cmd)
-    return Response(result)
+        session = DeviceCLISession(dev_data, topology_data, session_state=session_state)
+        result = session.execute(cmd)
+        return Response(result)
+    except Exception as exc:
+        return Response({
+            'output': f"% Execution error: {str(exc)}",
+            'prompt': 'Device> ',
+            'mode': 'user_exec',
+            'session_state': {'mode': 'user_exec'},
+            'device': dev_data if 'dev_data' in locals() else {}
+        })

@@ -275,6 +275,58 @@
         <div class="context-menu-item" id="ctx-duplicate"><i class="fa-solid fa-clone text-info"></i> Duplicate Device</div>
         <div class="context-menu-item text-danger" id="ctx-delete"><i class="fa-solid fa-trash-can"></i> Delete Device</div>
     </div>
+    <!-- Cable Connection Modal -->
+    <div class="modal fade" id="connectCableModal" tabindex="-1" aria-labelledby="connectCableModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content bg-dark border border-cyan text-white shadow-lg">
+                <div class="modal-header border-secondary border-opacity-25 py-2">
+                    <h6 class="modal-title fw-bold text-cyan" id="connectCableModalLabel">
+                        <i class="fa-solid fa-ethernet me-2"></i>Connect Devices with Cable
+                    </h6>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body py-3">
+                    <div class="row g-3 mb-3">
+                        <div class="col-6">
+                            <label class="form-label small text-secondary fw-semibold">Source Device</label>
+                            <div class="p-2 bg-sidebar rounded border border-secondary border-opacity-25 mb-2">
+                                <div class="text-white small fw-bold text-truncate" id="connect-src-name">Device A</div>
+                            </div>
+                            <label class="form-label small text-secondary" for="connect-src-port">Source Interface</label>
+                            <select class="form-select form-select-sm bg-dark text-white border-secondary" id="connect-src-port">
+                            </select>
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label small text-secondary fw-semibold">Destination Device</label>
+                            <div class="p-2 bg-sidebar rounded border border-secondary border-opacity-25 mb-2">
+                                <div class="text-white small fw-bold text-truncate" id="connect-dest-name">Device B</div>
+                            </div>
+                            <label class="form-label small text-secondary" for="connect-dest-port">Destination Interface</label>
+                            <select class="form-select form-select-sm bg-dark text-white border-secondary" id="connect-dest-port">
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="mb-2">
+                        <label class="form-label small text-secondary fw-semibold" for="connect-cable-type">Cable / Media Type</label>
+                        <select class="form-select form-select-sm bg-dark text-white border-secondary" id="connect-cable-type">
+                            <option value="copper_straight">Copper Straight-Through (RJ45 Cat6)</option>
+                            <option value="copper_cross">Copper Crossover (RJ45)</option>
+                            <option value="fiber">Fiber Optic (Singlemode / Multimode LC-LC)</option>
+                            <option value="serial">Serial WAN Cable (V.35 / Smart Serial)</option>
+                            <option value="console">Rollover / Console Cable (RJ45-to-DB9 / USB)</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="modal-footer border-secondary border-opacity-25 py-2">
+                    <button type="button" class="btn btn-sm btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-sm btn-cyan px-3" id="btn-confirm-connect">
+                        <i class="fa-solid fa-plug me-1"></i>Connect Devices
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
 </div>
 {% endblock %}
 

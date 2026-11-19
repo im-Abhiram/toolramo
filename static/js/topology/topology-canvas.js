@@ -94,6 +94,11 @@ class TopologyCanvas {
                 this.updateNodeElementPosition(this.dragTargetNode);
                 this.renderConnections();
                 this.renderMinimap();
+            } else if (this.mode === 'connect' && this.connectSource) {
+                const rect = this.container.getBoundingClientRect();
+                const mouseX = (e.clientX - rect.left - this.panX) / this.scale;
+                const mouseY = (e.clientY - rect.top - this.panY) / this.scale;
+                this.updateTempCable(this.connectSource.x + 50, this.connectSource.y + 42, mouseX, mouseY);
             }
         });
 
@@ -311,6 +316,7 @@ class TopologyCanvas {
         this.renderDeviceNode(newDevice);
         this.renderMinimap();
         this.selectDevice(newDevice.id);
+        window.ramonetTerminal?.syncDeviceSelector();
         this.triggerChange(`Added ${deviceName}`);
         return newDevice;
     }
@@ -336,6 +342,17 @@ class TopologyCanvas {
                 <div class="device-node-ip" title="${device.ip || 'No IP'}">${device.ip || '---'}</div>
             `;
             this.nodesContainer.appendChild(el);
+
+            // Anchor direct connection click
+            el.querySelectorAll('.port-connector-anchor').forEach(anchor => {
+                anchor.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    if (this.mode !== 'connect') {
+                        this.startConnectMode();
+                    }
+                    this.handleConnectClick(device);
+                });
+            });
 
             // Node Drag Events
             el.addEventListener('mousedown', (e) => {
@@ -430,6 +447,7 @@ class TopologyCanvas {
         this.renderConnections();
         this.renderMinimap();
         window.ramonetUI?.updateSelectedDevice(null);
+        window.ramonetTerminal?.syncDeviceSelector();
         this.triggerChange(`Deleted ${devName}`);
     }
 
@@ -472,29 +490,85 @@ class TopologyCanvas {
         this.mode = 'connect';
         this.connectSource = null;
         this.container.classList.add('connecting-mode');
-        window.ramonetUI?.showToast('Connection Mode', 'Click the first device, then click the second device to connect.', 'info');
+
+        const connectBtn = document.getElementById('btn-mode-connect');
+        const selectBtn = document.getElementById('btn-mode-select');
+        if (connectBtn) {
+            connectBtn.classList.add('active', 'btn-info', 'text-dark');
+            connectBtn.classList.remove('btn-outline-secondary');
+        }
+        if (selectBtn) {
+            selectBtn.classList.remove('active', 'btn-secondary');
+            selectBtn.classList.add('btn-outline-secondary');
+        }
+
+        window.ramonetUI?.showToast('Cable Tool Active', '1) Click the first device. 2) Click the second device to attach cable.', 'info');
     }
 
     cancelConnectMode() {
         this.mode = 'select';
+        if (this.connectSource) {
+            const el = document.getElementById(this.connectSource.id);
+            if (el) el.classList.remove('connecting-source');
+        }
         this.connectSource = null;
+        this.removeTempCable();
         this.container.classList.remove('connecting-mode');
+
+        const connectBtn = document.getElementById('btn-mode-connect');
+        const selectBtn = document.getElementById('btn-mode-select');
+        if (connectBtn) {
+            connectBtn.classList.remove('active', 'btn-info', 'text-dark');
+            connectBtn.classList.add('btn-outline-secondary');
+        }
+        if (selectBtn) {
+            selectBtn.classList.add('active', 'btn-secondary');
+            selectBtn.classList.remove('btn-outline-secondary');
+        }
+    }
+
+    updateTempCable(x1, y1, x2, y2) {
+        if (!this.svg) return;
+        const g = this.svg.querySelector('g.connections-layer');
+        if (!g) return;
+        let line = g.querySelector('.temp-cable-line');
+        if (!line) {
+            line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+            line.setAttribute('class', 'temp-cable-line');
+            g.appendChild(line);
+        }
+        line.setAttribute('x1', x1);
+        line.setAttribute('y1', y1);
+        line.setAttribute('x2', x2);
+        line.setAttribute('y2', y2);
+    }
+
+    removeTempCable() {
+        if (!this.svg) return;
+        const line = this.svg.querySelector('.temp-cable-line');
+        if (line) line.remove();
     }
 
     handleConnectClick(device) {
         if (!this.connectSource) {
-            // Picked first device
+            // Picked first device (Source)
             this.connectSource = device;
-            window.ramonetUI?.showToast('Select Destination', `Selected ${device.name}. Now click the target device.`, 'info');
+            const el = document.getElementById(device.id);
+            if (el) el.classList.add('connecting-source');
+            window.ramonetUI?.showToast('Select Destination', `Connecting from ${device.name}. Now click the target device.`, 'info');
         } else {
-            // Picked second device
-            if (this.connectSource.id === device.id) {
+            // Picked second device (Target)
+            if (String(this.connectSource.id) === String(device.id)) {
                 window.ramonetUI?.showToast('Invalid Connection', 'Cannot connect a device to itself.', 'warning');
                 return;
             }
 
             const src = this.connectSource;
             const dest = device;
+
+            const srcEl = document.getElementById(src.id);
+            if (srcEl) srcEl.classList.remove('connecting-source');
+            this.removeTempCable();
             this.cancelConnectMode();
 
             // Open Port Connection Modal
@@ -505,26 +579,31 @@ class TopologyCanvas {
     }
 
     createConnection(srcDevId, srcPort, destDevId, destPort, cableType = 'copper_straight') {
+        const sId = String(srcDevId);
+        const dId = String(destDevId);
+        const sPort = String(srcPort || 'eth0');
+        const dPort = String(destPort || 'eth0');
+
         // Prevent duplicate connection on same ports
         const exists = this.project.connections.some(c => 
-            (c.source_device === srcDevId && c.source_port === srcPort) ||
-            (c.target_device === srcDevId && c.target_port === srcPort) ||
-            (c.source_device === destDevId && c.source_port === destPort) ||
-            (c.target_device === destDevId && c.target_port === destPort)
+            (String(c.source_device) === sId && String(c.source_port) === sPort) ||
+            (String(c.target_device) === sId && String(c.target_port) === sPort) ||
+            (String(c.source_device) === dId && String(c.source_port) === dPort) ||
+            (String(c.target_device) === dId && String(c.target_port) === dPort)
         );
 
         if (exists) {
-            window.ramonetUI?.showToast('Port in use', 'One of the selected interfaces already has a cable connected.', 'danger');
+            window.ramonetUI?.showToast('Port in Use', `Interface is already connected to another cable.`, 'danger');
             return;
         }
 
         const connId = 'conn_' + Date.now() + '_' + Math.floor(Math.random() * 100);
         const connection = {
             id: connId,
-            source_device: srcDevId,
-            source_port: srcPort,
-            target_device: destDevId,
-            target_port: destPort,
+            source_device: sId,
+            source_port: sPort,
+            target_device: dId,
+            target_port: dPort,
             type: cableType,
             status: 'connected',
             speed: 1000
@@ -534,11 +613,11 @@ class TopologyCanvas {
         this.renderConnections();
         this.renderMinimap();
         this.triggerChange('Created Cable Connection');
-        window.ramonetUI?.showToast('Connected', `Connected via ${cableType.replace('_', ' ')}`, 'success');
+        window.ramonetUI?.showToast('Connected', `Connected ${sPort} ↔ ${dPort} via ${cableType.replace('_', ' ')}`, 'success');
     }
 
     deleteConnection(connId) {
-        const index = this.project.connections.findIndex(c => c.id === connId);
+        const index = this.project.connections.findIndex(c => String(c.id) === String(connId));
         if (index === -1) return;
         this.project.connections.splice(index, 1);
         this.selectedConnection = null;
@@ -552,11 +631,14 @@ class TopologyCanvas {
         const g = this.svg.querySelector('g.connections-layer');
         if (!g) return;
 
+        // Preserve temporary cable line if active
+        const tempLine = g.querySelector('.temp-cable-line');
         g.innerHTML = '';
+        if (tempLine) g.appendChild(tempLine);
 
         this.project.connections.forEach(conn => {
-            const src = this.project.devices.find(d => d.id === conn.source_device);
-            const dest = this.project.devices.find(d => d.id === conn.target_device);
+            const src = this.project.devices.find(d => String(d.id) === String(conn.source_device));
+            const dest = this.project.devices.find(d => String(d.id) === String(conn.target_device));
             if (!src || !dest) return;
 
             // Compute center points of node boxes
@@ -570,13 +652,13 @@ class TopologyCanvas {
             path.setAttribute('y1', y1);
             path.setAttribute('x2', x2);
             path.setAttribute('y2', y2);
-            path.setAttribute('class', `cable-line ${conn.type.replace('_', '-')}`);
+            path.setAttribute('class', `cable-line ${conn.type ? conn.type.replace('_', '-') : 'copper-straight'}`);
             path.id = conn.id;
 
             path.addEventListener('click', (e) => {
                 e.stopPropagation();
                 this.selectedConnection = conn;
-                window.ramonetUI?.showConnectionInspector(conn);
+                window.ramonetUI?.showConnectionInspector?.(conn);
             });
 
             g.appendChild(path);
@@ -681,6 +763,7 @@ class TopologyCanvas {
         this.renderConnections();
         this.renderMinimap();
         this.deselectAll();
+        window.ramonetTerminal?.syncDeviceSelector();
     }
 
     // ================= CONTEXT MENU =================

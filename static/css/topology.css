@@ -330,6 +330,20 @@
 .port-connector-anchor.left { left: -5px; top: calc(50% - 5px); }
 .port-connector-anchor.right { right: -5px; top: calc(50% - 5px); }
 
+/* Connecting Source Visual Feedback */
+.device-node.connecting-source {
+    outline: 2px dashed #38BDF8 !important;
+    outline-offset: 4px;
+    box-shadow: 0 0 15px rgba(56, 189, 248, 0.6) !important;
+    animation: pulse-connecting 1.2s infinite ease-in-out;
+}
+
+@keyframes pulse-connecting {
+    0% { outline-color: #38BDF8; box-shadow: 0 0 8px rgba(56, 189, 248, 0.4); }
+    50% { outline-color: #A78BFA; box-shadow: 0 0 18px rgba(167, 139, 250, 0.7); }
+    100% { outline-color: #38BDF8; box-shadow: 0 0 8px rgba(56, 189, 248, 0.4); }
+}
+
 /* Floating Canvas Toolbar */
 .canvas-toolbar {
     position: absolute;

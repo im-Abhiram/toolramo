@@ -1,12 +1,14 @@
 /**
  * Ramonet Interactive Multi-Platform CLI Terminal
- * Handles Cisco IOS, Linux Shell, and Windows Command Prompt interactions.
+ * Handles Cisco IOS, Linux Shell, Windows Command Prompt, and Appliance interactions.
+ * Features stateful interactive sessions, device switching, and real-time topology mutation.
  */
 
 class RamonetTerminal {
     constructor(containerId, options = {}) {
         this.container = document.getElementById(containerId);
         this.currentDevice = null;
+        this.deviceSessions = {}; // Keyed by device.id -> { mode, current_interface, current_vlan, ... }
         this.history = [];
         this.historyIndex = -1;
         this.prompt = 'Device> ';
@@ -21,20 +23,24 @@ class RamonetTerminal {
         this.container.innerHTML = `
             <div class="ramonet-terminal-container">
                 <div class="terminal-header">
-                    <div class="terminal-title">
-                        <i class="fa-solid fa-terminal text-info me-1"></i>
-                        <span id="term-device-name">No Device Selected</span>
-                        <span class="badge bg-secondary ms-2" id="term-platform-badge">IOS</span>
+                    <div class="terminal-title d-flex align-items-center gap-2">
+                        <i class="fa-solid fa-terminal text-info"></i>
+                        <span id="term-device-name" class="fw-semibold">No Device Selected</span>
+                        <span class="badge bg-secondary" id="term-platform-badge">None</span>
                     </div>
-                    <div class="d-flex align-items-center gap-2">
+                    <div class="d-flex align-items-center gap-2 ms-auto">
+                        <label for="term-device-selector" class="small text-secondary mb-0 d-none d-md-inline" style="font-size:0.75rem;">Device:</label>
+                        <select id="term-device-selector" class="form-select form-select-sm py-0 px-2 bg-dark text-white border-secondary" style="max-width:200px; font-size:0.75rem;" title="Select active terminal device">
+                            <option value="">Select Device...</option>
+                        </select>
                         <button class="btn btn-sm btn-outline-secondary py-0 px-2" id="term-btn-clear" title="Clear Screen"><i class="fa-solid fa-eraser"></i> Clear</button>
                         <button class="btn btn-sm btn-outline-secondary py-0 px-2" id="term-btn-help" title="Command Help"><i class="fa-solid fa-question"></i> Help</button>
                     </div>
                 </div>
                 <div class="terminal-screen" id="term-screen">
                     <div class="term-cisco-banner" id="term-banner">
-                        Ramonet Interactive Network Terminal [Version 2.0.0]<br>
-                        Type '?' or 'help' for a list of available commands. Type 'enable' to enter privileged mode.
+                        Ramonet Interactive Network Terminal [Kernel v2.0]<br>
+                        Type '?' or 'help' for available commands. Use 'enable' for privileged mode.
                     </div>
                     <div id="term-output-lines"></div>
                     <div class="terminal-prompt-line">
@@ -51,6 +57,7 @@ class RamonetTerminal {
         this.promptLabelEl = document.getElementById('term-prompt-label');
         this.devNameEl = document.getElementById('term-device-name');
         this.platformBadgeEl = document.getElementById('term-platform-badge');
+        this.devSelectorEl = document.getElementById('term-device-selector');
     }
 
     bindEvents() {
@@ -100,38 +107,122 @@ class RamonetTerminal {
         document.getElementById('term-btn-help')?.addEventListener('click', async () => {
             await this.executeCommand('?');
         });
+
+        // Device Dropdown Change
+        this.devSelectorEl?.addEventListener('change', (e) => {
+            const devId = e.target.value;
+            if (!devId) {
+                this.attachDevice(null);
+                return;
+            }
+            const found = window.ramonetCanvas?.project?.devices?.find(d => String(d.id) === String(devId));
+            if (found) {
+                this.attachDevice(found);
+                window.ramonetCanvas?.selectDevice(found.id);
+            }
+        });
+    }
+
+    syncDeviceSelector() {
+        if (!this.devSelectorEl) return;
+        const devices = window.ramonetCanvas?.project?.devices || [];
+        const currentId = this.currentDevice?.id || '';
+
+        let html = '<option value="">Select Device...</option>';
+        devices.forEach(d => {
+            const isSelected = String(d.id) === String(currentId) ? 'selected' : '';
+            html += `<option value="${d.id}" ${isSelected}>${d.name} (${d.model_name || d.category})</option>`;
+        });
+        this.devSelectorEl.innerHTML = html;
+        if (currentId) {
+            this.devSelectorEl.value = currentId;
+        }
+    }
+
+    getSessionState() {
+        if (this.currentDevice?.id && this.deviceSessions[this.currentDevice.id]) {
+            return this.deviceSessions[this.currentDevice.id];
+        }
+        return {
+            mode: this.mode || 'user_exec',
+            current_interface: null,
+            current_vlan: null,
+            current_router_proto: null
+        };
+    }
+
+    setSessionState(state) {
+        if (!state) return;
+        this.mode = state.mode || this.mode;
+        if (this.currentDevice?.id) {
+            this.deviceSessions[this.currentDevice.id] = {
+                ...(this.deviceSessions[this.currentDevice.id] || {}),
+                ...state
+            };
+        }
     }
 
     attachDevice(device) {
         this.currentDevice = device;
+        this.syncDeviceSelector();
+
         if (!device) {
-            this.devNameEl.textContent = 'No Device Selected';
-            this.platformBadgeEl.textContent = 'None';
+            // Check if there is an active device on canvas to fallback to
+            const firstDev = window.ramonetCanvas?.project?.devices?.[0];
+            if (firstDev) {
+                return this.attachDevice(firstDev);
+            }
+            if (this.devNameEl) this.devNameEl.textContent = 'No Device Selected';
+            if (this.platformBadgeEl) this.platformBadgeEl.textContent = 'None';
             this.setPrompt('Device> ');
             return;
         }
 
-        this.devNameEl.textContent = `${device.name} (${device.model_name || device.category})`;
         const platform = device.cli_platform || 'cisco_ios';
-        this.platformBadgeEl.textContent = platform.replace('_', ' ').toUpperCase();
+        if (this.devNameEl) this.devNameEl.textContent = `${device.name}`;
+        if (this.platformBadgeEl) this.platformBadgeEl.textContent = platform.replace('_', ' ').toUpperCase();
 
+        // Restore or initialize session state
+        const savedSession = this.deviceSessions[device.id];
+        if (savedSession) {
+            this.mode = savedSession.mode || 'user_exec';
+            if (savedSession.prompt) {
+                this.setPrompt(savedSession.prompt);
+            } else {
+                this.computeDefaultPrompt(device, platform);
+            }
+        } else {
+            this.mode = 'user_exec';
+            this.deviceSessions[device.id] = { mode: 'user_exec' };
+            this.computeDefaultPrompt(device, platform);
+        }
+
+        this.appendLine(`<div class="text-info small my-1">*** Connected to <strong>${this.escapeHtml(device.name)}</strong> [${platform}] ***</div>`);
+        this.inputEl?.focus();
+    }
+
+    computeDefaultPrompt(device, platform) {
+        const hostname = device.name || 'Device';
         if (platform === 'cisco_ios') {
-            this.setPrompt(`${device.name}> `);
+            const suffix = this.mode === 'priv_exec' ? '#' : (this.mode === 'global_config' ? '(config)#' : '>');
+            this.setPrompt(`${hostname}${suffix} `);
         } else if (platform === 'linux_shell') {
-            this.setPrompt(`admin@${device.name.toLowerCase()}:~$ `);
+            this.setPrompt(`admin@${hostname.toLowerCase()}:~$ `);
         } else if (platform === 'windows_cmd') {
             this.setPrompt(`C:\\Users\\Admin> `);
         } else {
-            this.setPrompt(`${device.name}# `);
+            this.setPrompt(`${hostname}# `);
         }
-
-        this.appendLine(`<span class="text-info">*** Attached terminal to ${device.name} [${platform}] ***</span>`);
     }
 
     setPrompt(promptStr) {
         this.prompt = promptStr;
         if (this.promptLabelEl) {
             this.promptLabelEl.textContent = this.prompt;
+        }
+        if (this.currentDevice?.id) {
+            this.deviceSessions[this.currentDevice.id] = this.deviceSessions[this.currentDevice.id] || {};
+            this.deviceSessions[this.currentDevice.id].prompt = promptStr;
         }
     }
 
@@ -160,15 +251,29 @@ class RamonetTerminal {
         // Add to history
         this.history.push(cmd);
         this.historyIndex = -1;
-        window.RamonetPrefs?.addRecentCommand(cmd);
+        window.RamonetPrefs?.addRecentCommand?.(cmd);
 
         // Echo command
         this.appendLine(`<div><span class="terminal-prompt-label">${this.prompt}</span><span class="text-white">${this.escapeHtml(cmd)}</span></div>`);
 
-        if (cmd.toLowerCase() === 'clear') {
+        // Client-side quick clear
+        if (cmd.toLowerCase() === 'clear' || cmd.toLowerCase() === 'cls') {
             if (this.outputEl) this.outputEl.innerHTML = '';
             return;
         }
+
+        // Auto-attach if none selected but devices exist
+        if (!this.currentDevice) {
+            const firstDev = window.ramonetCanvas?.project?.devices?.[0];
+            if (firstDev) {
+                this.attachDevice(firstDev);
+            } else {
+                this.appendLine(`<div class="text-warning small">% No device on canvas. Place a device on the canvas first to execute commands.</div>`);
+                return;
+            }
+        }
+
+        const activeSession = this.getSessionState();
 
         // Call backend CLI execute endpoint
         try {
@@ -180,30 +285,42 @@ class RamonetTerminal {
                 },
                 body: JSON.stringify({
                     command: cmd,
-                    device: this.currentDevice || { name: 'Device', cli_platform: 'cisco_ios' },
-                    topology: window.ramonetCanvas?.project
+                    device: this.currentDevice,
+                    topology: window.ramonetCanvas?.project,
+                    session_state: activeSession
                 })
             });
 
             if (resp.ok) {
                 const data = await resp.json();
                 if (data.output) {
-                    this.appendLine(`<div class="font-monospace">${this.escapeHtml(data.output)}</div>`);
+                    this.appendLine(`<div class="font-monospace" style="white-space: pre-wrap;">${this.escapeHtml(data.output)}</div>`);
                 }
                 if (data.prompt) {
                     this.setPrompt(data.prompt);
                 }
+                if (data.session_state) {
+                    this.setSessionState(data.session_state);
+                }
                 if (data.device && this.currentDevice) {
-                    // Apply real state changes back to canvas device object!
+                    const oldName = this.currentDevice.name;
                     Object.assign(this.currentDevice, data.device);
+                    
+                    // Update canvas UI
                     window.ramonetCanvas?.renderDeviceNode(this.currentDevice);
-                    window.ramonetCanvas?.triggerChange(`CLI config: ${cmd}`);
+                    window.ramonetCanvas?.triggerChange(`CLI: ${cmd}`);
+
+                    // If hostname changed, update terminal title & dropdown
+                    if (oldName !== this.currentDevice.name) {
+                        if (this.devNameEl) this.devNameEl.textContent = this.currentDevice.name;
+                        this.syncDeviceSelector();
+                    }
                 }
             } else {
-                throw new Error('API error: ' + resp.status);
+                throw new Error('HTTP ' + resp.status);
             }
         } catch (err) {
-            // Local fallback simulator
+            console.warn('CLI backend request error, invoking fallback:', err);
             this.executeLocalFallback(cmd);
         }
     }
@@ -211,17 +328,28 @@ class RamonetTerminal {
     executeLocalFallback(cmd) {
         const parts = cmd.split(' ');
         const first = parts[0].toLowerCase();
+        const devName = this.currentDevice?.name || 'Device';
 
         if (first === 'help' || first === '?') {
             this.appendLine("<div class='text-muted'>Available commands: enable, configure terminal, interface, ip address, no shutdown, show ip interface brief, show ip route, ping, traceroute, exit</div>");
         } else if (first === 'enable' || first === 'en') {
-            this.setPrompt(`${this.currentDevice?.name || 'Router'}# `);
+            this.mode = 'priv_exec';
+            this.setPrompt(`${devName}# `);
+        } else if (first in ('configure', 'conf')) {
+            this.mode = 'global_config';
+            this.setPrompt(`${devName}(config)# `);
         } else if (first === 'exit') {
-            this.setPrompt(`${this.currentDevice?.name || 'Router'}> `);
+            if (this.mode === 'global_config') {
+                this.mode = 'priv_exec';
+                this.setPrompt(`${devName}# `);
+            } else {
+                this.mode = 'user_exec';
+                this.setPrompt(`${devName}> `);
+            }
         } else if (first === 'ping' && parts[1]) {
             this.appendLine(`Sending 5, 100-byte ICMP Echos to ${parts[1]}:\n!!!!!\nSuccess rate is 100 percent (5/5)`);
         } else {
-            this.appendLine(`<span class='term-error'>% Command acknowledged: '${cmd}'</span>`);
+            this.appendLine(`<span class='text-secondary small'>% Command acknowledged: '${cmd}'</span>`);
         }
     }
 
@@ -229,8 +357,9 @@ class RamonetTerminal {
         const currentInput = this.inputEl.value.trim().toLowerCase();
         const commonCisco = [
             'show ip interface brief', 'show ip route', 'show running-config', 'show vlan brief',
-            'configure terminal', 'interface', 'ip address', 'no shutdown', 'switchport mode trunk',
-            'switchport mode access', 'switchport access vlan', 'ping', 'traceroute'
+            'show mac address-table', 'show version', 'configure terminal', 'interface',
+            'ip address', 'no shutdown', 'switchport mode trunk', 'switchport mode access',
+            'switchport access vlan', 'ping', 'traceroute', 'write memory', 'exit', 'end'
         ];
 
         const match = commonCisco.find(c => c.startsWith(currentInput));
@@ -240,6 +369,7 @@ class RamonetTerminal {
     }
 
     escapeHtml(text) {
+        if (!text) return '';
         const div = document.createElement('div');
         div.textContent = text;
         return div.innerHTML;
