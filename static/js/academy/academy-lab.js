@@ -207,7 +207,7 @@
         devGroup.innerHTML = '';
 
         const devices = currentTopology.devices || [];
-        const links = currentTopology.links || [];
+        const links = currentTopology.links || currentTopology.connections || [];
 
         // Build coordinate map
         const posMap = {};
@@ -217,8 +217,10 @@
 
         // Draw Links
         links.forEach((link, idx) => {
-            const p1 = posMap[link.from];
-            const p2 = posMap[link.to];
+            const fromId = link.from || link.source_device || link.source || link.from_device;
+            const toId = link.to || link.target_device || link.target || link.to_device;
+            const p1 = posMap[fromId];
+            const p2 = posMap[toId];
             if (p1 && p2) {
                 const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
                 line.setAttribute('x1', p1.x);
@@ -227,29 +229,33 @@
                 line.setAttribute('y2', p2.y);
                 line.setAttribute('stroke', '#0ea5e9');
                 line.setAttribute('stroke-width', '3');
-                line.setAttribute('stroke-dasharray', link.cable === 'copper_crossover' ? '5,5' : 'none');
-                line.setAttribute('id', `svg-link-${link.from}-${link.to}`);
+                const cableType = link.cable || link.type || link.cable_type || 'copper_straight';
+                line.setAttribute('stroke-dasharray', cableType === 'copper_crossover' ? '5,5' : 'none');
+                line.setAttribute('id', `svg-link-${fromId}-${toId}`);
                 linksGroup.appendChild(line);
 
+                const fromPort = link.from_port || link.source_port || link.sourcePort || '';
+                const toPort = link.to_port || link.target_port || link.targetPort || '';
+
                 // Port labels at endpoints
-                if (link.from_port) {
+                if (fromPort) {
                     const t1 = document.createElementNS('http://www.w3.org/2000/svg', 'text');
                     t1.setAttribute('x', p1.x + (p2.x - p1.x) * 0.22);
                     t1.setAttribute('y', p1.y + (p2.y - p1.y) * 0.22 - 6);
                     t1.setAttribute('fill', '#94a3b8');
                     t1.setAttribute('font-size', '10');
                     t1.setAttribute('font-family', 'monospace');
-                    t1.textContent = link.from_port;
+                    t1.textContent = fromPort;
                     linksGroup.appendChild(t1);
                 }
-                if (link.to_port) {
+                if (toPort) {
                     const t2 = document.createElementNS('http://www.w3.org/2000/svg', 'text');
                     t2.setAttribute('x', p2.x + (p1.x - p2.x) * 0.22);
                     t2.setAttribute('y', p2.y + (p1.y - p2.y) * 0.22 - 6);
                     t2.setAttribute('fill', '#94a3b8');
                     t2.setAttribute('font-size', '10');
                     t2.setAttribute('font-family', 'monospace');
-                    t2.textContent = link.to_port;
+                    t2.textContent = toPort;
                     linksGroup.appendChild(t2);
                 }
             }
@@ -393,6 +399,14 @@
         dev.mask = mask;
         dev.gateway = gw;
 
+        // Sync first interface if present
+        if (dev.interfaces && dev.interfaces.length > 0) {
+            if (typeof dev.interfaces[0] === 'object') {
+                dev.interfaces[0].ip = ip;
+                dev.interfaces[0].mask = mask;
+            }
+        }
+
         renderSvgTopology();
         populatePingSourceSelect();
         logToTerminal(`[CONFIG SAVED] ${dev.name}: IP=${ip}, Mask=${mask}, Gateway=${gw}`);
@@ -446,6 +460,9 @@
 
         const verifyBtn = document.getElementById('verify-lab-btn');
         if (verifyBtn) verifyBtn.disabled = true;
+
+        if (!currentTopology.connections && currentTopology.links) currentTopology.connections = currentTopology.links;
+        if (!currentTopology.links && currentTopology.connections) currentTopology.links = currentTopology.connections;
 
         const payload = {
             lesson_id: lessonId,
@@ -632,18 +649,40 @@
     function executeTerminalPing(srcDev, targetIp) {
         logToTerminal(`Pinging ${targetIp} with 32 bytes of data:`);
 
-        // Check if destination matches any device
-        const targetDev = currentTopology.devices.find(d => d.ip === targetIp);
-        if (targetDev || targetIp === srcDev.gateway || targetIp === '127.0.0.1') {
-            setTimeout(() => {
+        if (!currentTopology.connections && currentTopology.links) currentTopology.connections = currentTopology.links;
+        if (!currentTopology.links && currentTopology.connections) currentTopology.links = currentTopology.connections;
+
+        fetch('/api/academy/verify-step/', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                lesson_id: lessonId,
+                test_type: 'ping',
+                src_device: srcDev.id,
+                dst_ip: targetIp,
+                topology: currentTopology
+            })
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (data.passed) {
                 logToTerminal(`Reply from ${targetIp}: bytes=32 time=1ms TTL=64\nReply from ${targetIp}: bytes=32 time=1ms TTL=64\nReply from ${targetIp}: bytes=32 time=1ms TTL=64\nReply from ${targetIp}: bytes=32 time=1ms TTL=64\n\nPing statistics for ${targetIp}:\n    Packets: Sent = 4, Received = 4, Lost = 0 (0% loss)`);
+                const targetDev = currentTopology.devices.find(d => d.ip === targetIp);
                 animatePacketFlow(srcDev.id, targetDev ? targetDev.id : null);
-            }, 300);
-        } else {
-            setTimeout(() => {
-                logToTerminal(`Request timed out.\nRequest timed out.\nRequest timed out.\nRequest timed out.\n\nPing statistics for ${targetIp}:\n    Packets: Sent = 4, Received = 0, Lost = 4 (100% loss)`);
-            }, 400);
-        }
+            } else {
+                logToTerminal(`Request timed out.\nRequest timed out.\nRequest timed out.\nRequest timed out.\n\nPing statistics for ${targetIp}:\n    Packets: Sent = 4, Received = 0, Lost = 4 (100% loss)\nDiagnostics: ${data.feedback || 'Host unreachable'}`);
+            }
+        })
+        .catch(err => {
+            // Local fallback
+            const targetDev = currentTopology.devices.find(d => d.ip === targetIp);
+            if (targetDev || targetIp === srcDev.gateway || targetIp === '127.0.0.1') {
+                logToTerminal(`Reply from ${targetIp}: bytes=32 time=1ms TTL=64\nPackets: Sent = 4, Received = 4, Lost = 0 (0% loss)`);
+                animatePacketFlow(srcDev.id, targetDev ? targetDev.id : null);
+            } else {
+                logToTerminal(`Request timed out.\nPackets: Sent = 4, Received = 0, Lost = 4 (100% loss)`);
+            }
+        });
     }
 
     // -------------------------------------------------------------

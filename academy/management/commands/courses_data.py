@@ -861,8 +861,8 @@ COURSES_DATA = [
                 'has_practical_lab': True,
                 'lab_topology': {
                     'devices': [
-                        {'id': 'rtr_br', 'name': 'RTR-Branch', 'type': 'router', 'x': 200, 'y': 160, 'interfaces': ['g0/0', 'g0/1']},
-                        {'id': 'rtr_hq', 'name': 'RTR-HQ', 'type': 'router', 'x': 460, 'y': 160, 'interfaces': ['g0/0', 'g0/1']},
+                        {'id': 'rtr_br', 'name': 'RTR-Branch', 'type': 'router', 'x': 200, 'y': 160, 'interfaces': [{'name': 'g0/0', 'ip': '192.168.10.1', 'mask': '255.255.255.0'}, {'name': 'g0/1', 'ip': '10.0.0.1', 'mask': '255.255.255.252'}]},
+                        {'id': 'rtr_hq', 'name': 'RTR-HQ', 'type': 'router', 'x': 460, 'y': 160, 'interfaces': [{'name': 'g0/0', 'ip': '10.0.0.2', 'mask': '255.255.255.252'}, {'name': 'g0/1', 'ip': '192.168.20.1', 'mask': '255.255.255.0'}]},
                         {'id': 'pc_br', 'name': 'PC-Branch', 'type': 'pc_workstation', 'x': 100, 'y': 280, 'ip': '192.168.10.5', 'mask': '255.255.255.0', 'gateway': '192.168.10.1'},
                         {'id': 'pc_hq', 'name': 'PC-HQ', 'type': 'pc_workstation', 'x': 560, 'y': 280, 'ip': '192.168.20.5', 'mask': '255.255.255.0', 'gateway': '192.168.20.1'}
                     ],
@@ -1023,7 +1023,7 @@ COURSES_DATA = [
                 'has_practical_lab': True,
                 'lab_topology': {
                     'devices': [
-                        {'id': 'fw1', 'name': 'FW-Perimeter', 'type': 'firewall', 'x': 320, 'y': 180, 'interfaces': ['eth0', 'eth1']},
+                        {'id': 'fw1', 'name': 'FW-Perimeter', 'type': 'firewall', 'x': 320, 'y': 180, 'ip': '192.168.1.1', 'default_policy': 'allow', 'interfaces': [{'name': 'eth1', 'ip': '192.168.1.1', 'mask': '255.255.255.0'}, {'name': 'eth0', 'ip': '203.0.113.1', 'mask': '255.255.255.0'}]},
                         {'id': 'pc_in', 'name': 'PC-Inside', 'type': 'pc_workstation', 'x': 140, 'y': 260, 'ip': '192.168.1.10', 'mask': '255.255.255.0', 'gateway': '192.168.1.1'},
                         {'id': 'srv_web', 'name': 'SRV-Web-Outside', 'type': 'web_server', 'x': 500, 'y': 260, 'ip': '203.0.113.100', 'mask': '255.255.255.0', 'gateway': '203.0.113.1'}
                     ],
@@ -1146,12 +1146,13 @@ COURSES_DATA = [
                 'has_practical_lab': True,
                 'lab_topology': {
                     'devices': [
-                        {'id': 'ap1', 'name': 'AP-Office-01', 'type': 'wireless_ap', 'x': 320, 'y': 160, 'ip': '192.168.1.50'},
+                        {'id': 'ap1', 'name': 'AP-Office-01', 'type': 'wireless_ap', 'x': 320, 'y': 160, 'ip': '192.168.1.50', 'status': 'active'},
                         {'id': 'sw1', 'name': 'SW-PoE-01', 'type': 'poe_switch', 'x': 320, 'y': 280},
-                        {'id': 'lap1', 'name': 'Laptop-User', 'type': 'laptop', 'x': 140, 'y': 160, 'ip': '192.168.10.25', 'gateway': '192.168.10.1'}
+                        {'id': 'lap1', 'name': 'Laptop-User', 'type': 'laptop', 'x': 140, 'y': 160, 'ip': '192.168.1.25', 'mask': '255.255.255.0', 'gateway': '192.168.1.1'}
                     ],
                     'links': [
-                        {'from': 'sw1', 'from_port': 'Gi0/24', 'to': 'ap1', 'to_port': 'eth0', 'cable': 'copper_straight'}
+                        {'from': 'sw1', 'from_port': 'Gi0/24', 'to': 'ap1', 'to_port': 'eth0', 'cable': 'copper_straight'},
+                        {'from': 'ap1', 'from_port': 'wlan0', 'to': 'lap1', 'to_port': 'wlan0', 'cable': 'wireless'}
                     ]
                 },
                 'lab_tasks': [
@@ -1761,8 +1762,8 @@ COURSES_DATA = [
                 'has_practical_lab': True,
                 'lab_topology': {
                     'devices': [
-                        {'id': 'rtr_p', 'name': 'RTR-Primary', 'type': 'router', 'x': 200, 'y': 140, 'interfaces': ['g0/0']},
-                        {'id': 'rtr_s', 'name': 'RTR-Secondary', 'type': 'router', 'x': 440, 'y': 140, 'interfaces': ['g0/0']},
+                        {'id': 'rtr_p', 'name': 'RTR-Primary', 'type': 'router', 'x': 200, 'y': 140, 'ip': '192.168.1.1', 'interfaces': [{'name': 'g0/0', 'ip': '192.168.1.1', 'mask': '255.255.255.0'}]},
+                        {'id': 'rtr_s', 'name': 'RTR-Secondary', 'type': 'router', 'x': 440, 'y': 140, 'ip': '192.168.1.2', 'interfaces': [{'name': 'g0/0', 'ip': '192.168.1.2', 'mask': '255.255.255.0'}]},
                         {'id': 'sw_core', 'name': 'SW-Core', 'type': 'layer3_switch', 'x': 320, 'y': 240},
                         {'id': 'pc1', 'name': 'PC-Host', 'type': 'pc_workstation', 'x': 320, 'y': 340, 'ip': '192.168.1.50', 'gateway': '192.168.1.1'}
                     ],
@@ -1887,7 +1888,7 @@ COURSES_DATA = [
                 'lab_topology': {
                     'devices': [
                         {'id': 'pc1', 'name': 'PC-Diagnostic', 'type': 'pc_workstation', 'x': 140, 'y': 220, 'ip': '192.168.1.10', 'mask': '255.255.255.0', 'gateway': '192.168.1.1'},
-                        {'id': 'rtr1', 'name': 'RTR-Gateway', 'type': 'router', 'x': 340, 'y': 220, 'interfaces': ['g0/0', 'g0/1']},
+                        {'id': 'rtr1', 'name': 'RTR-Gateway', 'type': 'router', 'x': 340, 'y': 220, 'interfaces': [{'name': 'g0/0', 'ip': '192.168.1.1', 'mask': '255.255.255.0'}, {'name': 'g0/1', 'ip': '192.168.2.1', 'mask': '255.255.255.0'}]},
                         {'id': 'srv1', 'name': 'SRV-Remote', 'type': 'web_server', 'x': 540, 'y': 220, 'ip': '192.168.2.50', 'mask': '255.255.255.0', 'gateway': '192.168.2.1'}
                     ],
                     'links': [

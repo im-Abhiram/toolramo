@@ -28,12 +28,80 @@ class NetworkSimulationEngine:
         devices_raw = topology_data.get('devices', [])
         if isinstance(devices_raw, list):
             for d in devices_raw:
-                dev_id = str(d.get('id', ''))
+                dev_id = str(d.get('id') or d.get('name') or '')
                 self.devices[dev_id] = d
         elif isinstance(devices_raw, dict):
             self.devices = {str(k): v for k, v in devices_raw.items()}
 
-        self.connections = topology_data.get('connections', [])
+        # Normalize devices: interfaces, IDs, categories
+        for dev_id, dev in list(self.devices.items()):
+            if 'id' not in dev:
+                dev['id'] = dev_id
+            if 'category' not in dev and 'type' in dev:
+                dev['category'] = dev['type']
+            elif 'type' not in dev and 'category' in dev:
+                dev['type'] = dev['category']
+
+            raw_ifaces = dev.get('interfaces')
+            normalized_ifaces = []
+            if raw_ifaces is None:
+                # Default interfaces based on device type
+                dtype = (dev.get('type') or dev.get('category') or '').lower()
+                if 'switch' in dtype:
+                    normalized_ifaces = [{'name': f'Fa0/{i}', 'status': 'up'} for i in range(1, 25)] + [{'name': 'Gi0/1', 'status': 'up'}, {'name': 'Gi0/2', 'status': 'up'}]
+                elif 'router' in dtype:
+                    normalized_ifaces = [
+                        {'name': 'g0/0', 'status': 'up', 'ip': dev.get('ip', ''), 'mask': dev.get('mask') or dev.get('subnet_mask', '255.255.255.0')},
+                        {'name': 'g0/1', 'status': 'up'},
+                        {'name': 'g0/2', 'status': 'up'}
+                    ]
+                else:
+                    normalized_ifaces = [{'name': 'eth0', 'status': 'up', 'ip': dev.get('ip', ''), 'mask': dev.get('mask') or dev.get('subnet_mask', '255.255.255.0')}]
+            elif isinstance(raw_ifaces, list):
+                for ifc in raw_ifaces:
+                    if isinstance(ifc, str):
+                        normalized_ifaces.append({'name': ifc, 'status': 'up', 'ip': dev.get('ip', '') if ifc in ('g0/0', 'eth0', 'Fa0/1') else '', 'mask': dev.get('mask', '255.255.255.0')})
+                    elif isinstance(ifc, dict):
+                        d = dict(ifc)
+                        d.setdefault('status', 'up')
+                        d.setdefault('name', 'eth0')
+                        normalized_ifaces.append(d)
+            elif isinstance(raw_ifaces, dict):
+                for ifc_name, ifc_data in raw_ifaces.items():
+                    if isinstance(ifc_data, dict):
+                        d = dict(ifc_data)
+                        d.setdefault('name', ifc_name)
+                        d.setdefault('status', 'up')
+                        normalized_ifaces.append(d)
+                    else:
+                        normalized_ifaces.append({'name': ifc_name, 'status': 'up'})
+            dev['interfaces'] = normalized_ifaces
+
+        # Normalize connections: support both links & connections, from/to and source_device/target_device
+        conns_raw = topology_data.get('connections') or topology_data.get('links') or []
+        self.connections = []
+        for c in conns_raw:
+            if not isinstance(c, dict):
+                continue
+            src_dev = str(c.get('source_device') or c.get('source') or c.get('from') or c.get('from_device') or '')
+            tgt_dev = str(c.get('target_device') or c.get('target') or c.get('to') or c.get('to_device') or '')
+            src_port = str(c.get('source_port') or c.get('from_port') or c.get('sourcePort') or '')
+            tgt_port = str(c.get('target_port') or c.get('to_port') or c.get('targetPort') or '')
+            status = c.get('status', 'connected')
+            cable_type = c.get('type') or c.get('cable') or c.get('cable_type') or 'copper_straight'
+            self.connections.append({
+                'source_device': src_dev,
+                'target_device': tgt_dev,
+                'source_port': src_port,
+                'target_port': tgt_port,
+                'from': src_dev,
+                'to': tgt_dev,
+                'from_port': src_port,
+                'to_port': tgt_port,
+                'status': status,
+                'type': cable_type,
+                'cable': cable_type
+            })
         
         # Initialize device state tables
         for dev_id, dev in self.devices.items():
@@ -60,8 +128,10 @@ class NetworkSimulationEngine:
             # Check interfaces
             interfaces = dev.get('interfaces', [])
             for iface in interfaces:
-                if iface.get('ip') == ip_str:
+                if isinstance(iface, dict) and iface.get('ip') == ip_str:
                     return dev_id, dev, iface.get('name', 'eth0')
+                elif isinstance(iface, str) and iface == ip_str:
+                    return dev_id, dev, iface
         return None
 
     def get_device(self, dev_id_or_name: str) -> Optional[Dict[str, Any]]:
@@ -75,21 +145,55 @@ class NetworkSimulationEngine:
 
     def get_interface(self, dev: Dict[str, Any], iface_name: str) -> Optional[Dict[str, Any]]:
         for iface in dev.get('interfaces', []):
-            if iface.get('name', '').lower() == iface_name.lower():
-                return iface
+            if isinstance(iface, dict):
+                if iface.get('name', '').lower() == iface_name.lower():
+                    return iface
+            elif isinstance(iface, str):
+                if iface.lower() == iface_name.lower():
+                    return {'name': iface, 'status': 'up'}
         return None
 
-    def get_connected_link(self, dev_id: str, iface_name: str) -> Optional[Dict[str, Any]]:
+    def get_connected_link(self, dev_id: str, iface_name: str = '') -> Optional[Dict[str, Any]]:
+        dev_id_str = str(dev_id).strip().lower()
+        dev_obj = self.get_device(dev_id)
+        dev_name = (dev_obj.get('name', '') if dev_obj else '').strip().lower()
+
+        iface_str = str(iface_name or '').strip().lower()
+
         for conn in self.connections:
-            if not conn.get('status', 'connected') == 'connected':
+            if conn.get('status') == 'down' or conn.get('disabled'):
                 continue
-            if str(conn.get('source_device')) == str(dev_id) and conn.get('source_port', '').lower() == iface_name.lower():
+            src_id = str(conn.get('source_device', '')).strip().lower()
+            tgt_id = str(conn.get('target_device', '')).strip().lower()
+            src_p = str(conn.get('source_port', '')).strip().lower()
+            tgt_p = str(conn.get('target_port', '')).strip().lower()
+
+            # Port alias matching helper (e.g. g0/0 vs gigabitethernet0/0, fa0/1 vs fastethernet0/1)
+            def ports_match(p_conn: str, p_req: str) -> bool:
+                if not p_req or not p_conn:
+                    return True
+                p_c = p_conn.replace('gigabitethernet', 'g').replace('fastethernet', 'fa').replace('ethernet', 'eth')
+                p_r = p_req.replace('gigabitethernet', 'g').replace('fastethernet', 'fa').replace('ethernet', 'eth')
+                return p_c == p_r or p_conn == p_req
+
+            if (src_id in (dev_id_str, dev_name)) and (not iface_str or ports_match(src_p, iface_str)):
                 return conn
-            if str(conn.get('target_device')) == str(dev_id) and conn.get('target_port', '').lower() == iface_name.lower():
+            if (tgt_id in (dev_id_str, dev_name)) and (not iface_str or ports_match(tgt_p, iface_str)):
                 return conn
+
+        # Fallback: if specific port not found, match any link connected to this device
+        if iface_str:
+            for conn in self.connections:
+                if conn.get('status') == 'down' or conn.get('disabled'):
+                    continue
+                src_id = str(conn.get('source_device', '')).strip().lower()
+                tgt_id = str(conn.get('target_device', '')).strip().lower()
+                if src_id in (dev_id_str, dev_name) or tgt_id in (dev_id_str, dev_name):
+                    return conn
+
         return None
 
-    def get_neighbor(self, dev_id: str, iface_name: str) -> Optional[Tuple[str, str, Dict[str, Any]]]:
+    def get_neighbor(self, dev_id: str, iface_name: str = '') -> Optional[Tuple[str, str, Dict[str, Any]]]:
         """
         Find peer device and interface connected on a given interface.
         Returns: (neighbor_dev_id, neighbor_iface_name, connection_info)
@@ -97,7 +201,12 @@ class NetworkSimulationEngine:
         conn = self.get_connected_link(dev_id, iface_name)
         if not conn:
             return None
-        if str(conn.get('source_device')) == str(dev_id) and conn.get('source_port', '').lower() == iface_name.lower():
+        dev_id_str = str(dev_id).strip().lower()
+        dev_obj = self.get_device(dev_id)
+        dev_name = (dev_obj.get('name', '') if dev_obj else '').strip().lower()
+
+        src_id = str(conn.get('source_device', '')).strip().lower()
+        if src_id in (dev_id_str, dev_name):
             return str(conn.get('target_device')), conn.get('target_port', ''), conn
         else:
             return str(conn.get('source_device')), conn.get('source_port', ''), conn
@@ -122,6 +231,8 @@ class NetworkSimulationEngine:
 
         # First check directly connected interfaces
         for iface in router_dev.get('interfaces', []):
+            if not isinstance(iface, dict):
+                continue
             if iface.get('ip') and iface.get('mask'):
                 try:
                     net = ipaddress.IPv4Network(f"{iface['ip']}/{iface['mask']}", strict=False)
@@ -134,11 +245,31 @@ class NetworkSimulationEngine:
                                 'mask': str(net.netmask),
                                 'prefixlen': prefix_len,
                                 'gateway': 'directly_connected',
-                                'interface': iface.get('name'),
+                                'interface': iface.get('name', 'g0/0'),
                                 'type': 'connected'
                             }
                 except Exception:
                     pass
+
+        # Also check router primary IP
+        if router_dev.get('ip'):
+            try:
+                r_mask = router_dev.get('mask') or router_dev.get('subnet_mask') or '255.255.255.0'
+                net = ipaddress.IPv4Network(f"{router_dev['ip']}/{r_mask}", strict=False)
+                if dest in net:
+                    prefix_len = net.prefixlen
+                    if prefix_len > best_prefix_len:
+                        best_prefix_len = prefix_len
+                        best_match = {
+                            'network': str(net.network_address),
+                            'mask': str(net.netmask),
+                            'prefixlen': prefix_len,
+                            'gateway': 'directly_connected',
+                            'interface': router_dev.get('interfaces', [{}])[0].get('name', 'g0/0') if router_dev.get('interfaces') else 'g0/0',
+                            'type': 'connected'
+                        }
+            except Exception:
+                pass
 
         # Then check static and dynamic routes
         for r in routes:
@@ -321,7 +452,7 @@ class NetworkSimulationEngine:
                 'src_ip': current_src_ip,
                 'dest_ip': current_dest_ip
             })
-            return {'success': True, 'hops': hops, 'status': 'DELIVERED', 'summary': 'Packet delivered to local host'}
+            return {'success': True, 'delivered': True, 'hops': hops, 'status': 'DELIVERED', 'summary': 'Packet delivered to local host'}
 
         visited = set()
         max_hops = 20
@@ -330,8 +461,15 @@ class NetworkSimulationEngine:
             visited.add(current_dev_id)
             dev_type = (current_dev.get('category') or current_dev.get('type') or '').lower()
 
-            # Check if current device is the final destination
-            if current_dev.get('ip') == current_dest_ip:
+            # Check if current device is the final destination (primary IP or any interface IP)
+            is_dest = (current_dev.get('ip') == current_dest_ip)
+            if not is_dest:
+                for ifc in current_dev.get('interfaces', []):
+                    if isinstance(ifc, dict) and ifc.get('ip') == current_dest_ip:
+                        is_dest = True
+                        break
+
+            if is_dest:
                 hops.append({
                     'step': len(hops) + 1,
                     'device_id': current_dev_id,
@@ -345,6 +483,7 @@ class NetworkSimulationEngine:
                 })
                 return {
                     'success': True,
+                    'delivered': True,
                     'hops': hops,
                     'status': 'DELIVERED',
                     'summary': f"Successfully reached destination {current_dev.get('name')} in {len(hops)} hops."
@@ -362,7 +501,7 @@ class NetworkSimulationEngine:
                 # Check target destination device connected to this switch
                 found_egress = False
                 for iface in current_dev.get('interfaces', []):
-                    iface_name = iface.get('name')
+                    iface_name = iface.get('name') if isinstance(iface, dict) else str(iface)
                     neighbor = self.get_neighbor(current_dev_id, iface_name)
                     if neighbor:
                         nbr_id, nbr_port, conn = neighbor
@@ -372,6 +511,14 @@ class NetworkSimulationEngine:
                             if nbr_dev.get('ip') == current_dest_ip:
                                 out_iface = iface_name
                                 found_egress = True
+                                break
+                            # Check if neighbor has interface with dest IP
+                            for n_ifc in nbr_dev.get('interfaces', []):
+                                if isinstance(n_ifc, dict) and n_ifc.get('ip') == current_dest_ip:
+                                    out_iface = iface_name
+                                    found_egress = True
+                                    break
+                            if found_egress:
                                 break
                             # Or if neighbor is a router
                             nbr_type = (nbr_dev.get('category') or nbr_dev.get('type') or '').lower()
@@ -384,7 +531,7 @@ class NetworkSimulationEngine:
                 if not found_egress:
                     # Broadcast / flood to connected ports
                     for iface in current_dev.get('interfaces', []):
-                        iface_name = iface.get('name')
+                        iface_name = iface.get('name') if isinstance(iface, dict) else str(iface)
                         neighbor = self.get_neighbor(current_dev_id, iface_name)
                         if neighbor and neighbor[0] not in visited:
                             out_iface = iface_name
@@ -393,6 +540,7 @@ class NetworkSimulationEngine:
                 if not out_iface:
                     return {
                         'success': False,
+                        'delivered': False,
                         'drop_reason': 'SWITCH_NO_OUTBOUND_PORT',
                         'details': f"Switch '{current_dev.get('name')}' has no forward path to reach {current_dest_ip}.",
                         'hops': hops
@@ -510,24 +658,27 @@ class NetworkSimulationEngine:
 
             # If out_iface not specified, pick first connected interface
             if not out_iface and current_dev.get('interfaces'):
-                out_iface = current_dev['interfaces'][0].get('name')
+                first_ifc = current_dev['interfaces'][0]
+                out_iface = first_ifc.get('name') if isinstance(first_ifc, dict) else str(first_ifc)
 
             # Find connected link from out_iface
-            neighbor_info = self.get_neighbor(current_dev_id, out_iface)
+            neighbor_info = self.get_neighbor(current_dev_id, out_iface) if out_iface else None
             if not neighbor_info:
                 # If no connection found on that interface, try any connected port
                 for ifc in current_dev.get('interfaces', []):
-                    n_info = self.get_neighbor(current_dev_id, ifc.get('name'))
+                    ifc_name = ifc.get('name') if isinstance(ifc, dict) else str(ifc)
+                    n_info = self.get_neighbor(current_dev_id, ifc_name)
                     if n_info and n_info[0] not in visited:
                         neighbor_info = n_info
-                        out_iface = ifc.get('name')
+                        out_iface = ifc_name
                         break
 
             if not neighbor_info:
                 return {
                     'success': False,
+                    'delivered': False,
                     'drop_reason': 'CABLE_DISCONNECTED',
-                    'details': f"Interface '{out_iface}' on device '{current_dev.get('name')}' is not connected to any cable.",
+                    'details': f"Interface '{out_iface or 'unassigned'}' on device '{current_dev.get('name')}' is not connected to any cable.",
                     'hops': hops
                 }
 

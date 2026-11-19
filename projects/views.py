@@ -169,6 +169,26 @@ def project_template_api(request):
             {'id': 'c3', 'source_device': 'sw_poe', 'source_port': 'PoE2', 'target_device': 'ap2', 'target_port': 'eth0', 'type': 'copper_straight', 'status': 'connected'},
             {'id': 'c4', 'source_device': 'ap1', 'source_port': 'wlan0', 'target_device': 'laptop1', 'target_port': 'wlan0', 'type': 'wireless', 'status': 'connected'}
         ]
+    elif 'storage' in name_lower or 'nas' in name_lower or 'san' in name_lower:
+        devices = [
+            {'id': 'nas1', 'name': 'Enterprise-NAS', 'category': 'storage', 'icon': 'fa-database', 'x': 550, 'y': 180, 'ip': '192.168.40.10', 'subnet_mask': '255.255.255.0', 'gateway': '192.168.40.1', 'interfaces': [{'name': 'eth0', 'status': 'up'}]},
+            {'id': 'sw_core', 'name': 'Storage-Switch', 'category': 'switches', 'icon': 'fa-network-wired', 'x': 350, 'y': 180, 'interfaces': [{'name': 'Gi0/1', 'status': 'up'}, {'name': 'Fa0/1', 'status': 'up'}]},
+            {'id': 'pc1', 'name': 'CAD-Workstation', 'category': 'computers', 'icon': 'fa-desktop', 'x': 150, 'y': 180, 'ip': '192.168.40.100', 'subnet_mask': '255.255.255.0', 'gateway': '192.168.40.1', 'interfaces': [{'name': 'eth0', 'status': 'up'}]}
+        ]
+        connections = [
+            {'id': 'c1', 'source_device': 'pc1', 'source_port': 'eth0', 'target_device': 'sw_core', 'target_port': 'Fa0/1', 'type': 'copper_straight', 'status': 'connected'},
+            {'id': 'c2', 'source_device': 'sw_core', 'source_port': 'Gi0/1', 'target_device': 'nas1', 'target_port': 'eth0', 'type': 'copper_straight', 'status': 'connected'}
+        ]
+    elif 'printer' in name_lower:
+        devices = [
+            {'id': 'prn1', 'name': 'Office-LaserJet', 'category': 'infrastructure', 'icon': 'fa-print', 'x': 550, 'y': 180, 'ip': '192.168.10.200', 'subnet_mask': '255.255.255.0', 'gateway': '192.168.10.1', 'interfaces': [{'name': 'eth0', 'status': 'up'}]},
+            {'id': 'sw1', 'name': 'Floor-Switch', 'category': 'switches', 'icon': 'fa-network-wired', 'x': 350, 'y': 180, 'interfaces': [{'name': 'Fa0/1', 'status': 'up'}, {'name': 'Fa0/10', 'status': 'up'}]},
+            {'id': 'pc1', 'name': 'Finance-PC', 'category': 'computers', 'icon': 'fa-desktop', 'x': 150, 'y': 180, 'ip': '192.168.10.15', 'subnet_mask': '255.255.255.0', 'gateway': '192.168.10.1', 'interfaces': [{'name': 'eth0', 'status': 'up'}]}
+        ]
+        connections = [
+            {'id': 'c1', 'source_device': 'pc1', 'source_port': 'eth0', 'target_device': 'sw1', 'target_port': 'Fa0/1', 'type': 'copper_straight', 'status': 'connected'},
+            {'id': 'c2', 'source_device': 'sw1', 'source_port': 'Fa0/10', 'target_device': 'prn1', 'target_port': 'eth0', 'type': 'copper_straight', 'status': 'connected'}
+        ]
     else: # Basic Home / SOHO / Default Starter
         devices = [
             {'id': 'pc1', 'name': 'PC1', 'category': 'computers', 'icon': 'fa-desktop', 'x': 120, 'y': 180, 'ip': '192.168.1.10', 'subnet_mask': '255.255.255.0', 'gateway': '192.168.1.1', 'interfaces': [{'name': 'eth0', 'status': 'up'}]},

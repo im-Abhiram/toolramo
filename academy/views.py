@@ -253,7 +253,7 @@ def lab_verify_step_api(request):
         dst_ip = data.get('dst_ip')
         engine = NetworkSimulationEngine(topology_data={'devices': devices, 'connections': links})
         result = engine.simulate_packet(src_dev_id=src_id, dest_ip=dst_ip, protocol='ICMP')
-        passed = result.get('delivered', False)
+        passed = result.get('delivered', False) or result.get('success', False)
         
         if passed:
             feedback = f"ICMP Echo Reply received successfully from {dst_ip}! (TTL={result.get('packet', {}).get('ttl', 64)})"
@@ -266,6 +266,10 @@ def lab_verify_step_api(request):
                 detected_mistakes.append("Router has no route to destination network. Check routing table entries.")
             elif 'FIREWALL' in drop_reason:
                 detected_mistakes.append("Traffic was dropped by a perimeter firewall access-list or stateful filter.")
+            elif 'CABLE' in drop_reason:
+                detected_mistakes.append("Physical link is disconnected. Connect all required cables between device interfaces.")
+            else:
+                detected_mistakes.append(f"Network simulation dropped packet: {result.get('details', drop_reason)}")
 
     else:
         # Configuration verification against expected parameters
@@ -277,34 +281,66 @@ def lab_verify_step_api(request):
             passed = False
             feedback = f"Target device '{target_device_id}' was not found in topology."
         else:
+            mismatch = False
+
             # Check IP
             exp_ip = expected_config.get('ip')
-            exp_gw = expected_config.get('gateway')
-            exp_vlans = expected_config.get('vlans')
-            exp_ports = expected_config.get('ports')
-
-            mismatch = False
             if exp_ip and target_dev.get('ip') != exp_ip:
                 mismatch = True
                 detected_mistakes.append(f"IP address mismatch: expected {exp_ip}, found {target_dev.get('ip')}")
 
+            # Check Gateway
+            exp_gw = expected_config.get('gateway')
             if exp_gw and target_dev.get('gateway') != exp_gw:
                 mismatch = True
                 detected_mistakes.append(f"Gateway mismatch: expected {exp_gw}, found {target_dev.get('gateway')}")
 
+            # Check VLANs
+            exp_vlans = expected_config.get('vlans')
             if exp_vlans:
                 dev_vlans = target_dev.get('vlans', [])
+                dev_vlan_ids = set()
+                if isinstance(dev_vlans, dict):
+                    dev_vlan_ids = set(str(k) for k in dev_vlans.keys())
+                elif isinstance(dev_vlans, list):
+                    for v in dev_vlans:
+                        if isinstance(v, dict):
+                            dev_vlan_ids.add(str(v.get('id', '')))
+                        else:
+                            dev_vlan_ids.add(str(v))
                 for v in exp_vlans:
-                    if v not in dev_vlans:
+                    if str(v) not in dev_vlan_ids:
                         mismatch = True
                         detected_mistakes.append(f"VLAN {v} has not been created on switch.")
 
+            # Check Ports
+            exp_ports = expected_config.get('ports')
             if exp_ports:
                 dev_ports = target_dev.get('port_vlans', {})
                 for p, v in exp_ports.items():
-                    if dev_ports.get(p) != v:
+                    if str(dev_ports.get(p)) != str(v):
                         mismatch = True
                         detected_mistakes.append(f"Port {p} is not assigned to VLAN {v}.")
+
+            # Check Interfaces (e.g. router interface configuration)
+            exp_interfaces = expected_config.get('interfaces')
+            if exp_interfaces and isinstance(exp_interfaces, dict):
+                dev_ifaces = target_dev.get('interfaces', [])
+                iface_map = {}
+                for ifc in dev_ifaces:
+                    if isinstance(ifc, dict):
+                        iface_map[ifc.get('name', '').lower()] = ifc
+                    elif isinstance(ifc, str):
+                        iface_map[ifc.lower()] = {'name': ifc}
+                for req_name, req_spec in exp_interfaces.items():
+                    target_ifc = iface_map.get(req_name.lower())
+                    if not target_ifc:
+                        mismatch = True
+                        detected_mistakes.append(f"Interface {req_name} is missing or not present on {target_dev.get('name', target_device_id)}.")
+                    elif isinstance(req_spec, dict) and req_spec.get('ip'):
+                        if target_ifc.get('ip') != req_spec.get('ip') and target_dev.get('ip') != req_spec.get('ip'):
+                            mismatch = True
+                            detected_mistakes.append(f"Interface {req_name} IP mismatch: expected {req_spec.get('ip')}.")
 
             passed = not mismatch
             feedback = "Step verification passed! Configuration matches required parameters." if passed else "Configuration requirements not fully satisfied."
@@ -335,7 +371,7 @@ def exam_evaluate_api(request):
     lesson_id = data.get('lesson_id')
     topology = data.get('topology', {})
     devices = topology.get('devices', [])
-    links = topology.get('links', [])
+    links = topology.get('links') or topology.get('connections') or []
 
     rubric_scores = []
     total_score = 0
@@ -344,7 +380,7 @@ def exam_evaluate_api(request):
     # 1. Device Presence & Links (25 pts)
     dev_count = len(devices)
     link_count = len(links)
-    if dev_count >= 3 and link_count >= 2:
+    if dev_count >= 2 and link_count >= 1:
         pts = 25
         status = 'pass'
         msg = f"All required hardware devices ({dev_count}) and structured physical links ({link_count}) are present."
@@ -405,7 +441,7 @@ def exam_evaluate_api(request):
         if target:
             engine = NetworkSimulationEngine(topology_data={'devices': devices, 'connections': links})
             sim_res = engine.simulate_packet(src_dev_id=first_pc.get('id'), dest_ip=target.get('ip'), protocol='ICMP')
-            ping_success = sim_res.get('delivered', False)
+            ping_success = sim_res.get('delivered', False) or sim_res.get('success', False)
 
     if ping_success:
         pts = 25
