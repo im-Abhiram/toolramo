@@ -294,7 +294,7 @@ class Command(BaseCommand):
                 'model_name': 'DS-7716NI-I4',
                 'device_type': 'nvr',
                 'description': '16-Channel 4K NVR with dual Gigabit NICs (LAN isolation mode), ONVIF Profile S/G/T compliance, RTSP stream ingestion, and 4x SATA HDD bays.',
-                'icon': 'fa-video',
+                'icon': 'fa-hard-drive',
                 'is_layer3': False,
                 'cli_platform': 'web_gui',
                 'power_watts': 40.0,

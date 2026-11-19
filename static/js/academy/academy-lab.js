@@ -605,13 +605,19 @@
     function executeSimulatedCommand(dev, cmd) {
         const lower = cmd.toLowerCase();
 
-        if (lower === 'ipconfig' || lower === 'ipconfig /all') {
+        if (lower === '?' || lower === 'help') {
+            logToTerminal(`Exec commands:\n  enable             Turn on privileged commands\n  configure terminal Enter configuration mode\n  interface <name>   Select an interface to configure\n  ip address <ip> <m>Set interface IP address\n  no shutdown        Enable the interface\n  show ip int brief  Display interface summary table\n  show ip route      Display IP routing table\n  show vlan brief    Display VLAN port allocations\n  show run           Display running configuration\n  show mac           Display MAC address table\n  ping <ip>          Send ICMP echo request packets\n  ipconfig [/all]    Windows IP configuration\n  exit               Exit current configuration mode`);
+        } else if (lower === 'ipconfig' || lower === 'ipconfig /all') {
             logToTerminal(`Windows IP Configuration\n\nEthernet adapter Ethernet0:\n   IPv4 Address. . . . . . . . . . . : ${dev.ip || '0.0.0.0'}\n   Subnet Mask . . . . . . . . . . . : ${dev.mask || '255.255.255.0'}\n   Default Gateway . . . . . . . . . : ${dev.gateway || '0.0.0.0'}`);
         } else if (lower.startsWith('ping ')) {
             const targetIp = cmd.split(' ')[1];
             executeTerminalPing(dev, targetIp);
         } else if (lower === 'arp -a') {
             logToTerminal(`Interface: ${dev.ip || '192.168.1.10'} --- 0x2\n  Internet Address      Physical Address      Type\n  192.168.1.1           00-1a-2b-3c-4d-5e     dynamic\n  192.168.1.20          00-50-79-66-68-02     dynamic`);
+        } else if (lower.startsWith('show run')) {
+            logToTerminal(`! Running configuration of ${dev.name}\nhostname ${dev.name}\n!\ninterface GigabitEthernet0/0\n ip address ${dev.ip || 'unassigned'} ${dev.mask || '255.255.255.0'}\n no shutdown\n!\nend`);
+        } else if (lower.includes('mac') && lower.includes('show')) {
+            logToTerminal(`          Mac Address Table\n-------------------------------------------\nVlan    Mac Address       Type        Ports\n----    -----------       --------    -----\n   1    0050.7966.6801    DYNAMIC     Fa0/1\n   1    0050.7966.6802    DYNAMIC     Fa0/2`);
         } else if (lower === 'show ip interface brief' || lower === 'show ip int brief') {
             logToTerminal(`Interface              IP-Address      OK? Method Status                Protocol\nGigabitEthernet0/0     ${dev.ip || '192.168.1.1'}     YES manual up                    up      \nGigabitEthernet0/1     ${dev.gateway || 'unassigned'}  YES unset  up                    up      `);
         } else if (lower === 'show vlan brief' || lower === 'show vlan') {
@@ -634,6 +640,8 @@
             }
         } else if (lower === 'no shutdown' || lower === 'no shut') {
             logToTerminal(`%LINK-3-UPDOWN: Interface, changed state to up\n%LINEPROTO-5-UPDOWN: Line protocol on Interface, changed state to up`);
+        } else if (lower.startsWith('switchport ')) {
+            logToTerminal(`${dev.name}(config-if)#`);
         } else if (lower.startsWith('vlan ')) {
             logToTerminal(`${dev.name}(config-vlan)#`);
         } else if (lower.startsWith('name ')) {
@@ -642,7 +650,7 @@
             logToTerminal(`${dev.name}#`);
         } else {
             // General success acknowledgment for configuration commands
-            logToTerminal(`${dev.name}# (command executed successfully)`);
+            logToTerminal(`${dev.name}# (command acknowledged)`);
         }
     }
 

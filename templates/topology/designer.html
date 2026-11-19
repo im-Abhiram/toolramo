@@ -44,8 +44,14 @@
     <div class="canvas-container" id="topology-container">
         <!-- Floating Canvas Toolbar -->
         <div class="canvas-toolbar">
-            <button class="toolbar-btn active" id="btn-mode-select" title="Selection Mode"><i class="fa-solid fa-arrow-pointer"></i></button>
-            <button class="toolbar-btn" id="btn-mode-connect" title="Add Cable Connection"><i class="fa-solid fa-plug"></i></button>
+            <button class="toolbar-btn toolbar-mode-btn active" id="btn-mode-select" title="Selection Mode: Select, move, and configure devices (V)">
+                <i class="fa-solid fa-arrow-pointer"></i>
+                <span class="toolbar-btn-text">Select Mode</span>
+            </button>
+            <button class="toolbar-btn toolbar-mode-btn" id="btn-mode-connect" title="Cable Mode: Connect devices with network cables (C)">
+                <i class="fa-solid fa-plug"></i>
+                <span class="toolbar-btn-text">Connect Cable</span>
+            </button>
             <button class="toolbar-btn active" id="btn-toggle-grid" title="Toggle Grid Snapping"><i class="fa-solid fa-border-all"></i></button>
             <div class="toolbar-divider"></div>
             <button class="toolbar-btn" id="btn-zoom-in" title="Zoom In"><i class="fa-solid fa-magnifying-glass-plus"></i></button>
@@ -73,6 +79,12 @@
         <!-- Dynamic HTML Nodes Container -->
         <div id="topology-nodes-container" style="position: absolute; top:0; left:0; width:100%; height:100%; pointer-events:none;">
             <!-- Nodes are rendered with pointer-events: auto -->
+        </div>
+
+        <!-- Canvas Mode Status Indicator -->
+        <div class="canvas-status-pill" id="canvas-status-pill">
+            <span class="badge bg-primary text-dark fw-bold" id="status-mode-badge"><i class="fa-solid fa-arrow-pointer me-1"></i>Selection Mode</span>
+            <span class="text-secondary" id="status-mode-desc">Click device to inspect · Drag to position</span>
         </div>
 
         <!-- Minimap -->

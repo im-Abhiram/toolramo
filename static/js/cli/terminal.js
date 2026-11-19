@@ -177,11 +177,9 @@ class RamonetTerminal {
     }
 
     attachDevice(device) {
-        this.currentDevice = device;
-        this.syncDeviceSelector();
-
         if (!device) {
-            // Check if there is an active device on canvas to fallback to
+            // If already attached to a valid device, preserve the active session
+            if (this.currentDevice) return;
             const firstDev = window.ramonetCanvas?.project?.devices?.[0];
             if (firstDev) {
                 return this.attachDevice(firstDev);
@@ -191,6 +189,16 @@ class RamonetTerminal {
             this.setPrompt('Device> ');
             return;
         }
+
+        // Avoid re-initializing state if re-attaching to the currently active device
+        if (this.currentDevice && String(this.currentDevice.id) === String(device.id)) {
+            this.currentDevice = device;
+            this.syncDeviceSelector();
+            return;
+        }
+
+        this.currentDevice = device;
+        this.syncDeviceSelector();
 
         const platform = device.cli_platform || 'cisco_ios';
         if (this.devNameEl) this.devNameEl.textContent = `${device.name}`;
@@ -374,24 +382,38 @@ class RamonetTerminal {
         const dev = this.currentDevice;
         const devName = dev?.name || 'Device';
         const platform = dev?.cli_platform || 'cisco_ios';
+        const isAppliance = (dev?.category || '').toLowerCase().includes('cctv') || 
+                            (dev?.category || '').toLowerCase().includes('nvr') || 
+                            (dev?.category || '').toLowerCase().includes('storage') ||
+                            (dev?.category || '').toLowerCase().includes('nas');
 
         // 1. Context Sensitive Help
         if (cmd === '?' || first === 'help' || first === '?') {
-            if (platform === 'windows_cmd') {
-                this.appendLine("<div class='text-muted small'>Available Windows Commands:<br>&nbsp;&nbsp;ipconfig [/all]&nbsp;&nbsp;&nbsp;&nbsp;Display IP adapter configuration<br>&nbsp;&nbsp;ping &lt;destination&gt;&nbsp;&nbsp;Test ICMP connectivity<br>&nbsp;&nbsp;tracert &lt;dest&gt;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Trace route hops<br>&nbsp;&nbsp;arp -a&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Display ARP cache<br>&nbsp;&nbsp;route print&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Display routing table<br>&nbsp;&nbsp;cls / clear&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Clear terminal screen</div>");
+            if (isAppliance) {
+                this.appendLine("<div class='text-muted small'>Appliance Management CLI (" + this.escapeHtml(devName) + "):<br>&nbsp;&nbsp;status&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Display appliance operational status and parameters<br>&nbsp;&nbsp;ipconfig / ifconfig&nbsp;&nbsp;Display network interface addresses and gateway<br>&nbsp;&nbsp;ping &lt;destination&gt;&nbsp;&nbsp;&nbsp;Test network connectivity to IP or camera<br>&nbsp;&nbsp;show cameras&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Display active CCTV camera video streams and codecs<br>&nbsp;&nbsp;show storage&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Display hard drive bays, RAID health, and storage usage<br>&nbsp;&nbsp;reboot&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Simulate appliance software restart</div>");
+            } else if (platform === 'windows_cmd') {
+                this.appendLine("<div class='text-muted small'>Available Windows Commands:<br>&nbsp;&nbsp;ipconfig [/all | /release | /renew | /flushdns]&nbsp;&nbsp;Display / refresh IP configuration<br>&nbsp;&nbsp;ping &lt;destination&gt;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Test ICMP connectivity<br>&nbsp;&nbsp;tracert &lt;dest&gt;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Trace route hops<br>&nbsp;&nbsp;netstat [-an]&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Active network connections & ports<br>&nbsp;&nbsp;systeminfo&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Display OS configuration and memory<br>&nbsp;&nbsp;arp -a&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Display ARP cache table<br>&nbsp;&nbsp;route print&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Display IPv4 routing table<br>&nbsp;&nbsp;cls / clear&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Clear terminal screen</div>");
+            } else if (platform === 'linux_shell') {
+                this.appendLine("<div class='text-muted small'>Available Linux Commands:<br>&nbsp;&nbsp;ip a / ifconfig&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Display interface IP addresses and MACs<br>&nbsp;&nbsp;ip route / route -n&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Display kernel routing table<br>&nbsp;&nbsp;ping -c 4 &lt;dest&gt;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Test ICMP connectivity<br>&nbsp;&nbsp;traceroute &lt;dest&gt;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Trace network hops<br>&nbsp;&nbsp;ss -tulpn / netstat -tuln&nbsp;&nbsp;List listening TCP/UDP sockets<br>&nbsp;&nbsp;uname -a / hostname&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;System kernel and hostname<br>&nbsp;&nbsp;curl &lt;url&gt;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Transfer data from HTTP server<br>&nbsp;&nbsp;clear&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Clear terminal screen</div>");
             } else if (this.mode === 'user_exec') {
                 this.appendLine("<div class='text-muted small'>Exec commands:<br>&nbsp;&nbsp;enable&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Turn on privileged commands<br>&nbsp;&nbsp;ping&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Send ICMP echo messages<br>&nbsp;&nbsp;show&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Show running system information<br>&nbsp;&nbsp;traceroute&nbsp;&nbsp;Trace route to destination<br>&nbsp;&nbsp;exit&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Exit from the EXEC</div>");
             } else if (this.mode === 'priv_exec') {
-                this.appendLine("<div class='text-muted small'>Exec commands:<br>&nbsp;&nbsp;configure&nbsp;&nbsp;&nbsp;Enter configuration mode<br>&nbsp;&nbsp;disable&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Turn off privileged commands<br>&nbsp;&nbsp;ping&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Send ICMP echo messages<br>&nbsp;&nbsp;show&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Show running system information<br>&nbsp;&nbsp;traceroute&nbsp;&nbsp;Trace route to destination<br>&nbsp;&nbsp;write&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Write running configuration to memory<br>&nbsp;&nbsp;exit&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Exit from the EXEC</div>");
+                this.appendLine("<div class='text-muted small'>Exec commands:<br>&nbsp;&nbsp;configure&nbsp;&nbsp;&nbsp;Enter configuration mode<br>&nbsp;&nbsp;disable&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Turn off privileged commands<br>&nbsp;&nbsp;ping&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Send ICMP echo messages<br>&nbsp;&nbsp;show&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Show running system information<br>&nbsp;&nbsp;traceroute&nbsp;&nbsp;Trace route to destination<br>&nbsp;&nbsp;write&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Write running configuration to memory<br>&nbsp;&nbsp;reload&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Halt and perform a cold restart<br>&nbsp;&nbsp;exit&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Exit from the EXEC</div>");
             } else if (this.mode === 'global_config') {
-                this.appendLine("<div class='text-muted small'>Configure commands:<br>&nbsp;&nbsp;hostname&nbsp;&nbsp;&nbsp;&nbsp;Set system network name<br>&nbsp;&nbsp;interface&nbsp;&nbsp;&nbsp;Select an interface to configure<br>&nbsp;&nbsp;ip&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Global IP configuration subcommands<br>&nbsp;&nbsp;vlan&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;VLAN configuration<br>&nbsp;&nbsp;do&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Execute an EXEC-level command<br>&nbsp;&nbsp;exit&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Exit from configure mode<br>&nbsp;&nbsp;end&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Exit to privileged EXEC</div>");
+                this.appendLine("<div class='text-muted small'>Configure commands:<br>&nbsp;&nbsp;hostname&nbsp;&nbsp;&nbsp;&nbsp;Set system network name<br>&nbsp;&nbsp;interface&nbsp;&nbsp;&nbsp;Select an interface to configure<br>&nbsp;&nbsp;ip&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Global IP configuration subcommands<br>&nbsp;&nbsp;vlan&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;VLAN configuration<br>&nbsp;&nbsp;line&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Configure terminal line (con 0 / vty 0 4)<br>&nbsp;&nbsp;banner&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Define a login/motd banner<br>&nbsp;&nbsp;service&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Modify use of network/system service<br>&nbsp;&nbsp;enable&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Set enable secret or password<br>&nbsp;&nbsp;username&nbsp;&nbsp;&nbsp;&nbsp;Establish user name authentication<br>&nbsp;&nbsp;crypto&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Encryption commands (RSA keygen)<br>&nbsp;&nbsp;router&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Enable a routing process (OSPF, RIP)<br>&nbsp;&nbsp;do&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Execute an EXEC-level command<br>&nbsp;&nbsp;exit&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Exit from configure mode<br>&nbsp;&nbsp;end&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Exit to privileged EXEC</div>");
             } else if (this.mode === 'interface_config') {
-                this.appendLine("<div class='text-muted small'>Interface configuration commands:<br>&nbsp;&nbsp;ip address&nbsp;&nbsp;Set IP address and subnet mask<br>&nbsp;&nbsp;no shutdown Enable interface<br>&nbsp;&nbsp;shutdown&nbsp;&nbsp;&nbsp;&nbsp;Disable interface<br>&nbsp;&nbsp;switchport&nbsp;&nbsp;Set access or trunk VLAN mode<br>&nbsp;&nbsp;exit&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Exit to global configure mode</div>");
+                this.appendLine("<div class='text-muted small'>Interface configuration commands:<br>&nbsp;&nbsp;ip address&nbsp;&nbsp;&nbsp;&nbsp;Set IP address and subnet mask<br>&nbsp;&nbsp;no ip address Delete interface IP address<br>&nbsp;&nbsp;no shutdown&nbsp;&nbsp;&nbsp;Enable interface<br>&nbsp;&nbsp;shutdown&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Disable interface<br>&nbsp;&nbsp;switchport&nbsp;&nbsp;&nbsp;&nbsp;Set access or trunk VLAN mode<br>&nbsp;&nbsp;speed&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Set interface speed (10/100/1000/auto)<br>&nbsp;&nbsp;duplex&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Set interface duplex (full/half/auto)<br>&nbsp;&nbsp;standby&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;HSRP configuration subcommands<br>&nbsp;&nbsp;exit&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Exit to global configure mode<br>&nbsp;&nbsp;end&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Exit to privileged EXEC</div>");
+            } else if (this.mode === 'line_config') {
+                this.appendLine("<div class='text-muted small'>Line configuration commands:<br>&nbsp;&nbsp;password&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Set line access password<br>&nbsp;&nbsp;login&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Enable password checking at login<br>&nbsp;&nbsp;transport&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Define protocols to connect (ssh/telnet)<br>&nbsp;&nbsp;exec-timeout&nbsp;&nbsp;Set EXEC timeout in minutes<br>&nbsp;&nbsp;exit&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Exit to global configure mode<br>&nbsp;&nbsp;end&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Exit to privileged EXEC</div>");
+            } else if (this.mode === 'dhcp_config') {
+                this.appendLine("<div class='text-muted small'>DHCP configuration commands:<br>&nbsp;&nbsp;network&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Network number and mask for DHCP pool<br>&nbsp;&nbsp;default-router Default gateway IP for DHCP clients<br>&nbsp;&nbsp;dns-server&nbsp;&nbsp;&nbsp;&nbsp;DNS servers for DHCP clients<br>&nbsp;&nbsp;domain-name&nbsp;&nbsp;&nbsp;Domain name for client<br>&nbsp;&nbsp;lease&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Address lease time<br>&nbsp;&nbsp;exit&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Exit to global configure mode<br>&nbsp;&nbsp;end&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Exit to privileged EXEC</div>");
+            } else {
+                this.appendLine("<div class='text-muted small'>Available commands: configure, ping, show, traceroute, write, reload, exit, end</div>");
             }
             return;
         }
 
-        // 2. Mode Navigation
+        // 2. Mode Navigation (Cisco IOS)
         if (first === 'enable' || first === 'en') {
             this.mode = 'priv_exec';
             this.setSessionState({ mode: 'priv_exec' });
@@ -418,15 +440,15 @@ class RamonetTerminal {
         if (first === 'end') {
             if (this.mode !== 'user_exec') {
                 this.mode = 'priv_exec';
-                this.setSessionState({ mode: 'priv_exec', current_interface: null });
+                this.setSessionState({ mode: 'priv_exec', current_interface: null, current_vlan: null });
                 this.setPrompt(`${devName}# `);
             }
             return;
         }
         if (first === 'exit' || first === 'quit') {
-            if (this.mode === 'interface_config' || this.mode === 'vlan_config') {
+            if (['interface_config', 'vlan_config', 'router_config', 'line_config', 'dhcp_config'].includes(this.mode)) {
                 this.mode = 'global_config';
-                this.setSessionState({ mode: 'global_config', current_interface: null });
+                this.setSessionState({ mode: 'global_config', current_interface: null, current_vlan: null });
                 this.setPrompt(`${devName}(config)# `);
             } else if (this.mode === 'global_config') {
                 this.mode = 'priv_exec';
@@ -459,9 +481,44 @@ class RamonetTerminal {
                 this.setPrompt(`${devName}(config-if)# `);
                 return;
             }
-            if (first === 'ip' && parts[1] === 'default-gateway' && parts[2]) {
+            if (first === 'line' && parts.length > 1) {
+                this.mode = 'line_config';
+                this.setSessionState({ mode: 'line_config' });
+                this.setPrompt(`${devName}(config-line)# `);
+                return;
+            }
+            if (first === 'ip' && parts[1]?.toLowerCase() === 'dhcp' && parts[2]?.toLowerCase() === 'pool') {
+                this.mode = 'dhcp_config';
+                this.setSessionState({ mode: 'dhcp_config' });
+                this.setPrompt(`${devName}(dhcp-config)# `);
+                return;
+            }
+            if (first === 'vlan' && parts[1]) {
+                this.mode = 'vlan_config';
+                this.setSessionState({ mode: 'vlan_config', current_vlan: parts[1] });
+                this.setPrompt(`${devName}(config-vlan)# `);
+                return;
+            }
+            if (first === 'router' && parts[1]) {
+                this.mode = 'router_config';
+                this.setSessionState({ mode: 'router_config', current_router_proto: parts[1] });
+                this.setPrompt(`${devName}(config-router)# `);
+                return;
+            }
+            if (first === 'ip' && (parts[1] === 'default-gateway' || parts[1] === 'default-gw') && parts[2]) {
                 dev.gateway = parts[2];
                 window.ramonetCanvas?.triggerChange('Set default gateway');
+                return;
+            }
+            if (first === 'banner') {
+                dev.banner_motd = parts.slice(1).join(' ');
+                return;
+            }
+            if (first === 'service' || first === 'username' || (first === 'enable' && ['secret', 'password'].includes(parts[1]?.toLowerCase()))) {
+                return; // Acknowledged silently like real IOS
+            }
+            if (first === 'crypto' && parts[1]?.toLowerCase() === 'key' && parts[2]?.toLowerCase() === 'generate') {
+                this.appendLine("<pre class='mb-0 text-cyan'>The name for the keys will be: " + devName + ".domain.local\nHow many bits in the modulus [512]: 1024\n% Generating 1024 bit RSA keys, keys will be non-exportable...[OK]</pre>");
                 return;
             }
         }
@@ -469,6 +526,12 @@ class RamonetTerminal {
         // 4. Interface Config Commands
         if (this.mode === 'interface_config') {
             const activeIfc = this.getSessionState()?.current_interface || 'eth0';
+            if (first === 'no' && parts[1]?.toLowerCase() === 'ip' && ['address', 'addr'].includes(parts[2]?.toLowerCase())) {
+                dev.ip = '';
+                window.ramonetCanvas?.renderDeviceNode(dev);
+                window.ramonetCanvas?.triggerChange(`Removed IP from ${activeIfc}`);
+                return;
+            }
             if (first === 'ip' && ['address', 'addr', 'add'].includes(parts[1]?.toLowerCase()) && parts[2]) {
                 let ipVal = parts[2];
                 let maskVal = parts[3] || '255.255.255.0';
@@ -501,11 +564,59 @@ class RamonetTerminal {
                 this.appendLine(`<div class="text-warning small">% Interface ${activeIfc}, changed state to administratively down</div>`);
                 return;
             }
+            if (first === 'switchport' || first === 'speed' || first === 'duplex' || first === 'standby') {
+                return; // Acknowledged silently
+            }
+        }
+
+        // Sub-config modes acknowledgment (line, dhcp, vlan, router)
+        if (['line_config', 'dhcp_config', 'vlan_config', 'router_config'].includes(this.mode)) {
+            if (['password', 'login', 'transport', 'exec-timeout', 'network', 'default-router', 'dns-server', 'domain-name', 'lease', 'name', 'state', 'neighbor', 'passive-interface'].includes(first)) {
+                return; // Acknowledged silently like real IOS
+            }
+        }
+
+        // Reload command
+        if (first === 'reload') {
+            this.appendLine("<pre class='mb-0 text-cyan'>Proceed with reload? [confirm]\n\n%SYS-5-RELOAD: Reload requested by admin.\nSystem restarting...\n\nCisco IOS Software (RAMONET-SIM), Version 15.7(3)M4.\nSystem initialized.</pre>");
+            this.mode = 'user_exec';
+            this.setSessionState({ mode: 'user_exec' });
+            this.setPrompt(`${devName}> `);
+            return;
         }
 
         // 5. Show Commands
         if (['show', 'sh'].includes(first)) {
             const sub = parts.slice(1).join(' ').toLowerCase();
+
+            // Appliance / NVR CCTV Show Commands
+            if (sub.includes('camera') || sub.includes('stream')) {
+                let out = "<pre class='mb-0 text-cyan'>=== Connected Surveillance IP Cameras (PoE RTSP Streams) ===\n" +
+                          "CH  Camera Name       Model                Resolution   FPS   Bitrate    Codec   Status    Recording\n" +
+                          "----------------------------------------------------------------------------------------------------\n" +
+                          "01  Front Entrance    Hikvision DS-2CD2143  3840x2160    30    8192 kbps  H.265+  ONLINE    CONTINUOUS\n" +
+                          "02  Server Room Rack  Dahua IPC-HDBW5442    3840x2160    30    8192 kbps  H.265+  ONLINE    MOTION_ONLY\n" +
+                          "03  Loading Bay West  Uniview IPC3234SR3    2560x1440    25    4096 kbps  H.264   ONLINE    CONTINUOUS\n" +
+                          "04  Main Reception    Axis M3066-V          1920x1080    30    2048 kbps  H.265   ONLINE    CONTINUOUS\n" +
+                          "----------------------------------------------------------------------------------------------------\n" +
+                          "Total Active Video Feeds: 4/16 Channels | Total Bandwidth Consumed: 22.5 Mbps</pre>";
+                this.appendLine(out);
+                return;
+            }
+            if (sub.includes('storage') || sub.includes('disk') || sub.includes('hdd') || sub.includes('raid')) {
+                let out = "<pre class='mb-0 text-cyan'>=== Internal Surveillance Storage Array (RAID 5) ===\n" +
+                          "Bay Model                  Serial Number  Capacity    Health     Temp   Status\n" +
+                          "------------------------------------------------------------------------------\n" +
+                          "Bay 1 Seagate SkyHawk AI  W1F09A2K       8000 GB     100% OK    36°C   ONLINE\n" +
+                          "Bay 2 Seagate SkyHawk AI  W1F09B3L       8000 GB     100% OK    37°C   ONLINE\n" +
+                          "Bay 3 Seagate SkyHawk AI  W1F09C4M       8000 GB     100% OK    37°C   ONLINE\n" +
+                          "Bay 4 Seagate SkyHawk AI  W1F09D5N       8000 GB     100% OK    38°C   ONLINE\n" +
+                          "------------------------------------------------------------------------------\n" +
+                          "Recorded Footage Retention: 42 Days | Daily Video Ingestion Rate: ~450 GB/day</pre>";
+                this.appendLine(out);
+                return;
+            }
+
             if (['ip interface brief', 'ip int br', 'ip int brief', 'ip int', 'int br'].some(k => sub.includes(k))) {
                 let out = "<pre class='mb-0 text-cyan'>Interface              IP-Address      OK? Method Status                Protocol\n--------------------------------------------------------------------------------\n";
                 const ifcs = dev.interfaces || [{ name: 'eth0', ip: dev.ip, status: 'up' }];
@@ -515,6 +626,16 @@ class RamonetTerminal {
                     out += `${n} ${ip} YES manual up                    up\n`;
                 });
                 out += "</pre>";
+                this.appendLine(out);
+                return;
+            }
+            if (sub.includes('mac') || sub.includes('mac-address-table')) {
+                let out = "<pre class='mb-0 text-cyan'>          Mac Address Table\n-------------------------------------------\nVlan    Mac Address       Type        Ports\n----    -----------       --------    -----\n";
+                (window.ramonetCanvas?.project?.connections || []).forEach((c, idx) => {
+                    const mac = `0050.7966.${(idx + 1).toString(16).padStart(2, '0')}0${idx}`;
+                    out += `   1    ${mac}    DYNAMIC     Fa0/${idx + 1}\n`;
+                });
+                out += "Total Mac Addresses for this criterion: " + (window.ramonetCanvas?.project?.connections?.length || 0) + "</pre>";
                 this.appendLine(out);
                 return;
             }
@@ -545,8 +666,26 @@ class RamonetTerminal {
             }
         }
 
+        // Appliance Status / Reboot
+        if (isAppliance && (first === 'status' || first === 'info')) {
+            this.appendLine(`<pre class='mb-0 text-cyan'>=== Appliance System Status ===\nDevice Name:     ${devName}\nModel:           ${dev.model_name || 'NVR Surveillance Storage'}\nFirmware:        v4.72.000 Build 260312\nManagement IP:   ${dev.ip || '192.168.1.100'}\nSubnet Mask:     ${dev.subnet_mask || '255.255.255.0'}\nDefault Gateway: ${dev.gateway || '192.168.1.1'}\nOperational State: ONLINE / NORMAL</pre>`);
+            return;
+        }
+        if (isAppliance && (first === 'reboot' || first === 'restart')) {
+            this.appendLine(`<div class='text-warning small'>Broadcasting restart signal to ${devName}...<br>[OK] System restarting. Ready in 5 seconds.</div>`);
+            return;
+        }
+
         // 6. Windows Commands
         if (first === 'ipconfig') {
+            if (parts.includes('/flushdns')) {
+                this.appendLine("<div class='text-cyan small'>Windows IP Configuration<br><br>Successfully flushed the DNS Resolver Cache.</div>");
+                return;
+            }
+            if (parts.includes('/release')) {
+                this.appendLine("<div class='text-cyan small'>Windows IP Configuration<br><br>Ethernet adapter Ethernet0:<br>&nbsp;&nbsp;Connection-specific DNS Suffix&nbsp;&nbsp;. : localdomain<br>&nbsp;&nbsp;IPv4 Address.&nbsp;.&nbsp;.&nbsp;.&nbsp;.&nbsp;.&nbsp;.&nbsp;.&nbsp;.&nbsp;.&nbsp;.&nbsp;. : 0.0.0.0<br>&nbsp;&nbsp;Subnet Mask .&nbsp;.&nbsp;.&nbsp;.&nbsp;.&nbsp;.&nbsp;.&nbsp;.&nbsp;.&nbsp;.&nbsp;.&nbsp;. : 0.0.0.0</div>");
+                return;
+            }
             let out = `<pre class='mb-0 text-cyan'>Windows IP Configuration\n\nEthernet adapter Ethernet0:\n   Connection-specific DNS Suffix  . : localdomain\n   IPv4 Address. . . . . . . . . . . : ${dev.ip || '192.168.1.50'}\n   Subnet Mask . . . . . . . . . . . : ${dev.subnet_mask || '255.255.255.0'}\n   Default Gateway . . . . . . . . . : ${dev.gateway || '192.168.1.1'}</pre>`;
             this.appendLine(out);
             return;
@@ -559,8 +698,34 @@ class RamonetTerminal {
             this.appendLine(`<pre class='mb-0 text-cyan'>Interface: ${dev.ip || '192.168.1.50'} --- 0xb\n  Internet Address      Physical Address      Type\n  ${dev.gateway || '192.168.1.1'}         00-1a-2b-3c-4d-5e     dynamic</pre>`);
             return;
         }
+        if (first === 'netstat') {
+            this.appendLine("<pre class='mb-0 text-cyan'>Active Connections\n  Proto  Local Address          Foreign Address        State\n  TCP    0.0.0.0:135            0.0.0.0:0              LISTENING\n  TCP    0.0.0.0:445            0.0.0.0:0              LISTENING\n  TCP    " + (dev.ip || '192.168.1.50') + ":50412    " + (dev.gateway || '192.168.1.1') + ":80       ESTABLISHED</pre>");
+            return;
+        }
+        if (first === 'systeminfo') {
+            this.appendLine("<pre class='mb-0 text-cyan'>Host Name:                 " + devName + "\nOS Name:                   Microsoft Windows 11 Enterprise (Simulated)\nOS Version:                10.0.22631 N/A Build 22631\nSystem Manufacturer:       RAMONET Virtual Hardware\nTotal Physical Memory:     16,384 MB\nNetwork Card(s):           1 NIC(s) Installed.\n                           [01]: Intel(R) Ethernet Connection (Gigabit)\n                                 Status: Connected\n                                 IP: " + (dev.ip || '192.168.1.50') + "</pre>");
+            return;
+        }
 
-        // 7. Ping Command
+        // 7. Linux Shell Commands
+        if (first === 'ip' && (parts[1] === 'a' || parts[1] === 'addr')) {
+            this.appendLine("<pre class='mb-0 text-cyan'>1: lo: &lt;LOOPBACK,UP,LOWER_UP&gt; mtu 65536 qdisc noqueue state UNKNOWN\n    inet 127.0.0.1/8 scope host lo\n2: eth0: &lt;BROADCAST,MULTICAST,UP,LOWER_UP&gt; mtu 1500 qdisc fq_codel state UP\n    inet " + (dev.ip || '10.0.0.100') + "/24 brd 10.0.0.255 scope global eth0\n    valid_lft forever preferred_lft forever</pre>");
+            return;
+        }
+        if (first === 'ss' || (first === 'netstat' && platform === 'linux_shell')) {
+            this.appendLine("<pre class='mb-0 text-cyan'>State    Recv-Q   Send-Q   Local Address:Port   Peer Address:Port\nLISTEN   0        128            0.0.0.0:80          0.0.0.0:*\nLISTEN   0        128            0.0.0.0:22          0.0.0.0:*</pre>");
+            return;
+        }
+        if (first === 'uname') {
+            this.appendLine("<pre class='mb-0 text-cyan'>Linux " + devName.toLowerCase() + " 6.5.0-generic #42-Ubuntu SMP PREEMPT_DYNAMIC x86_64 GNU/Linux</pre>");
+            return;
+        }
+        if (first === 'hostname') {
+            this.appendLine("<div class='text-cyan small'>" + devName + "</div>");
+            return;
+        }
+
+        // 8. Ping Command
         if (first === 'ping' && parts[1]) {
             const target = parts[1];
             this.appendLine(`<div class="text-cyan small font-monospace">Sending 5, 100-byte ICMP Echos to ${target}, timeout is 2 seconds:<br>!!!!!<br>Success rate is 100 percent (5/5), round-trip min/avg/max = 1/2/4 ms</div>`);
@@ -568,7 +733,7 @@ class RamonetTerminal {
             return;
         }
 
-        // 8. Write Memory
+        // 9. Write Memory
         if (['write', 'wr'].includes(first)) {
             this.appendLine("<div class='text-muted small'>Building configuration...<br>[OK]<br>Configuration saved to NVRAM.</div>");
             return;

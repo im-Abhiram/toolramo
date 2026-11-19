@@ -2,6 +2,7 @@ import json
 import ipaddress
 from django.shortcuts import render
 from django.http import JsonResponse
+from django.views.decorators.csrf import csrf_exempt
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
@@ -15,6 +16,7 @@ def visualizer_view(request):
         'page_title': 'Packet Flow Visualizer'
     })
 
+@csrf_exempt
 @api_view(['POST'])
 @permission_classes([AllowAny])
 def trace_packet_api(request):
@@ -115,6 +117,7 @@ def packet_analyzer_view(request):
     })
 
 
+@csrf_exempt
 @api_view(['POST'])
 @permission_classes([AllowAny])
 def api_generate_packet_capture(request):
@@ -158,6 +161,7 @@ def what_if_view(request):
     })
 
 
+@csrf_exempt
 @api_view(['POST'])
 @permission_classes([AllowAny])
 def api_run_what_if(request):

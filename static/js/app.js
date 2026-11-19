@@ -206,7 +206,32 @@ class RamonetUI {
         if (nameEl) nameEl.textContent = device.name;
         if (modelEl) modelEl.textContent = device.model_name || device.category;
         if (hostnameInput) hostnameInput.value = device.name || '';
-        if (categoryInput) categoryInput.value = (device.category || 'Endpoint') + (device.is_layer3 ? ' (Layer 3 Routing)' : '');
+        
+        let catDisplay = device.category || 'Endpoint';
+        const dNameLow = (device.name || '').toLowerCase();
+        const mNameLow = (device.model_name || '').toLowerCase();
+        if (dNameLow.includes('nvr') || mNameLow.includes('nvr')) {
+            catDisplay = 'NVR Surveillance Storage';
+        } else if (dNameLow.includes('camera') || mNameLow.includes('camera') || device.category === 'cctv') {
+            catDisplay = 'IP PoE Video Camera';
+        } else if (device.category === 'switches') {
+            catDisplay = device.is_layer3 ? 'Layer 3 Managed Switch' : 'Layer 2 Managed Switch';
+        } else if (device.category === 'routers') {
+            catDisplay = 'Enterprise Router';
+        } else if (device.category === 'firewalls') {
+            catDisplay = 'Next-Gen Stateful Firewall';
+        } else if (device.category === 'servers') {
+            catDisplay = 'Application & Network Server';
+        } else if (device.category === 'storage') {
+            catDisplay = 'Network Attached Storage (NAS)';
+        } else if (device.category === 'printers') {
+            catDisplay = 'Network Print Server';
+        } else if (device.category === 'wireless') {
+            catDisplay = 'Wireless Access Point (AP)';
+        } else if (device.category === 'computers') {
+            catDisplay = 'Endpoint Workstation';
+        }
+        if (categoryInput) categoryInput.value = catDisplay;
         if (powerEl) powerEl.textContent = `${device.power_watts || 25} W`;
         if (poeEl) poeEl.textContent = `${device.poe_budget_watts || 0} W`;
         if (ipInput) ipInput.value = device.ip || '';
@@ -524,6 +549,7 @@ class RamonetUI {
                     if (projectData.devices && projectData.devices.length > 0) {
                         const targetDev = projectData.devices.find(d => (d.category || '').includes('router') || (d.category || '').includes('switch')) || projectData.devices[0];
                         window.ramonetTerminal?.attachDevice(targetDev);
+                        window.ramonetCanvas?.selectDevice(targetDev.id);
                     }
                 }, 120);
                 this.showToast('Topology Ready', `Loaded "${templateName}" with ${projectData.devices?.length || 0} devices.`, 'success');
@@ -556,7 +582,9 @@ class RamonetUI {
         window.ramonetCanvas?.fitToScreen();
         window.ramonetTerminal?.syncDeviceSelector();
         if (starter.devices?.[0]) {
-            window.ramonetTerminal?.attachDevice(starter.devices[0]);
+            const targetDev = starter.devices.find(d => (d.category || '').includes('switch')) || starter.devices[0];
+            window.ramonetTerminal?.attachDevice(targetDev);
+            window.ramonetCanvas?.selectDevice(targetDev.id);
         }
         this.showToast('Template Generated', `Generated ${name}`, 'success');
     }

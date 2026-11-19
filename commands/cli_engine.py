@@ -88,6 +88,10 @@ class DeviceCLISession:
                 return f"{hostname}(config-vlan)#{self.current_vlan or ''}"
             elif self.mode == 'router_config':
                 return f"{hostname}(config-router)#"
+            elif self.mode == 'line_config':
+                return f"{hostname}(config-line)#"
+            elif self.mode == 'dhcp_config':
+                return f"{hostname}(dhcp-config)#"
             return f"{hostname}#"
             
         elif self.platform == 'linux_shell':
@@ -144,7 +148,7 @@ class DeviceCLISession:
 
         # Mode navigation: exit / end / disable / quit
         if first in ('exit', 'quit'):
-            if self.mode in ('interface_config', 'vlan_config', 'router_config'):
+            if self.mode in ('interface_config', 'vlan_config', 'router_config', 'line_config', 'dhcp_config'):
                 self.mode = 'global_config'
                 self.current_interface = None
                 self.current_vlan = None
@@ -252,8 +256,9 @@ class DeviceCLISession:
                 self.mode = 'vlan_config'
                 return {'output': '', 'prompt': self.get_prompt(), 'mode': self.mode, 'device': self.device}
 
-            if first == 'ip' and len(parts) >= 3 and parts[1].lower() in ('default-gateway', 'default-gw'):
-                self.device['gateway'] = parts[2]
+            if first == 'ip' and len(parts) >= 3 and parts[1].lower() in ('default-gateway', 'default-gw', 'default'):
+                gw_val = parts[3] if len(parts) >= 4 and parts[2].lower() == 'gateway' else parts[2]
+                self.device['gateway'] = gw_val
                 return {'output': '', 'prompt': self.get_prompt(), 'mode': self.mode, 'device': self.device}
 
             if first == 'ip' and len(parts) >= 4 and parts[1].lower() == 'route':
@@ -270,9 +275,61 @@ class DeviceCLISession:
                 self.device['routes'] = [r for r in self.device.get('routes', []) if not (r.get('network') == net and r.get('mask') == mask)]
                 return {'output': '', 'prompt': self.get_prompt(), 'mode': self.mode, 'device': self.device}
 
+            if first == 'line' and len(parts) > 1:
+                self.mode = 'line_config'
+                return {'output': '', 'prompt': self.get_prompt(), 'mode': self.mode, 'device': self.device}
+
+            if first == 'ip' and len(parts) >= 4 and parts[1].lower() == 'dhcp' and parts[2].lower() == 'pool':
+                pool_name = parts[3]
+                self.device.setdefault('dhcp_pools', {})[pool_name] = {}
+                self.mode = 'dhcp_config'
+                return {'output': '', 'prompt': self.get_prompt(), 'mode': self.mode, 'device': self.device}
+
+            if first == 'banner' or (first == 'banner' and len(parts) > 1 and parts[1].lower() == 'motd'):
+                self.device['banner_motd'] = " ".join(parts[2:]) if len(parts) > 2 else "Authorized Access Only"
+                return {'output': '', 'prompt': self.get_prompt(), 'mode': self.mode, 'device': self.device}
+
+            if first == 'service' and len(parts) > 1 and parts[1].lower() == 'password-encryption':
+                return {'output': '', 'prompt': self.get_prompt(), 'mode': self.mode, 'device': self.device}
+
+            if first == 'enable' and len(parts) > 2 and parts[1].lower() in ('secret', 'password'):
+                self.device['enable_secret'] = parts[2]
+                return {'output': '', 'prompt': self.get_prompt(), 'mode': self.mode, 'device': self.device}
+
+            if first == 'username' and len(parts) > 1:
+                return {'output': '', 'prompt': self.get_prompt(), 'mode': self.mode, 'device': self.device}
+
+            if first == 'ip' and len(parts) > 2 and parts[1].lower() in ('domain-name', 'domain'):
+                return {'output': '', 'prompt': self.get_prompt(), 'mode': self.mode, 'device': self.device}
+
+            if first == 'crypto' and len(parts) >= 4 and parts[1].lower() == 'key' and parts[2].lower() == 'generate':
+                out = (
+                    f"The name for the keys will be: {self.device.get('name', 'Router')}.domain.local\n"
+                    "Choose the size of the key modulus in the range of 360 to 2048 for your\n"
+                    "General Purpose Keys. Choosing a key modulus greater than 512 may take\n"
+                    "a few minutes.\n\n"
+                    "How many bits in the modulus [512]: 1024\n"
+                    "% Generating 1024 bit RSA keys, keys will be non-exportable...[OK]"
+                )
+                return {'output': out, 'prompt': self.get_prompt(), 'mode': self.mode, 'device': self.device}
+
+            if first == 'ip' and len(parts) > 1 and parts[1].lower() == 'routing':
+                self.device['is_layer3'] = True
+                return {'output': '', 'prompt': self.get_prompt(), 'mode': self.mode, 'device': self.device}
+
             if first == 'router' and len(parts) > 1:
                 self.current_router_proto = " ".join(parts[1:])
                 self.mode = 'router_config'
+                return {'output': '', 'prompt': self.get_prompt(), 'mode': self.mode, 'device': self.device}
+
+        # Line configuration mode
+        if self.mode == 'line_config':
+            if first in ('password', 'login', 'transport', 'exec-timeout', 'logging', 'history'):
+                return {'output': '', 'prompt': self.get_prompt(), 'mode': self.mode, 'device': self.device}
+
+        # DHCP pool configuration mode
+        if self.mode == 'dhcp_config':
+            if first in ('network', 'default-router', 'dns-server', 'domain-name', 'lease', 'option'):
                 return {'output': '', 'prompt': self.get_prompt(), 'mode': self.mode, 'device': self.device}
 
         # Interface config commands
@@ -319,6 +376,17 @@ class DeviceCLISession:
                     curr_iface['description'] = " ".join(parts[1:])
                     return {'output': '', 'prompt': self.get_prompt(), 'mode': self.mode, 'device': self.device}
 
+                if first == 'no' and len(parts) >= 2 and parts[1].lower() in ('ip', 'address', 'addr'):
+                    curr_iface['ip'] = ''
+                    curr_iface['mask'] = ''
+                    return {'output': '', 'prompt': self.get_prompt(), 'mode': self.mode, 'device': self.device}
+
+                if first in ('duplex', 'speed', 'media-type'):
+                    return {'output': '', 'prompt': self.get_prompt(), 'mode': self.mode, 'device': self.device}
+
+                if first in ('standby', 'vrrp') and len(parts) >= 3:
+                    return {'output': '', 'prompt': self.get_prompt(), 'mode': self.mode, 'device': self.device}
+
                 if first == 'switchport':
                     if len(parts) >= 3 and parts[1].lower() == 'mode':
                         curr_iface['mode'] = parts[2].lower()
@@ -347,6 +415,12 @@ class DeviceCLISession:
                 return {'output': '', 'prompt': self.get_prompt(), 'mode': self.mode, 'device': self.device}
             if first == 'version' and len(parts) > 1:
                 return {'output': '', 'prompt': self.get_prompt(), 'mode': self.mode, 'device': self.device}
+
+        # Reload command
+        if first == 'reload':
+            out = "Proceed with reload? [confirm]\n\n%SYS-5-RELOAD: Reload requested by admin.\nSystem restarting...\n\nCisco IOS Software (RAMONET-SIM), Version 15.7(3)M4.\nSystem initialized."
+            self.mode = 'user_exec'
+            return {'output': out, 'prompt': self.get_prompt(), 'mode': self.mode, 'device': self.device}
 
         # Show commands (available in priv_exec and user_exec)
         if first in ('show', 'sh'):
@@ -453,15 +527,59 @@ class DeviceCLISession:
                 lines.append(f"{str(vid).ljust(4)} {vname} active    Fa0/5, Fa0/6")
             return {'output': "\n".join(lines), 'prompt': self.get_prompt(), 'mode': self.mode, 'device': self.device}
 
-        if any(k in sub for k in ('mac address-table', 'mac-address-table', 'mac')):
+        if any(k in sub for k in ('mac address-table', 'mac-address-table', 'mac address', 'mac')):
             lines = [
                 "          Mac Address Table",
                 "-------------------------------------------",
                 "Vlan    Mac Address       Type        Ports",
-                "----    -----------       --------    -----",
-                "   1    0014.2201.2341    DYNAMIC     Fa0/1",
-                "   1    0014.2201.5582    DYNAMIC     Fa0/2"
+                "----    -----------       --------    -----"
             ]
+            my_id = str(self.device.get('id', ''))
+            found_conns = False
+            for c in self.topology.get('connections', []):
+                s_id = str(c.get('source_device') or c.get('from') or '')
+                t_id = str(c.get('target_device') or c.get('to') or '')
+                if s_id == my_id:
+                    port = str(c.get('source_port') or c.get('from_port') or 'Gi0/1')
+                    t_dev = next((d for d in self.topology.get('devices', []) if str(d.get('id', '')) == t_id), None)
+                    t_name = (t_dev.get('name', 'Dev') if t_dev else 'dev')[:4]
+                    hex_tag = "".join([f"{ord(ch)%16:x}" for ch in t_name]).ljust(4, '0')
+                    lines.append(f"   1    00{hex_tag}.12a4.5b80    DYNAMIC     {port}")
+                    found_conns = True
+                elif t_id == my_id:
+                    port = str(c.get('target_port') or c.get('to_port') or 'Gi0/1')
+                    s_dev = next((d for d in self.topology.get('devices', []) if str(d.get('id', '')) == s_id), None)
+                    s_name = (s_dev.get('name', 'Dev') if s_dev else 'dev')[:4]
+                    hex_tag = "".join([f"{ord(ch)%16:x}" for ch in s_name]).ljust(4, '0')
+                    lines.append(f"   1    00{hex_tag}.91c2.3d44    DYNAMIC     {port}")
+                    found_conns = True
+            if not found_conns:
+                lines.append("   1    0014.2201.2341    DYNAMIC     Gi0/1")
+            lines.append(f"Total Mac Addresses for this criterion: {max(1, len(lines) - 4)}")
+            return {'output': "\n".join(lines), 'prompt': self.get_prompt(), 'mode': self.mode, 'device': self.device}
+
+        if any(k in sub for k in ('dhcp binding', 'ip dhcp', 'dhcp')):
+            lines = [
+                "Bindings from all pools not associated with VRF:",
+                "IP address          Client-ID/              Lease expiration        Type",
+                "                    Hardware address/ ",
+                "                    User name",
+                f"192.168.1.100       0100.5079.6668.01       Nov 20 2026 12:00 PM    Automatic",
+                f"192.168.1.101       0100.1422.0155.82       Nov 20 2026 12:00 PM    Automatic"
+            ]
+            return {'output': "\n".join(lines), 'prompt': self.get_prompt(), 'mode': self.mode, 'device': self.device}
+
+        if any(k in sub for k in ('ip protocols', 'protocols', 'ip proto')):
+            lines = [
+                "*** IP Routing is Enabled ***",
+                f"Default Gateway: {self.device.get('gateway', 'not set')}",
+                "Routing Protocol is \"connected\"",
+                "Routing Protocol is \"static\""
+            ]
+            if self.device.get('routing_protocols'):
+                for proto, nets in self.device['routing_protocols'].items():
+                    lines.append(f"Routing Protocol is \"{proto.upper()}\"")
+                    lines.append(f"  Routing for Networks: {', '.join(nets)}")
             return {'output': "\n".join(lines), 'prompt': self.get_prompt(), 'mode': self.mode, 'device': self.device}
 
         if any(k in sub for k in ('running-config', 'run')):
@@ -492,16 +610,29 @@ class DeviceCLISession:
             output = f"Cisco IOS Software, RAMONET-SIM Version 15.7(3)M4, RELEASE SOFTWARE (fc2)\nTechnical Support: https://github.com/im-Abhiram/toolramo\nSystem uptime is 14 days, 6 hours, 22 minutes\nModel: {self.device.get('model_name', 'Cisco Catalyst')}\nBase Ethernet MAC Address: 00:1A:E2:4B:92:00"
             return {'output': output, 'prompt': self.get_prompt(), 'mode': self.mode, 'device': self.device}
 
-        if 'interfaces' in sub or 'int' in sub:
+        if sub.startswith(('interface', 'int')):
+            words = sub.split()
+            iface_target = words[1].lower() if len(words) > 1 and words[1].lower() not in ('brief', 'br') else ''
             lines = []
             for ifc in self.device.get('interfaces', []):
-                lines.append(f"{ifc.get('name')} is {ifc.get('status', 'up')}, line protocol is {ifc.get('status', 'up')}")
-                lines.append(f"  Hardware is Built-in Ethernet, address is 001a.e24b.9201")
+                i_name = ifc.get('name', 'eth0')
+                if iface_target and iface_target not in i_name.lower():
+                    continue
+                stat = ifc.get('status', 'up')
+                stat_str = "administratively down" if stat == 'administratively_down' else "up"
+                lines.append(f"{i_name} is {stat_str}, line protocol is {stat}")
+                lines.append(f"  Hardware is Built-in Ethernet, address is 001a.e24b.{abs(hash(i_name))%9000+1000:04d}")
+                if ifc.get('description'):
+                    lines.append(f"  Description: {ifc['description']}")
                 if ifc.get('ip'):
-                    lines.append(f"  Internet address is {ifc.get('ip')}/{ifc.get('mask', '24')}")
+                    lines.append(f"  Internet address is {ifc.get('ip')}/{ifc.get('mask', '255.255.255.0')}")
                 lines.append(f"  MTU 1500 bytes, BW 1000000 Kbit/sec, DLY 10 usec")
+                lines.append(f"  Full-duplex, 1000Mb/s, media type is RJ45")
+                lines.append(f"  5 minute input rate 0 bits/sec, 0 packets/sec; output rate 0 bits/sec, 0 packets/sec")
                 lines.append("")
-            return {'output': "\n".join(lines), 'prompt': self.get_prompt(), 'mode': self.mode, 'device': self.device}
+            if not lines:
+                lines.append(f"% Interface {iface_target} not found on this device.")
+            return {'output': "\n".join(lines).strip(), 'prompt': self.get_prompt(), 'mode': self.mode, 'device': self.device}
 
         return {'output': f"% Unrecognized command 'show {sub}'", 'prompt': self.get_prompt(), 'mode': self.mode, 'device': self.device}
 
@@ -577,6 +708,12 @@ class DeviceCLISession:
                 "  ip                 Global IP configuration subcommands\n"
                 "  vlan               VLAN configuration\n"
                 "  router             Enable a routing process (OSPF, RIP)\n"
+                "  line               Configure a terminal line (console/vty)\n"
+                "  banner             Define a login/motd banner\n"
+                "  service            Modify use of network/system service\n"
+                "  username           Establish User Name Authentication\n"
+                "  crypto             Encryption related commands (RSA keygen)\n"
+                "  reload             Halt and perform a cold restart\n"
                 "  do                 Execute an EXEC-level command\n"
                 "  end                Exit from configure mode\n"
                 "  exit               Exit from configure mode"
@@ -589,12 +726,54 @@ class DeviceCLISession:
                 "  no shutdown        Enable the selected interface\n"
                 "  switchport mode    Set trunk or access mode for port\n"
                 "  switchport access  Set VLAN for access port\n"
+                "  speed              Set interface speed (10/100/1000/auto)\n"
+                "  duplex             Set interface duplex mode (full/half/auto)\n"
+                "  standby            HSRP configuration commands\n"
                 "  description        Interface specific description\n"
                 "  do                 Execute an EXEC-level command\n"
-                "  exit               Exit from interface configuration mode"
+                "  exit               Exit from interface configuration mode\n"
+                "  end                Exit to privileged EXEC"
+            )
+        elif self.mode == 'line_config':
+            help_text = (
+                "Line configuration commands:\n"
+                "  password           Set a password to access line\n"
+                "  login              Enable password checking at login\n"
+                "  transport input    Define which protocols to use to connect to line\n"
+                "  exec-timeout       Set the EXEC timeout\n"
+                "  exit               Exit to global configure mode\n"
+                "  end                Exit to privileged EXEC"
+            )
+        elif self.mode == 'dhcp_config':
+            help_text = (
+                "DHCP configuration commands:\n"
+                "  network            Network number and mask for DHCP address pool\n"
+                "  default-router     Default router IP for DHCP clients\n"
+                "  dns-server         DNS servers for DHCP clients\n"
+                "  domain-name        Domain name for client\n"
+                "  lease              Address lease time\n"
+                "  exit               Exit to global configure mode\n"
+                "  end                Exit to privileged EXEC"
+            )
+        elif self.mode == 'vlan_config':
+            help_text = (
+                "VLAN configuration commands:\n"
+                "  name               Ascii name of the VLAN\n"
+                "  state              Operational state of the VLAN\n"
+                "  exit               Exit to global configure mode\n"
+                "  end                Exit to privileged EXEC"
+            )
+        elif self.mode == 'router_config':
+            help_text = (
+                "Router configuration commands:\n"
+                "  network            Enable routing on an IP network\n"
+                "  neighbor           Specify a neighbor router\n"
+                "  passive-interface  Suppress routing updates on an interface\n"
+                "  exit               Exit to global configure mode\n"
+                "  end                Exit to privileged EXEC"
             )
         else:
-            help_text = "Commands: name, exit, end"
+            help_text = "Commands: configure, ping, show, traceroute, write, reload, exit, end"
 
         return {'output': help_text, 'prompt': self.get_prompt(), 'mode': self.mode, 'device': self.device}
 
@@ -717,6 +896,44 @@ class DeviceCLISession:
             }
 
         if first == 'ipconfig':
+            if '/release' in cmd.lower():
+                self.device['ip'] = '0.0.0.0'
+                for ifc in self.device.get('interfaces', []):
+                    ifc['ip'] = '0.0.0.0'
+                lines = [
+                    "Windows IP Configuration",
+                    "",
+                    "Ethernet adapter Ethernet0:",
+                    "   Connection-specific DNS Suffix  . : localdomain",
+                    "   IPv4 Address. . . . . . . . . . . : 0.0.0.0",
+                    "   Subnet Mask . . . . . . . . . . . : 0.0.0.0",
+                    "   Default Gateway . . . . . . . . . : "
+                ]
+                return {'output': "\n".join(lines), 'prompt': self.get_prompt(), 'mode': self.mode, 'device': self.device}
+
+            if '/renew' in cmd.lower():
+                new_ip = self.device.get('ip')
+                if not new_ip or new_ip == '0.0.0.0':
+                    gw = self.device.get('gateway', '192.168.1.1')
+                    parts_gw = gw.split('.')
+                    new_ip = f"{parts_gw[0]}.{parts_gw[1]}.{parts_gw[2]}.50" if len(parts_gw) == 4 else '192.168.1.50'
+                    self.device['ip'] = new_ip
+                    for ifc in self.device.get('interfaces', []):
+                        ifc['ip'] = new_ip
+                lines = [
+                    "Windows IP Configuration",
+                    "",
+                    "Ethernet adapter Ethernet0:",
+                    "   Connection-specific DNS Suffix  . : localdomain",
+                    f"   IPv4 Address. . . . . . . . . . . : {self.device.get('ip')}",
+                    f"   Subnet Mask . . . . . . . . . . . : {self.device.get('subnet_mask', '255.255.255.0')}",
+                    f"   Default Gateway . . . . . . . . . : {self.device.get('gateway', '192.168.1.1')}"
+                ]
+                return {'output': "\n".join(lines), 'prompt': self.get_prompt(), 'mode': self.mode, 'device': self.device}
+
+            if '/flushdns' in cmd.lower():
+                return {'output': "Windows IP Configuration\n\nSuccessfully flushed the DNS Resolver Cache.", 'prompt': self.get_prompt(), 'mode': self.mode, 'device': self.device}
+
             is_all = '/all' in cmd.lower()
             lines = [
                 "Windows IP Configuration",
@@ -731,13 +948,13 @@ class DeviceCLISession:
                 lines.insert(3, f"   Host Name . . . . . . . . . . . . : {self.device.get('name', 'PC-1')}")
                 lines.insert(4, "   Primary Dns Suffix  . . . . . . . : ")
                 lines.insert(5, "   Node Type . . . . . . . . . . . . : Hybrid")
-                lines.append(f"   Physical Address. . . . . . . . . : 00-50-56-C0-00-08")
+                lines.append("   Physical Address. . . . . . . . . : 00-50-56-C0-00-08")
                 lines.append(f"   DHCP Enabled. . . . . . . . . . . : {'No' if self.device.get('ip') else 'Yes'}")
                 lines.append(f"   DNS Servers . . . . . . . . . . . : {self.device.get('dns', '8.8.8.8')}")
             return {'output': "\n".join(lines), 'prompt': self.get_prompt(), 'mode': self.mode, 'device': self.device}
 
         if first == 'ping' and len(parts) > 1:
-            target = parts[1]
+            target = [p for p in parts[1:] if not p.startswith('-')][-1]
             engine = NetworkSimulationEngine(self.topology)
             res = engine.simulate_packet(str(self.device.get('id', '')), target, protocol='ICMP')
             if res['success']:
@@ -758,7 +975,7 @@ class DeviceCLISession:
             return {'output': output, 'prompt': self.get_prompt(), 'mode': self.mode, 'device': self.device}
 
         if first in ('tracert', 'traceroute') and len(parts) > 1:
-            target = parts[1]
+            target = [p for p in parts[1:] if not p.startswith('-')][-1]
             engine = NetworkSimulationEngine(self.topology)
             res = engine.simulate_packet(str(self.device.get('id', '')), target, protocol='ICMP')
             lines = [
@@ -793,6 +1010,34 @@ class DeviceCLISession:
             ]
             return {'output': "\n".join(lines), 'prompt': self.get_prompt(), 'mode': self.mode, 'device': self.device}
 
+        if first == 'netstat':
+            lines = [
+                "Active Connections",
+                "",
+                "  Proto  Local Address          Foreign Address        State",
+                f"  TCP    {self.device.get('ip', '192.168.1.50')}:49152   {self.device.get('gateway', '192.168.1.1')}:80         ESTABLISHED",
+                f"  TCP    {self.device.get('ip', '192.168.1.50')}:49153   8.8.8.8:53             TIME_WAIT",
+                "  TCP    [::]:135               [::]:0                 LISTENING",
+                "  UDP    0.0.0.0:5353           *:*"
+            ]
+            return {'output': "\n".join(lines), 'prompt': self.get_prompt(), 'mode': self.mode, 'device': self.device}
+
+        if first in ('systeminfo', 'sysinfo'):
+            lines = [
+                f"Host Name:                 {self.device.get('name', 'PC-Workstation')}",
+                "OS Name:                   Microsoft Windows 11 Enterprise",
+                "OS Version:                10.0.22631 N/A Build 22631",
+                "System Manufacturer:       RAMONET Simulated Hardware",
+                "System Type:               x64-based PC",
+                "Total Physical Memory:     16,384 MB",
+                "Network Card(s):           1 NIC(s) Installed.",
+                "                           [01]: Realtek PCIe GbE Family Controller",
+                "                                 Connection Name: Ethernet0",
+                "                                 DHCP Enabled:    Yes",
+                f"                                 IP address(es):  {self.device.get('ip', '192.168.1.50')}"
+            ]
+            return {'output': "\n".join(lines), 'prompt': self.get_prompt(), 'mode': self.mode, 'device': self.device}
+
         if first == 'hostname':
             return {'output': self.device.get('name', 'PC-Workstation'), 'prompt': self.get_prompt(), 'mode': self.mode, 'device': self.device}
 
@@ -803,7 +1048,7 @@ class DeviceCLISession:
 
         if first in ('help', '?'):
             return {
-                'output': "Available Windows Commands:\n  ipconfig [/all]     Display IP and network adapter configuration\n  ping <ip>           Verify network connectivity to destination\n  tracert <ip>        Trace network hops to destination\n  arp -a              Display ARP cache and MAC table\n  route print         Display local routing table\n  hostname            Print workstation name\n  nslookup <host>     Query DNS server\n  cls                 Clear screen",
+                'output': "Available Windows Commands:\n  ipconfig [/all | /release | /renew | /flushdns]\n  ping <ip>           Verify network connectivity to destination\n  tracert <ip>        Trace network hops to destination\n  arp -a              Display ARP cache and MAC table\n  route print         Display local routing table\n  netstat [-an]       Display active TCP/UDP connections\n  hostname            Print workstation name\n  systeminfo          Print operating system and network information\n  nslookup <host>     Query DNS server\n  cls                 Clear screen",
                 'prompt': self.get_prompt(),
                 'mode': self.mode,
                 'device': self.device
@@ -829,29 +1074,95 @@ class DeviceCLISession:
     def _execute_web_gui(self, cmd: str) -> Dict[str, Any]:
         parts = cmd.split()
         first = parts[0].lower()
+        dev_name = self.device.get('name', 'Appliance')
+        model = self.device.get('model_name', 'Network Appliance')
+
+        # NVR Camera Streams
+        if any(k in cmd.lower() for k in ('cameras', 'camera', 'streams', 'stream', 'channels', 'cctv')):
+            lines = [
+                f"=== {dev_name} ({model}) - Active CCTV Video Channels ===",
+                "CH  Name                IP Address      Port   Codec  Resolution   FPS  Bitrate  Status",
+                "---------------------------------------------------------------------------------------"
+            ]
+            cam_count = 0
+            for d in self.topology.get('devices', []):
+                if 'cam' in (d.get('name', '') + d.get('category', '')).lower():
+                    cam_count += 1
+                    c_name = d.get('name', f'Camera{cam_count}').ljust(18)
+                    c_ip = (d.get('ip') or f'192.168.1.{10+cam_count}').ljust(15)
+                    lines.append(f"0{cam_count}  {c_name} {c_ip} 554    H.265  3840x2160    25   6144k    RECORDING")
+            if cam_count == 0:
+                lines.append("01  Front-Gate-Cam01    192.168.1.101   554    H.265  3840x2160    25   6144k    RECORDING")
+                lines.append("02  Lobby-Dome-Cam02    192.168.1.102   554    H.265  1920x1080    30   4096k    RECORDING")
+                lines.append("03  Warehouse-PTZ-03    192.168.1.103   554    H.265  3840x2160    25   8192k    RECORDING")
+            lines.append("---------------------------------------------------------------------------------------")
+            lines.append("Protocol: RTSP / ONVIF Profile S/T | Storage Target: Local SATA RAID Array")
+            return {'output': "\n".join(lines), 'prompt': self.get_prompt(), 'mode': self.mode, 'device': self.device}
+
+        # Storage / Hard Disks (NVR and NAS)
+        if any(k in cmd.lower() for k in ('storage', 'disks', 'disk', 'hdd', 'raid', 'drives')):
+            lines = [
+                f"=== {dev_name} Storage Management ===",
+                "Array Status: HEALTHY | RAID Mode: RAID 5 | Total Capacity: 32.0 TB",
+                "",
+                "Bay   Model               Serial         Capacity    Health     Temp   Status",
+                "------------------------------------------------------------------------------",
+                "Bay 1 Seagate SkyHawk AI  W1F09A2K       8000 GB     100% OK    38°C   ONLINE",
+                "Bay 2 Seagate SkyHawk AI  W1F09B3L       8000 GB     100% OK    39°C   ONLINE",
+                "Bay 3 Seagate SkyHawk AI  W1F09C4M       8000 GB     100% OK    37°C   ONLINE",
+                "Bay 4 Seagate SkyHawk AI  W1F09D5N       8000 GB     100% OK    38°C   ONLINE",
+                "------------------------------------------------------------------------------",
+                "Recorded Footage Retention: 42 Days | Daily Video Ingestion Rate: ~450 GB/day"
+            ]
+            return {'output': "\n".join(lines), 'prompt': self.get_prompt(), 'mode': self.mode, 'device': self.device}
 
         if first == 'ping' and len(parts) > 1:
             target = parts[1]
             engine = NetworkSimulationEngine(self.topology)
             res = engine.simulate_packet(str(self.device.get('id', '')), target, protocol='ICMP')
-            status_text = "5 packets transmitted, 5 received, 0% packet loss" if res['success'] else f"5 packets transmitted, 0 received, 100% packet loss ({res.get('drop_reason')})"
+            status_text = "5 packets transmitted, 5 received, 0% packet loss, RTT = 1.2ms" if res['success'] else f"5 packets transmitted, 0 received, 100% packet loss ({res.get('drop_reason')})"
             output = f"Diagnostics: PING {target}\n{status_text}"
             return {'output': output, 'prompt': self.get_prompt(), 'mode': self.mode, 'device': self.device}
 
         if first in ('status', 'info', 'show'):
-            output = f"Device: {self.device.get('name')}\nModel: {self.device.get('model_name', 'Network Appliance')}\nManagement IP: {self.device.get('ip', '192.168.1.200')}\nSubnet: {self.device.get('subnet_mask', '255.255.255.0')}\nGateway: {self.device.get('gateway', '192.168.1.1')}\nState: Operational"
+            output = (
+                f"=== Appliance System Status ===\n"
+                f"Device Name:     {self.device.get('name')}\n"
+                f"Model:           {self.device.get('model_name', 'Network Appliance')}\n"
+                f"Firmware:        v4.72.000 Build 260312\n"
+                f"Management IP:   {self.device.get('ip', '192.168.1.100')}\n"
+                f"Subnet Mask:     {self.device.get('subnet_mask', '255.255.255.0')}\n"
+                f"Default Gateway: {self.device.get('gateway', '192.168.1.1')}\n"
+                f"DNS Server:      {self.device.get('dns', '8.8.8.8')}\n"
+                f"Operational State: ONLINE / NORMAL"
+            )
             return {'output': output, 'prompt': self.get_prompt(), 'mode': self.mode, 'device': self.device}
 
-        if first in ('ipconfig', 'ifconfig'):
-            output = f"Interface: eth0\n  IPv4: {self.device.get('ip', '192.168.1.200')}\n  Mask: {self.device.get('subnet_mask', '255.255.255.0')}\n  Gateway: {self.device.get('gateway', '192.168.1.1')}"
+        if first in ('ipconfig', 'ifconfig', 'ip'):
+            output = (
+                f"Network Interfaces:\n"
+                f"  eth0 (LAN): IPv4 {self.device.get('ip', '192.168.1.100')} Netmask {self.device.get('subnet_mask', '255.255.255.0')} Gateway {self.device.get('gateway', '192.168.1.1')}\n"
+                f"  Link: Gigabit Full-Duplex (1000 Mbps) MTU 1500 Status UP"
+            )
             return {'output': output, 'prompt': self.get_prompt(), 'mode': self.mode, 'device': self.device}
+
+        if first in ('reboot', 'restart'):
+            return {'output': f"Broadcasting restart signal to {dev_name}...\n[OK] System restarting. Ready in 5 seconds.", 'prompt': self.get_prompt(), 'mode': self.mode, 'device': self.device}
 
         if first in ('help', '?'):
-            output = f"Appliance Management Console ({self.device.get('name')}):\n  status       Display device operational status and IP\n  ping <ip>    Test connectivity to another device\n  ipconfig     Display network parameters\n  reboot       Simulate appliance restart"
+            output = (
+                f"Appliance Management CLI ({self.device.get('name')}):\n"
+                f"  status               Display appliance operational status and parameters\n"
+                f"  ipconfig / ifconfig  Display network interface addresses and gateway\n"
+                f"  ping <destination>   Test network connectivity to IP or camera\n"
+                f"  show cameras         Display active CCTV camera video streams and codecs\n"
+                f"  show storage         Display hard drive bays, RAID health, and storage usage\n"
+                f"  reboot               Simulate appliance software restart"
+            )
             return {'output': output, 'prompt': self.get_prompt(), 'mode': self.mode, 'device': self.device}
 
         return {
-            'output': f"Appliance console: '{cmd}' executed. (Primary configuration is via Web Admin GUI). Type 'help' for diagnostics.",
+            'output': f"Appliance console: '{cmd}' executed. Type 'help' or 'status' for diagnostics.",
             'prompt': self.get_prompt(),
             'mode': self.mode,
             'device': self.device

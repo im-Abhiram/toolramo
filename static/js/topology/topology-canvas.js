@@ -268,23 +268,57 @@ class TopologyCanvas {
     // ================= DEVICE MANAGEMENT =================
 
     addDevice(definition, x = 100, y = 100) {
-        const category = (definition.category || definition.device_type || 'computer').toLowerCase();
-        const baseName = definition.name || 'Device';
-        
-        // Count existing devices of this category for auto-naming
-        const count = this.project.devices.filter(d => (d.category || '').toLowerCase().includes(category)).length + 1;
+        const type = (definition.device_type || definition.type || '').toLowerCase();
+        const category = (definition.category || '').toLowerCase();
+        const modelName = (definition.model_name || definition.name || '').toLowerCase();
         
         let prefix = 'PC';
-        if (category.includes('switch')) prefix = 'Switch';
-        else if (category.includes('router')) prefix = 'Router';
-        else if (category.includes('firewall')) prefix = 'Firewall';
-        else if (category.includes('cctv') || category.includes('camera')) prefix = 'Camera';
-        else if (category.includes('nvr')) prefix = 'NVR';
-        else if (category.includes('storage') || category.includes('nas')) prefix = 'NAS';
-        else if (category.includes('printer')) prefix = 'Printer';
-        else if (category.includes('server')) prefix = 'Server';
-        else if (category.includes('wireless')) prefix = 'AP';
+        let devIcon = definition.icon || 'fa-server';
+        let devCat = category || 'computers';
 
+        if (type.includes('nvr') || modelName.includes('nvr') || category.includes('nvr')) {
+            prefix = 'NVR';
+            devIcon = 'fa-hard-drive';
+            devCat = 'cctv';
+        } else if (type.includes('camera') || modelName.includes('camera') || category.includes('camera') || category.includes('cctv')) {
+            prefix = 'Camera';
+            devIcon = 'fa-video';
+            devCat = 'cctv';
+        } else if (category.includes('switch') || type.includes('switch') || modelName.includes('switch')) {
+            prefix = 'Switch';
+            devIcon = 'fa-network-wired';
+            devCat = 'switches';
+        } else if (category.includes('router') || type.includes('router') || modelName.includes('router')) {
+            prefix = 'Router';
+            devIcon = 'fa-route';
+            devCat = 'routers';
+        } else if (category.includes('firewall') || type.includes('firewall') || modelName.includes('firewall')) {
+            prefix = 'Firewall';
+            devIcon = 'fa-shield-halved';
+            devCat = 'firewalls';
+        } else if (type.includes('nas') || modelName.includes('nas') || category.includes('storage')) {
+            prefix = 'NAS';
+            devIcon = 'fa-hard-drive';
+            devCat = 'storage';
+        } else if (category.includes('printer') || type.includes('printer') || modelName.includes('printer')) {
+            prefix = 'Printer';
+            devIcon = 'fa-print';
+            devCat = 'printers';
+        } else if (category.includes('server') || type.includes('server') || modelName.includes('server')) {
+            prefix = 'Server';
+            devIcon = 'fa-server';
+            devCat = 'servers';
+        } else if (category.includes('wireless') || type.includes('ap') || type.includes('access_point') || modelName.includes('ap')) {
+            prefix = 'AP';
+            devIcon = 'fa-wifi';
+            devCat = 'wireless';
+        } else {
+            prefix = 'PC';
+            devIcon = 'fa-desktop';
+            devCat = 'computers';
+        }
+
+        const count = this.project.devices.filter(d => (d.name || '').startsWith(prefix)).length + 1;
         const deviceId = 'dev_' + Date.now() + '_' + Math.floor(Math.random() * 1000);
         const deviceName = `${prefix}${count}`;
 
@@ -297,10 +331,10 @@ class TopologyCanvas {
             id: deviceId,
             name: deviceName,
             definition_id: definition.id,
-            category: category,
+            category: devCat,
             model_name: definition.model_name || definition.name,
-            icon: definition.icon || 'fa-server',
-            cli_platform: definition.cli_platform || 'cisco_ios',
+            icon: devIcon,
+            cli_platform: definition.cli_platform || (devCat === 'computers' ? 'windows_cmd' : (devCat === 'servers' ? 'linux_shell' : 'cisco_ios')),
             is_layer3: definition.is_layer3 || false,
             power_watts: definition.power_watts || 25,
             poe_budget_watts: definition.poe_budget_watts || 0,
@@ -423,11 +457,12 @@ class TopologyCanvas {
     }
 
     selectDevice(deviceId) {
-        this.deselectAll();
+        this.deselectAll(false);
         this.selectedDevice = this.project.devices.find(d => d.id === deviceId);
         if (this.selectedDevice) {
             const el = document.getElementById(deviceId);
             if (el) el.classList.add('selected');
+            this.updateModeIndicator();
             window.ramonetUI?.updateSelectedDevice(this.selectedDevice);
         }
     }
@@ -484,7 +519,7 @@ class TopologyCanvas {
         this.triggerChange(`Duplicated ${original.name}`);
     }
 
-    deselectAll() {
+    deselectAll(notifyUI = true) {
         document.querySelectorAll('.device-node.selected').forEach(el => el.classList.remove('selected'));
         if (this.svg) {
             this.svg.querySelectorAll('.cable-line.selected').forEach(el => el.classList.remove('selected'));
@@ -492,7 +527,10 @@ class TopologyCanvas {
         this.selectedDevice = null;
         this.selectedConnection = null;
         this.hideContextMenu();
-        window.ramonetUI?.updateSelectedDevice(null);
+        this.updateModeIndicator();
+        if (notifyUI) {
+            window.ramonetUI?.updateSelectedDevice(null);
+        }
     }
 
     // ================= CONNECTIONS & CABLING =================
@@ -504,15 +542,10 @@ class TopologyCanvas {
 
         const connectBtn = document.getElementById('btn-mode-connect');
         const selectBtn = document.getElementById('btn-mode-select');
-        if (connectBtn) {
-            connectBtn.classList.add('active', 'btn-info', 'text-dark');
-            connectBtn.classList.remove('btn-outline-secondary');
-        }
-        if (selectBtn) {
-            selectBtn.classList.remove('active', 'btn-secondary');
-            selectBtn.classList.add('btn-outline-secondary');
-        }
+        if (connectBtn) connectBtn.classList.add('active');
+        if (selectBtn) selectBtn.classList.remove('active');
 
+        this.updateModeIndicator();
         window.ramonetUI?.showToast('Cable Tool Active', '1) Click the first device. 2) Click the second device to attach cable.', 'info');
     }
 
@@ -528,13 +561,29 @@ class TopologyCanvas {
 
         const connectBtn = document.getElementById('btn-mode-connect');
         const selectBtn = document.getElementById('btn-mode-select');
-        if (connectBtn) {
-            connectBtn.classList.remove('active', 'btn-info', 'text-dark');
-            connectBtn.classList.add('btn-outline-secondary');
-        }
-        if (selectBtn) {
-            selectBtn.classList.add('active', 'btn-secondary');
-            selectBtn.classList.remove('btn-outline-secondary');
+        if (connectBtn) connectBtn.classList.remove('active');
+        if (selectBtn) selectBtn.classList.add('active');
+
+        this.updateModeIndicator();
+    }
+
+    updateModeIndicator() {
+        const badge = document.getElementById('status-mode-badge');
+        const desc = document.getElementById('status-mode-desc');
+        if (!badge) return;
+
+        if (this.mode === 'connect') {
+            badge.className = 'badge bg-warning text-dark fw-bold';
+            badge.innerHTML = '<i class="fa-solid fa-plug me-1"></i>Connect Mode';
+            if (desc) desc.textContent = this.connectSource 
+                ? `Source: ${this.connectSource.name}. Now click destination device.` 
+                : 'Click first device, then second device to attach cable (ESC to cancel)';
+        } else {
+            badge.className = 'badge bg-primary text-dark fw-bold';
+            badge.innerHTML = '<i class="fa-solid fa-arrow-pointer me-1"></i>Selection Mode';
+            if (desc) desc.textContent = this.selectedDevice 
+                ? `Selected: ${this.selectedDevice.name} [${this.selectedDevice.ip || 'No IP'}]`
+                : 'Click device to inspect · Drag to position';
         }
     }
 

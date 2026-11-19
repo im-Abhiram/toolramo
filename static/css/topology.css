@@ -393,6 +393,36 @@
     background-color: rgba(56, 189, 248, 0.18);
 }
 
+.toolbar-mode-btn {
+    width: auto !important;
+    padding: 0 0.65rem;
+    gap: 0.35rem;
+}
+
+.toolbar-btn-text {
+    font-size: 0.78rem;
+    font-weight: 600;
+}
+
+/* Canvas Mode Status Indicator */
+.canvas-status-pill {
+    position: absolute;
+    bottom: 1rem;
+    left: 1rem;
+    background-color: rgba(17, 24, 39, 0.92);
+    border: 1px solid var(--border-accent);
+    backdrop-filter: blur(8px);
+    border-radius: 20px;
+    padding: 0.35rem 0.75rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    z-index: 30;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+    pointer-events: none;
+    font-size: 0.75rem;
+}
+
 .toolbar-divider {
     width: 1px;
     height: 20px;
