@@ -1,0 +1,44 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 80 80" width="80" height="80">
+  <defs>
+    <linearGradient id="nasChassis" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#334155"/>
+      <stop offset="100%" stop-color="#0f172a"/>
+    </linearGradient>
+    <linearGradient id="driveTray" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#1e293b"/>
+      <stop offset="100%" stop-color="#475569"/>
+    </linearGradient>
+  </defs>
+  <!-- Shadow -->
+  <ellipse cx="40" cy="72" rx="32" ry="4" fill="rgba(0,0,0,0.4)"/>
+  <!-- NAS Tower Chassis -->
+  <rect x="16" y="12" width="48" height="58" rx="4" fill="url(#nasChassis)" stroke="#64748b" stroke-width="1.5"/>
+  <!-- Top Ventilation / Brand Bezel -->
+  <rect x="20" y="15" width="40" height="6" rx="1.5" fill="#0f172a"/>
+  <circle cx="24" cy="18" r="1.5" fill="#38bdf8"/>
+  <circle cx="28" cy="18" r="1.5" fill="#22c55e"/>
+  <!-- Drive Bays 1 to 4 (Vertical Drive Caddies) -->
+  <rect x="20" y="24" width="8" height="38" rx="1.5" fill="url(#driveTray)" stroke="#334155" stroke-width="0.8"/>
+  <circle cx="24" cy="28" r="1.2" fill="#22c55e"/>
+  <line x1="22" y1="35" x2="26" y2="35" stroke="#94a3b8" stroke-width="1"/>
+  <line x1="22" y1="56" x2="26" y2="56" stroke="#94a3b8" stroke-width="1"/>
+
+  <rect x="30" y="24" width="8" height="38" rx="1.5" fill="url(#driveTray)" stroke="#334155" stroke-width="0.8"/>
+  <circle cx="34" cy="28" r="1.2" fill="#22c55e"/>
+  <line x1="32" y1="35" x2="36" y2="35" stroke="#94a3b8" stroke-width="1"/>
+  <line x1="32" y1="56" x2="36" y2="56" stroke="#94a3b8" stroke-width="1"/>
+
+  <rect x="40" y="24" width="8" height="38" rx="1.5" fill="url(#driveTray)" stroke="#334155" stroke-width="0.8"/>
+  <circle cx="44" cy="28" r="1.2" fill="#22c55e"/>
+  <line x1="42" y1="35" x2="46" y2="35" stroke="#94a3b8" stroke-width="1"/>
+  <line x1="42" y1="56" x2="46" y2="56" stroke="#94a3b8" stroke-width="1"/>
+
+  <rect x="50" y="24" width="8" height="38" rx="1.5" fill="url(#driveTray)" stroke="#334155" stroke-width="0.8"/>
+  <circle cx="54" cy="28" r="1.2" fill="#22c55e"/>
+  <line x1="52" y1="35" x2="56" y2="35" stroke="#94a3b8" stroke-width="1"/>
+  <line x1="52" y1="56" x2="56" y2="56" stroke="#94a3b8" stroke-width="1"/>
+
+  <!-- Lower Panel: Power button & USB Direct Copy -->
+  <circle cx="56" cy="65" r="2.5" fill="#0284c7" stroke="#38bdf8" stroke-width="0.8"/>
+  <rect x="22" y="64" width="6" height="2" fill="#cbd5e1"/>
+</svg>

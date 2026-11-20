@@ -23,7 +23,7 @@
                         <span class="status-dot green me-1"></span> Simulation Engine: Operational
                     </span>
                     <span class="badge-pill-cyan">
-                        <i class="fa-solid fa-fire text-warning me-1"></i> 5-Day Learning Streak
+                        <i class="fa-solid fa-fire text-warning me-1"></i> {{ streak_days }}-Day Learning Streak
                     </span>
                 </div>
                 <h3 class="text-white fw-bold mb-1">
@@ -56,7 +56,7 @@
                 </div>
                 <div class="overflow-hidden">
                     <div class="d-flex align-items-baseline gap-2">
-                        <h3 class="text-white fw-bold mb-0">98.4%</h3>
+                        <h3 class="text-white fw-bold mb-0">{{ health_score }}%</h3>
                         <span class="badge bg-success text-dark" style="font-size:0.65rem;">HEALTHY</span>
                     </div>
                     <div class="text-secondary small">Network Health Score</div>
@@ -71,7 +71,7 @@
                 </div>
                 <div class="overflow-hidden">
                     <div class="d-flex align-items-baseline gap-2">
-                        <h3 class="text-white fw-bold mb-0">24 / 24</h3>
+                        <h3 class="text-white fw-bold mb-0">{{ active_nodes }} / {{ active_nodes }}</h3>
                         <span class="badge bg-info text-dark" style="font-size:0.65rem;">ONLINE</span>
                     </div>
                     <div class="text-secondary small">Active Managed Nodes</div>
@@ -151,27 +151,27 @@
                     <!-- Interactive Topology Nodes (Positioned HTML elements) -->
                     <div style="position: absolute; top:0; left:0; width:100%; height:100%; z-index: 2;">
                         <!-- Node 1: Workstation -->
-                        <div class="dash-node cursor-pointer" style="position: absolute; left: 80px; top: 135px;" onclick="inspectDashNode('Eng-Workstation-01', 'PC Workstation', '192.168.10.15', 'Active / Up')">
+                        <div class="dash-node cursor-pointer" style="position: absolute; left: 80px; top: 135px;" onclick="inspectDashNode('Workstation-01', 'PC Workstation', '192.168.10.15', 'Active / Up')">
                             <div class="node-avatar bg-surface border border-info text-info"><i class="fa-solid fa-desktop"></i></div>
-                            <span class="node-label">Eng-Workstation</span>
+                            <span class="node-label">Workstation-01</span>
                         </div>
 
                         <!-- Node 2: Core Switch -->
-                        <div class="dash-node cursor-pointer" style="position: absolute; left: 220px; top: 135px;" onclick="inspectDashNode('Core-Switch-01', 'Catalyst 3850 L3 Switch', '192.168.1.3', 'VLAN 10, 20, 50 Active')">
+                        <div class="dash-node cursor-pointer" style="position: absolute; left: 220px; top: 135px;" onclick="inspectDashNode('Switch-01', 'Layer 3 Switch', '192.168.1.3', 'VLAN 10, 20, 50 Active')">
                             <div class="node-avatar bg-surface border border-info text-cyan"><i class="fa-solid fa-network-wired"></i></div>
-                            <span class="node-label">Core-Switch-01</span>
+                            <span class="node-label">Switch-01</span>
                         </div>
 
                         <!-- Node 3: Core Router -->
-                        <div class="dash-node cursor-pointer" style="position: absolute; left: 370px; top: 60px;" onclick="inspectDashNode('Edge-Router-01', 'Cisco ISR 4331 Gigabit', '192.168.1.1', 'OSPF Area 0 Converged')">
+                        <div class="dash-node cursor-pointer" style="position: absolute; left: 370px; top: 60px;" onclick="inspectDashNode('Router-01', 'Enterprise Router', '192.168.1.1', 'OSPF Area 0 Converged')">
                             <div class="node-avatar bg-surface border border-warning text-warning"><i class="fa-solid fa-route"></i></div>
-                            <span class="node-label">Edge-Router-01</span>
+                            <span class="node-label">Router-01</span>
                         </div>
 
                         <!-- Node 4: Firewall -->
-                        <div class="dash-node cursor-pointer" style="position: absolute; left: 530px; top: 60px;" onclick="inspectDashNode('Corp-Firewall-01', 'FortiGate 60F NGFW', '192.168.1.2', 'Stateful Inspection Active')">
+                        <div class="dash-node cursor-pointer" style="position: absolute; left: 530px; top: 60px;" onclick="inspectDashNode('Firewall-01', 'Perimeter Firewall', '192.168.1.2', 'Stateful Inspection Active')">
                             <div class="node-avatar bg-surface border border-danger text-danger"><i class="fa-solid fa-shield-halved"></i></div>
-                            <span class="node-label">Corp-Firewall</span>
+                            <span class="node-label">Firewall-01</span>
                         </div>
 
                         <!-- Node 5: Internet Cloud -->
@@ -181,15 +181,15 @@
                         </div>
 
                         <!-- Node 6: Server -->
-                        <div class="dash-node cursor-pointer" style="position: absolute; left: 370px; top: 210px;" onclick="inspectDashNode('AD-DNS-DHCP-Server', 'Dell PowerEdge R650', '192.168.20.5', 'Port 53, 67, 80 Listening')">
+                        <div class="dash-node cursor-pointer" style="position: absolute; left: 370px; top: 210px;" onclick="inspectDashNode('Server-01', 'Linux Multi-Service Server', '192.168.20.5', 'Port 53, 67, 80 Listening')">
                             <div class="node-avatar bg-surface border border-success text-success"><i class="fa-solid fa-server"></i></div>
-                            <span class="node-label">Enterprise-Server</span>
+                            <span class="node-label">Server-01</span>
                         </div>
 
                         <!-- Node 7: IP Camera -->
-                        <div class="dash-node cursor-pointer" style="position: absolute; left: 80px; top: 220px;" onclick="inspectDashNode('Surveillance-Dome-01', '4K PTZ Camera (PoE)', '192.168.50.11', 'RTSP Stream 4.5 Mbps')">
+                        <div class="dash-node cursor-pointer" style="position: absolute; left: 80px; top: 220px;" onclick="inspectDashNode('Camera-01', '4K PTZ IP Camera', '192.168.50.11', 'RTSP Stream 4.5 Mbps')">
                             <div class="node-avatar bg-surface border border-warning text-warning"><i class="fa-solid fa-video"></i></div>
-                            <span class="node-label">AXIS-CCTV-Dome</span>
+                            <span class="node-label">Camera-01</span>
                         </div>
                     </div>
 
@@ -197,7 +197,7 @@
                     <div id="dash-inspector-box" class="position-absolute bottom-0 start-0 end-0 p-2 px-3 bg-sidebar border-top border-secondary border-opacity-25 d-flex align-items-center justify-content-between small text-secondary" style="z-index: 3;">
                         <div>
                             <span class="status-dot green me-1"></span>
-                            <strong class="text-white" id="dash-inspect-name">Eng-Workstation-01</strong>
+                            <strong class="text-white" id="dash-inspect-name">Workstation-01</strong>
                             <span class="text-muted ms-2" id="dash-inspect-detail">192.168.10.15 · GigabitEthernet Link Up</span>
                         </div>
                         <span class="badge bg-secondary font-monospace" style="font-size:0.7rem;">Click node to inspect</span>
@@ -213,15 +213,15 @@
                     <span class="text-white fw-bold small">
                         <i class="fa-solid fa-graduation-cap text-purple me-2"></i>RAMONET Academy Progress
                     </span>
-                    <span class="badge bg-purple font-monospace" style="font-size:0.7rem;">Level 3 Engineer</span>
+                    <span class="badge bg-purple font-monospace" style="font-size:0.7rem;">Level {{ level }} Engineer</span>
                 </div>
                 <div class="ramonet-card-body flex-grow-1">
                     <div class="d-flex align-items-center justify-content-between mb-2">
                         <span class="text-secondary small">Total Experience (XP)</span>
-                        <strong class="text-white font-monospace">450 / 600 XP</strong>
+                        <strong class="text-white font-monospace">{{ user_xp }} / {{ next_level_xp }} XP</strong>
                     </div>
                     <div class="progress mb-3" style="height: 8px; background: rgba(255,255,255,0.06);">
-                        <div class="progress-bar bg-purple" style="width: 75%;"></div>
+                        <div class="progress-bar bg-purple" style="width: {{ level_progress_pct }}%;"></div>
                     </div>
 
                     <div class="p-3 bg-sidebar rounded border border-secondary border-opacity-25 mb-3">

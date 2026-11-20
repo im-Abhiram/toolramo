@@ -1,0 +1,37 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="100" height="100">
+  <defs>
+    <linearGradient id="srvBody" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#1e293b"/>
+      <stop offset="100%" stop-color="#090d16"/>
+    </linearGradient>
+  </defs>
+  <!-- 2U Server Chassis -->
+  <rect x="10" y="22" width="80" height="56" rx="4" fill="url(#srvBody)" stroke="#10b981" stroke-width="1.5"/>
+  <!-- Top 1U Divider -->
+  <line x1="10" y1="50" x2="90" y2="50" stroke="#334155" stroke-width="1.2"/>
+  <!-- Drive Caddies (Top Row) -->
+  <rect x="15" y="27" width="14" height="18" rx="2" fill="#0f172a" stroke="#475569" stroke-width="0.8"/>
+  <rect x="32" y="27" width="14" height="18" rx="2" fill="#0f172a" stroke="#475569" stroke-width="0.8"/>
+  <rect x="49" y="27" width="14" height="18" rx="2" fill="#0f172a" stroke="#475569" stroke-width="0.8"/>
+  <!-- Control Panel & Power -->
+  <circle cx="75" cy="33" r="3.5" fill="#0f172a" stroke="#10b981" stroke-width="1"/>
+  <circle cx="75" cy="33" r="1.5" fill="#10b981"/>
+  <circle cx="83" cy="33" r="1.5" fill="#38bdf8"/>
+  <circle cx="83" cy="38" r="1.5" fill="#22c55e"/>
+  <!-- Drive Caddies (Bottom Row) -->
+  <rect x="15" y="55" width="14" height="18" rx="2" fill="#0f172a" stroke="#475569" stroke-width="0.8"/>
+  <rect x="32" y="55" width="14" height="18" rx="2" fill="#0f172a" stroke="#475569" stroke-width="0.8"/>
+  <rect x="49" y="55" width="14" height="18" rx="2" fill="#0f172a" stroke="#475569" stroke-width="0.8"/>
+  <!-- Ventilation Slits -->
+  <line x1="68" y1="56" x2="84" y2="56" stroke="#475569" stroke-width="1"/>
+  <line x1="68" y1="61" x2="84" y2="61" stroke="#475569" stroke-width="1"/>
+  <line x1="68" y1="66" x2="84" y2="66" stroke="#475569" stroke-width="1"/>
+  <line x1="68" y1="71" x2="84" y2="71" stroke="#475569" stroke-width="1"/>
+  <!-- Activity LEDs on Drives -->
+  <circle cx="18" cy="41" r="1" fill="#22c55e"/>
+  <circle cx="35" cy="41" r="1" fill="#22c55e"/>
+  <circle cx="52" cy="41" r="1" fill="#22c55e"/>
+  <circle cx="18" cy="69" r="1" fill="#22c55e"/>
+  <circle cx="35" cy="69" r="1" fill="#22c55e"/>
+  <circle cx="52" cy="69" r="1" fill="#22c55e"/>
+</svg>

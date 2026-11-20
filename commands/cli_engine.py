@@ -54,14 +54,38 @@ class DeviceCLISession:
         self.device['cli_platform'] = self.platform
         
         # State tracking for Cisco IOS (check passed parameter first, then device state)
-        session_state = session_state or self.device.get('cli_session_state') or {}
-        self.mode = session_state.get('mode', 'user_exec')  # 'user_exec', 'priv_exec', 'global_config', 'interface_config', 'vlan_config', 'router_config'
-        self.current_interface = session_state.get('current_interface')
-        self.current_vlan = session_state.get('current_vlan')
-        self.current_router_proto = session_state.get('current_router_proto')
+        sess = session_state if isinstance(session_state, dict) else {}
+        dev_sess = self.device.get('cli_session_state') if isinstance(self.device.get('cli_session_state'), dict) else {}
+
+        mode = sess.get('mode') or dev_sess.get('mode')
+        # Guard mode against prompt suffix if mode is missing or defaulted
+        prompt = sess.get('prompt') or dev_sess.get('prompt') or ''
+        if prompt:
+            p = prompt.strip()
+            if '(config-if)' in p:
+                mode = 'interface_config'
+            elif '(config-vlan)' in p:
+                mode = 'vlan_config'
+            elif '(config-router)' in p:
+                mode = 'router_config'
+            elif '(config-line)' in p:
+                mode = 'line_config'
+            elif '(dhcp-config)' in p:
+                mode = 'dhcp_config'
+            elif '(config)' in p:
+                mode = 'global_config'
+            elif p.endswith('#'):
+                mode = 'priv_exec'
+            elif p.endswith('>'):
+                mode = 'user_exec'
+
+        self.mode = mode or 'user_exec'
+        self.current_interface = sess.get('current_interface') or dev_sess.get('current_interface')
+        self.current_vlan = sess.get('current_vlan') or dev_sess.get('current_vlan')
+        self.current_router_proto = sess.get('current_router_proto') or dev_sess.get('current_router_proto')
         
         # Linux / Windows tracking
-        self.working_dir = session_state.get('working_dir', '/home/admin' if self.platform == 'linux_shell' else r'C:\Users\Admin')
+        self.working_dir = sess.get('working_dir') or dev_sess.get('working_dir') or ('/home/admin' if self.platform == 'linux_shell' else r'C:\Users\Admin')
 
     def get_session_state(self) -> Dict[str, Any]:
         return {

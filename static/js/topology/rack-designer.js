@@ -19,11 +19,11 @@
             name: 'Rack A — Server Room Main',
             height: 42,
             equipment: [
-                { id: 'eq_1', name: 'Cisco Catalyst 2960-X 24P', type: 'layer2_switch', start_u: 40, height_u: 1, watts: 35.0, logical_device: 'SW-Access-01' },
+                { id: 'eq_1', name: 'Managed 24-Port Switch', type: 'layer2_switch', start_u: 40, height_u: 1, watts: 35.0, logical_device: 'SW-Access-01' },
                 { id: 'eq_2', name: 'Cat6 24-Port Patch Panel', type: 'patch_panel', start_u: 39, height_u: 1, watts: 0.0, logical_device: 'PP-01' },
-                { id: 'eq_3', name: 'FortiGate 100F Firewall', type: 'firewall', start_u: 37, height_u: 1, watts: 75.0, logical_device: 'FW-Perimeter' },
-                { id: 'eq_4', name: 'Cisco ISR 4331 Router', type: 'router', start_u: 35, height_u: 1, watts: 60.0, logical_device: 'RTR-Campus-Core' },
-                { id: 'eq_5', name: 'Dell PowerEdge R740 Server', type: 'windows_server', start_u: 20, height_u: 2, watts: 250.0, logical_device: 'SRV-HQ-Data' },
+                { id: 'eq_3', name: 'Perimeter Firewall', type: 'firewall', start_u: 37, height_u: 1, watts: 75.0, logical_device: 'FW-Perimeter' },
+                { id: 'eq_4', name: 'Enterprise Router', type: 'router', start_u: 35, height_u: 1, watts: 60.0, logical_device: 'RTR-Campus-Core' },
+                { id: 'eq_5', name: 'Enterprise Server', type: 'windows_server', start_u: 20, height_u: 2, watts: 250.0, logical_device: 'SRV-HQ-Data' },
                 { id: 'eq_6', name: 'APC Smart-UPS 3000VA', type: 'ups_power', start_u: 1, height_u: 2, watts: 0.0, logical_device: 'UPS-01' }
             ]
         },

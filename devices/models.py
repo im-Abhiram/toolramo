@@ -70,16 +70,46 @@ class DeviceDefinition(models.Model):
     class Meta:
         ordering = ['category', 'name']
 
+    @property
+    def picture_url(self):
+        slug = (self.category.slug or '').lower() if self.category else ''
+        name = (self.name or '').lower()
+        dev_type = (self.device_type or '').lower()
+        if 'nvr' in name or 'nvr' in dev_type:
+            return '/static/img/devices/nvr.svg'
+        if 'cctv' in slug or 'camera' in name or 'camera' in dev_type:
+            return '/static/img/devices/camera.svg'
+        if 'switch' in slug or 'switch' in name:
+            return '/static/img/devices/switch.svg'
+        if 'router' in slug or 'router' in name:
+            return '/static/img/devices/router.svg'
+        if 'firewall' in slug or 'firewall' in name:
+            return '/static/img/devices/firewall.svg'
+        if 'server' in slug or 'server' in name:
+            return '/static/img/devices/server.svg'
+        if 'storage' in slug or 'nas' in name or 'storage' in name:
+            return '/static/img/devices/storage.svg'
+        if 'printer' in slug or 'printer' in name:
+            return '/static/img/devices/printer.svg'
+        if 'wireless' in slug or 'ap' in name or 'access point' in name:
+            return '/static/img/devices/wireless.svg'
+        if 'laptop' in name:
+            return '/static/img/devices/laptop.svg'
+        if 'cloud' in name or 'wan' in name:
+            return '/static/img/devices/cloud.svg'
+        return '/static/img/devices/pc.svg'
+
     def to_palette_json(self):
         import json
         payload = {
             'id': self.id,
             'name': self.name,
-            'category': self.category.slug,
+            'category': self.category.slug if self.category else 'computers',
             'model_name': self.model_name,
             'manufacturer': self.manufacturer,
             'device_type': self.device_type,
             'icon': self.icon,
+            'picture_url': self.picture_url,
             'is_layer3': self.is_layer3,
             'cli_platform': self.cli_platform,
             'power_watts': self.power_watts,

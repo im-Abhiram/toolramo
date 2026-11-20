@@ -58,6 +58,7 @@ class TopologyCanvas {
 
         this.initEventListeners();
         this.pushHistoryState('Initial State');
+        this.updateModeIndicator();
     }
 
     initEventListeners() {
@@ -102,7 +103,7 @@ class TopologyCanvas {
             }
         });
 
-        window.addEventListener('mouseup', () => {
+        window.addEventListener('mouseup', (e) => {
             if (this.isPanningCanvas) {
                 this.isPanningCanvas = false;
                 this.container.classList.remove('panning');
@@ -111,6 +112,9 @@ class TopologyCanvas {
                 this.isDraggingNode = false;
                 this.dragTargetNode = null;
                 this.triggerChange('Device Moved');
+            }
+            if (this.isDraggingCable) {
+                this.isDraggingCable = false;
             }
         });
 
@@ -370,27 +374,75 @@ class TopologyCanvas {
             el.className = `device-node ${this.getCategoryClass(device.category)}`;
             el.style.pointerEvents = 'auto';
             el.innerHTML = `
-                <div class="port-connector-anchor top" data-anchor="top"></div>
-                <div class="port-connector-anchor bottom" data-anchor="bottom"></div>
-                <div class="port-connector-anchor left" data-anchor="left"></div>
-                <div class="port-connector-anchor right" data-anchor="right"></div>
-                <div class="device-node-icon">
-                    <i class="fa-solid ${device.icon}"></i>
+                <div class="port-connector-anchor top" data-anchor="top" title="Connect Cable (+)"><i class="fa-solid fa-plus"></i></div>
+                <div class="port-connector-anchor bottom" data-anchor="bottom" title="Connect Cable (+)"><i class="fa-solid fa-plus"></i></div>
+                <div class="port-connector-anchor left" data-anchor="left" title="Connect Cable (+)"><i class="fa-solid fa-plus"></i></div>
+                <div class="port-connector-anchor right" data-anchor="right" title="Connect Cable (+)"><i class="fa-solid fa-plus"></i></div>
+                <div class="device-node-pic">
+                    <img src="${this.getDevicePic(device)}" class="device-pic" alt="${device.name}" draggable="false">
                 </div>
                 <div class="device-node-name" title="${device.name}">${device.name}</div>
                 <div class="device-node-ip" title="${device.ip || 'No IP'}">${device.ip || '---'}</div>
             `;
             this.nodesContainer.appendChild(el);
 
-            // Anchor direct connection click
+            // Anchor direct connection click & drag
             el.querySelectorAll('.port-connector-anchor').forEach(anchor => {
-                anchor.addEventListener('click', (e) => {
+                anchor.addEventListener('mousedown', (e) => {
                     e.stopPropagation();
-                    if (this.mode !== 'connect') {
+                    e.preventDefault();
+                    if (!this.connectSource) {
                         this.startConnectMode();
+                        this.connectSource = device;
+                        el.classList.add('connecting-source');
+                        window.ramonetUI?.showToast('Select Destination', `Connecting from ${device.name}. Click or drag to target device (+)`, 'info');
+                    } else if (String(this.connectSource.id) !== String(device.id)) {
+                        const src = this.connectSource;
+                        const dest = device;
+                        const srcEl = document.getElementById(src.id);
+                        if (srcEl) srcEl.classList.remove('connecting-source');
+                        this.removeTempCable();
+                        this.cancelConnectMode();
+                        window.ramonetUI?.openConnectModal(src, dest, (cableType, srcPort, destPort) => {
+                            this.createConnection(src.id, srcPort, dest.id, destPort, cableType);
+                        });
+                        return;
                     }
-                    this.handleConnectClick(device);
+                    this.isDraggingCable = true;
                 });
+
+                anchor.addEventListener('mouseup', (e) => {
+                    if (this.connectSource && String(this.connectSource.id) !== String(device.id)) {
+                        e.stopPropagation();
+                        this.isDraggingCable = false;
+                        const src = this.connectSource;
+                        const dest = device;
+                        const srcEl = document.getElementById(src.id);
+                        if (srcEl) srcEl.classList.remove('connecting-source');
+                        this.removeTempCable();
+                        this.cancelConnectMode();
+                        window.ramonetUI?.openConnectModal(src, dest, (cableType, srcPort, destPort) => {
+                            this.createConnection(src.id, srcPort, dest.id, destPort, cableType);
+                        });
+                    }
+                });
+            });
+
+            // Node mouseup when dragging cable to body of device
+            el.addEventListener('mouseup', (e) => {
+                if (this.isDraggingCable && this.connectSource && String(this.connectSource.id) !== String(device.id)) {
+                    e.stopPropagation();
+                    this.isDraggingCable = false;
+                    const src = this.connectSource;
+                    const dest = device;
+                    const srcEl = document.getElementById(src.id);
+                    if (srcEl) srcEl.classList.remove('connecting-source');
+                    this.removeTempCable();
+                    this.cancelConnectMode();
+                    window.ramonetUI?.openConnectModal(src, dest, (cableType, srcPort, destPort) => {
+                        this.createConnection(src.id, srcPort, dest.id, destPort, cableType);
+                    });
+                }
             });
 
             // Node Drag Events
@@ -442,6 +494,40 @@ class TopologyCanvas {
         if (nameEl) nameEl.textContent = device.name;
         const ipEl = el.querySelector('.device-node-ip');
         if (ipEl) ipEl.textContent = device.ip || '---';
+
+        // Ensure picture is up-to-date
+        const picEl = el.querySelector('.device-pic');
+        if (picEl) {
+            picEl.src = this.getDevicePic(device);
+        } else {
+            const iconEl = el.querySelector('.device-node-icon');
+            if (iconEl) {
+                iconEl.className = 'device-node-pic';
+                iconEl.innerHTML = `<img src="${this.getDevicePic(device)}" class="device-pic" alt="${device.name}" draggable="false">`;
+            }
+        }
+    }
+
+    getDevicePic(device) {
+        if (!device) return '/static/img/devices/switch.svg';
+        const cat = (device.category || '').toLowerCase();
+        const type = (device.device_type || device.type || '').toLowerCase();
+        const name = (device.name || '').toLowerCase();
+        const model = (device.model_name || '').toLowerCase();
+
+        if (name.includes('nvr') || model.includes('nvr') || type.includes('nvr')) return '/static/img/devices/nvr.svg';
+        if (cat.includes('cctv') || cat.includes('camera') || type.includes('camera') || name.includes('cam')) return '/static/img/devices/camera.svg';
+        if (cat.includes('switch') || type.includes('switch') || name.includes('switch') || name.startsWith('sw')) return '/static/img/devices/switch.svg';
+        if (cat.includes('router') || type.includes('router') || name.includes('router') || name.startsWith('r')) return '/static/img/devices/router.svg';
+        if (cat.includes('firewall') || type.includes('firewall') || name.includes('fw')) return '/static/img/devices/firewall.svg';
+        if (cat.includes('server') || type.includes('server') || name.includes('srv') || name.includes('server')) return '/static/img/devices/server.svg';
+        if (cat.includes('storage') || cat.includes('nas') || type.includes('nas')) return '/static/img/devices/storage.svg';
+        if (cat.includes('printer') || type.includes('printer') || name.includes('print')) return '/static/img/devices/printer.svg';
+        if (cat.includes('wireless') || cat.includes('ap') || type.includes('ap') || name.includes('ap')) return '/static/img/devices/wireless.svg';
+        if (name.includes('laptop') || model.includes('laptop')) return '/static/img/devices/laptop.svg';
+        if (cat.includes('cloud') || name.includes('internet') || name.includes('wan') || name.includes('cloud')) return '/static/img/devices/cloud.svg';
+        if (cat.includes('computer') || cat.includes('endpoint') || name.includes('pc')) return '/static/img/devices/pc.svg';
+        return '/static/img/devices/switch.svg';
     }
 
     getCategoryClass(category = '') {
@@ -615,12 +701,11 @@ class TopologyCanvas {
             this.connectSource = device;
             const el = document.getElementById(device.id);
             if (el) el.classList.add('connecting-source');
-            window.ramonetUI?.showToast('Select Destination', `Connecting from ${device.name}. Now click the target device.`, 'info');
+            window.ramonetUI?.showToast('Select Destination', `Connecting from ${device.name}. Now click or drag to target device.`, 'info');
         } else {
             // Picked second device (Target)
             if (String(this.connectSource.id) === String(device.id)) {
-                window.ramonetUI?.showToast('Invalid Connection', 'Cannot connect a device to itself.', 'warning');
-                return;
+                return; // Double click or re-click on same device safely ignored
             }
 
             const src = this.connectSource;

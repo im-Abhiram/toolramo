@@ -1,0 +1,45 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 80 80" width="80" height="80">
+  <defs>
+    <linearGradient id="camMount" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#475569"/>
+      <stop offset="100%" stop-color="#1e293b"/>
+    </linearGradient>
+    <linearGradient id="camHousing" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#f8fafc"/>
+      <stop offset="100%" stop-color="#cbd5e1"/>
+    </linearGradient>
+    <radialGradient id="camLens" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#0284c7"/>
+      <stop offset="60%" stop-color="#0f172a"/>
+      <stop offset="100%" stop-color="#020617"/>
+    </radialGradient>
+  </defs>
+  <!-- Shadow -->
+  <ellipse cx="40" cy="72" rx="28" ry="4" fill="rgba(0,0,0,0.35)"/>
+  <!-- Ceiling / Wall Mount Plate -->
+  <rect x="22" y="10" width="36" height="8" rx="2" fill="url(#camMount)" stroke="#64748b" stroke-width="1.2"/>
+  <!-- Mount Arm -->
+  <path d="M 34 18 L 46 18 L 44 26 L 36 26 Z" fill="#334155" stroke="#475569" stroke-width="1"/>
+  <!-- Dome Base Ring -->
+  <ellipse cx="40" cy="30" rx="30" ry="8" fill="url(#camHousing)" stroke="#94a3b8" stroke-width="1.5"/>
+  <!-- Glass Dome -->
+  <path d="M 12 30 A 28 28 0 0 0 68 30 Z" fill="#0f172a" fill-opacity="0.88" stroke="#38bdf8" stroke-width="1.2"/>
+  <!-- Inner Eyeball / Swivel Housing -->
+  <circle cx="40" cy="44" r="16" fill="#1e293b" stroke="#475569" stroke-width="1.2"/>
+  <!-- High-Res Optical Glass Lens -->
+  <circle cx="40" cy="44" r="10" fill="url(#camLens)" stroke="#38bdf8" stroke-width="1.5"/>
+  <!-- Lens Flare Reflection -->
+  <circle cx="37" cy="41" r="3" fill="#ffffff" fill-opacity="0.7"/>
+  <circle cx="43" cy="47" r="1.2" fill="#38bdf8" fill-opacity="0.8"/>
+  <!-- IR Night Vision Ring (8 LEDs) -->
+  <circle cx="40" cy="30" r="1.2" fill="#ef4444"/>
+  <circle cx="48" cy="33" r="1.2" fill="#ef4444"/>
+  <circle cx="53" cy="40" r="1.2" fill="#ef4444"/>
+  <circle cx="51" cy="49" r="1.2" fill="#ef4444"/>
+  <circle cx="40" cy="58" r="1.2" fill="#ef4444"/>
+  <circle cx="29" cy="49" r="1.2" fill="#ef4444"/>
+  <circle cx="27" cy="40" r="1.2" fill="#ef4444"/>
+  <circle cx="32" cy="33" r="1.2" fill="#ef4444"/>
+  <!-- Status LED / PoE Active Indicator -->
+  <circle cx="40" cy="24" r="1.8" fill="#22c55e"/>
+</svg>

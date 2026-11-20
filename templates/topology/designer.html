@@ -26,12 +26,12 @@
             <div class="palette-category-title">{{ cat.name }}</div>
             {% for dev in cat.devices.all %}
             <div class="palette-device-item" draggable="true" data-definition-id="{{ dev.id }}" data-json='{{ dev.to_palette_json|safe }}' title="Click to add or drag onto canvas">
-                <div class="palette-device-icon">
-                    <i class="fa-solid {{ dev.icon }}"></i>
+                <div class="palette-device-icon p-1">
+                    <img src="{{ dev.picture_url }}" class="palette-device-pic" alt="{{ dev.name }}" draggable="false">
                 </div>
                 <div class="overflow-hidden">
                     <div class="palette-device-name" title="{{ dev.name }}">{{ dev.name }}</div>
-                    <div class="palette-device-desc">{{ dev.manufacturer }}</div>
+                    <div class="palette-device-desc">{{ dev.get_device_type_display|default:cat.name }}</div>
                 </div>
                 <i class="fa-solid fa-plus text-secondary ms-auto small opacity-50" title="Click to add"></i>
             </div>
@@ -97,10 +97,10 @@
     <div class="device-inspector-panel closed" id="device-inspector-panel">
         <div class="inspector-header">
             <div class="d-flex align-items-center gap-2">
-                <i class="fa-solid fa-server text-info" id="inspector-dev-icon"></i>
+                <img id="inspector-dev-pic" class="inspector-device-pic" src="{% static 'img/devices/switch.svg' %}" alt="Device">
                 <div>
                     <h6 class="text-white mb-0 fw-bold" id="inspector-dev-name">Device</h6>
-                    <small class="text-muted" id="inspector-dev-model">Model</small>
+                    <small class="text-muted" id="inspector-dev-model">Hardware Model</small>
                 </div>
             </div>
             <button class="btn btn-sm text-secondary p-0" id="btn-close-inspector" title="Close Inspector"><i class="fa-solid fa-xmark fa-lg"></i></button>
@@ -210,7 +210,11 @@
                         <span><i class="fa-solid fa-terminal me-2"></i>Open CLI Terminal</span>
                         <i class="fa-solid fa-chevron-right text-muted"></i>
                     </button>
-                    <button class="btn btn-sm btn-outline-cyan text-start d-flex align-items-center justify-content-between" id="btn-inspect-wizard">
+                    <button class="btn btn-sm btn-outline-cyan text-start d-flex align-items-center justify-content-between" id="btn-inspect-gui">
+                        <span><i class="fa-solid fa-globe me-2"></i>Open Device Web GUI</span>
+                        <i class="fa-solid fa-chevron-right text-muted"></i>
+                    </button>
+                    <button class="btn btn-sm btn-outline-secondary text-start d-flex align-items-center justify-content-between" id="btn-inspect-wizard">
                         <span><i class="fa-solid fa-wand-magic-sparkles me-2"></i>Guided Config Wizard</span>
                         <i class="fa-solid fa-chevron-right text-muted"></i>
                     </button>
@@ -247,6 +251,9 @@
                 <button class="workbench-tab-btn active" data-tab="cli-terminal">
                     <i class="fa-solid fa-terminal"></i> CLI Terminal
                 </button>
+                <button class="workbench-tab-btn" data-tab="device-web-gui" id="tab-btn-device-web-gui">
+                    <i class="fa-solid fa-globe text-cyan"></i> Device Web GUI
+                </button>
                 <button class="workbench-tab-btn" data-tab="packet-inspector">
                     <i class="fa-solid fa-route"></i> Packet Inspector
                 </button>
@@ -265,7 +272,16 @@
             <div class="workbench-tab-pane h-100" id="tab-pane-cli-terminal">
                 <div id="ramonet-terminal-mount" class="h-100"></div>
             </div>
-            <!-- Pane 2: Packet Flow Inspector -->
+            <!-- Pane 2: Device Web GUI -->
+            <div class="workbench-tab-pane d-none h-100" id="tab-pane-device-web-gui">
+                <div id="device-web-gui-mount" class="h-100 overflow-y-auto p-3">
+                    <div class="p-4 text-center text-muted">
+                        <i class="fa-solid fa-globe fa-3x mb-2 text-cyan opacity-50"></i>
+                        <p class="small">Select a device on canvas to open its interactive Web Management GUI.</p>
+                    </div>
+                </div>
+            </div>
+            <!-- Pane 3: Packet Flow Inspector -->
             <div class="workbench-tab-pane d-none h-100" id="tab-pane-packet-inspector">
                 <div id="packet-inspector-content" class="h-100 overflow-y-auto">
                     <div class="p-4 text-center text-muted">
@@ -274,7 +290,7 @@
                     </div>
                 </div>
             </div>
-            <!-- Pane 3: Event Log -->
+            <!-- Pane 4: Event Log -->
             <div class="workbench-tab-pane d-none h-100" id="tab-pane-event-log">
                 <div class="p-3 font-monospace small text-secondary" id="workbench-event-log-list">
                     <div class="text-muted"><i class="fa-solid fa-circle-info text-info me-2"></i>Network simulation kernel initialized.</div>
@@ -288,6 +304,7 @@
         <div class="px-3 py-1 text-muted small fw-bold context-menu-device-title">Device</div>
         <div class="context-menu-divider"></div>
         <div class="context-menu-item" id="ctx-open-cli"><i class="fa-solid fa-terminal text-info"></i> Open CLI Terminal</div>
+        <div class="context-menu-item" id="ctx-open-gui"><i class="fa-solid fa-globe text-cyan"></i> Open Device Web GUI</div>
         <div class="context-menu-item" id="ctx-open-wizard"><i class="fa-solid fa-wand-magic-sparkles text-cyan"></i> Guided Config Wizard</div>
         <div class="context-menu-item" id="ctx-open-guide"><i class="fa-solid fa-book-open text-warning"></i> 15-Section Learning Guide</div>
         <div class="context-menu-item" id="ctx-how-to-connect"><i class="fa-solid fa-plug text-success"></i> How to Connect...</div>
@@ -498,6 +515,12 @@ document.addEventListener('DOMContentLoaded', async () => {
             window.ramonetTerminal.attachDevice(window.ramonetCanvas.selectedDevice);
         }
     });
+    document.getElementById('btn-inspect-gui')?.addEventListener('click', () => {
+        if (window.ramonetCanvas.selectedDevice) {
+            window.ramonetUI.showWorkbenchTab('device-web-gui');
+            window.ramonetUI.renderDeviceWebGUI(window.ramonetCanvas.selectedDevice);
+        }
+    });
     document.getElementById('btn-inspect-wizard')?.addEventListener('click', () => {
         if (window.ramonetCanvas.selectedDevice) {
             window.ramonetAssistant.openConfigWizard(window.ramonetCanvas.selectedDevice);
@@ -573,6 +596,12 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (window.ramonetCanvas.selectedDevice) {
             window.ramonetUI.showWorkbenchTab('cli-terminal');
             window.ramonetTerminal.attachDevice(window.ramonetCanvas.selectedDevice);
+        }
+    });
+    document.getElementById('ctx-open-gui')?.addEventListener('click', () => {
+        if (window.ramonetCanvas.selectedDevice) {
+            window.ramonetUI.showWorkbenchTab('device-web-gui');
+            window.ramonetUI.renderDeviceWebGUI(window.ramonetCanvas.selectedDevice);
         }
     });
     document.getElementById('ctx-open-wizard')?.addEventListener('click', () => {

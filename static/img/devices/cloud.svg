@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 80 80" width="80" height="80">
+  <defs>
+    <linearGradient id="cloudGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#38bdf8"/>
+      <stop offset="50%" stop-color="#0284c7"/>
+      <stop offset="100%" stop-color="#1d4ed8"/>
+    </linearGradient>
+  </defs>
+  <!-- Shadow -->
+  <ellipse cx="40" cy="68" rx="28" ry="4" fill="rgba(0,0,0,0.3)"/>
+  <!-- Cloud Outline Shape -->
+  <path d="M 28 58 L 56 58 A 14 14 0 0 0 58 30 A 18 18 0 0 0 24 32 A 14 14 0 0 0 28 58 Z" fill="url(#cloudGrad)" stroke="#7dd3fc" stroke-width="1.8"/>
+  <!-- Internal Internet WAN / Globe Rings -->
+  <circle cx="41" cy="43" r="11" fill="none" stroke="#ffffff" stroke-width="1.2" stroke-opacity="0.8"/>
+  <ellipse cx="41" cy="43" rx="5" ry="11" fill="none" stroke="#ffffff" stroke-width="1.2" stroke-opacity="0.8"/>
+  <line x1="30" y1="43" x2="52" y2="43" stroke="#ffffff" stroke-width="1.2" stroke-opacity="0.8"/>
+  <!-- Data Exchange Nodes -->
+  <circle cx="41" cy="32" r="1.5" fill="#22c55e"/>
+  <circle cx="52" cy="43" r="1.5" fill="#eab308"/>
+  <circle cx="30" cy="43" r="1.5" fill="#38bdf8"/>
+  <circle cx="41" cy="54" r="1.5" fill="#22c55e"/>
+</svg>

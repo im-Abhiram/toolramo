@@ -71,6 +71,13 @@ class RamonetUI {
         if (drawer && drawer.classList.contains('minimized')) {
             drawer.classList.remove('minimized');
         }
+
+        if (tabId === 'device-web-gui') {
+            const dev = window.ramonetCanvas?.selectedDevice || window.ramonetCanvas?.project?.devices?.[0];
+            if (dev) {
+                this.renderDeviceWebGUI(dev);
+            }
+        }
     }
 
     bindGlobalSearch() {
@@ -242,6 +249,18 @@ class RamonetUI {
 
         const ifcCount = (device.interfaces || []).length;
         if (ifcCountBadge) ifcCountBadge.textContent = `${ifcCount} port${ifcCount === 1 ? '' : 's'}`;
+
+        // Update inspector device picture
+        const picEl = document.getElementById('inspector-dev-pic');
+        if (picEl) {
+            picEl.src = window.ramonetCanvas?.getDevicePic(device) || '/static/img/devices/switch.svg';
+        }
+
+        // If the Web GUI tab is active, update it in real-time
+        const activeTabBtn = document.querySelector('.workbench-tab-btn.active');
+        if (activeTabBtn && activeTabBtn.getAttribute('data-tab') === 'device-web-gui') {
+            this.renderDeviceWebGUI(device);
+        }
 
         if (subnetSummary) {
             const mask = device.subnet_mask || '255.255.255.0';
@@ -587,6 +606,315 @@ class RamonetUI {
             window.ramonetCanvas?.selectDevice(targetDev.id);
         }
         this.showToast('Template Generated', `Generated ${name}`, 'success');
+    }
+
+    renderDeviceWebGUI(device) {
+        const mount = document.getElementById('device-web-gui-mount');
+        if (!mount) return;
+
+        if (!device) {
+            mount.innerHTML = `
+                <div class="p-4 text-center text-muted">
+                    <i class="fa-solid fa-globe fa-3x mb-2 text-cyan opacity-50"></i>
+                    <p class="small">No device selected. Click a device on the canvas to open its Web Management GUI.</p>
+                </div>
+            `;
+            return;
+        }
+
+        const devName = device.name || 'Device';
+        const devIp = device.ip || '192.168.1.1';
+        const cat = (device.category || '').toLowerCase();
+        const dNameLow = devName.toLowerCase();
+        const picUrl = window.ramonetCanvas?.getDevicePic(device) || '/static/img/devices/switch.svg';
+
+        let innerContent = '';
+
+        if (cat.includes('router') || dNameLow.includes('router')) {
+            innerContent = `
+                <div class="row g-3">
+                    <div class="col-md-4">
+                        <div class="p-3 bg-card-secondary rounded border border-accent">
+                            <div class="d-flex align-items-center justify-content-between mb-2">
+                                <span class="small text-secondary fw-semibold">WAN Interface (Gi0/0)</span>
+                                <span class="badge bg-success text-dark">CONNECTED</span>
+                            </div>
+                            <div class="h5 text-white mb-1">${devIp}</div>
+                            <div class="small text-muted">Gateway: ${device.gateway || '203.0.113.1'}</div>
+                            <div class="small text-muted">DNS: ${device.dns || '8.8.8.8'}</div>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="p-3 bg-card-secondary rounded border border-accent">
+                            <div class="d-flex align-items-center justify-content-between mb-2">
+                                <span class="small text-secondary fw-semibold">LAN DHCP Server</span>
+                                <span class="badge bg-info text-dark">ACTIVE</span>
+                            </div>
+                            <div class="h5 text-white mb-1">Pool: 192.168.1.0/24</div>
+                            <div class="small text-muted">Range: 192.168.1.100 - 192.168.1.200</div>
+                            <div class="small text-muted">Lease Time: 24 Hours</div>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="p-3 bg-card-secondary rounded border border-accent">
+                            <div class="d-flex align-items-center justify-content-between mb-2">
+                                <span class="small text-secondary fw-semibold">Routing Engine</span>
+                                <span class="badge bg-purple">OSPF AREA 0</span>
+                            </div>
+                            <div class="h5 text-white mb-1">Status: Converged</div>
+                            <div class="small text-muted">Direct Links: ${(device.interfaces || []).length}</div>
+                            <div class="small text-muted">NAT Overload: Enabled</div>
+                        </div>
+                    </div>
+                    <div class="col-12">
+                        <div class="p-3 bg-card-secondary rounded border border-accent">
+                            <h6 class="text-white small fw-bold mb-3"><i class="fa-solid fa-list-check text-cyan me-2"></i>Active Routing Table Entries</h6>
+                            <div class="table-responsive">
+                                <table class="table table-sm table-dark border-secondary mb-0 small">
+                                    <thead>
+                                        <tr class="text-secondary">
+                                            <th>Type</th>
+                                            <th>Destination Prefix</th>
+                                            <th>Next Hop</th>
+                                            <th>Interface</th>
+                                            <th>Metric</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr><td><span class="badge bg-success text-dark">C</span></td><td>${devIp}/24</td><td>Direct Connection</td><td>GigabitEthernet0/0</td><td>0</td></tr>
+                                        <tr><td><span class="badge bg-info text-dark">S</span></td><td>0.0.0.0/0</td><td>${device.gateway || '203.0.113.1'}</td><td>GigabitEthernet0/1</td><td>1/0</td></tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+        } else if (cat.includes('switch') || dNameLow.includes('switch')) {
+            const ports = Array.from({ length: 24 }, (_, i) => i + 1);
+            const portLeds = ports.map(p => {
+                const isConnected = p <= 4;
+                return `
+                    <div class="text-center p-2 rounded border ${isConnected ? 'border-success bg-success bg-opacity-10' : 'border-secondary border-opacity-25 bg-dark'}" style="width: 48px;">
+                        <div class="small text-white fw-bold">${p}</div>
+                        <i class="fa-solid fa-circle ${isConnected ? 'text-success' : 'text-secondary opacity-50'}" style="font-size:0.55rem;"></i>
+                    </div>
+                `;
+            }).join('');
+
+            innerContent = `
+                <div class="p-3 bg-card-secondary rounded border border-accent mb-3">
+                    <div class="d-flex align-items-center justify-content-between mb-3">
+                        <div>
+                            <h6 class="text-white mb-0 fw-bold"><i class="fa-solid fa-network-wired text-cyan me-2"></i>24-Port Gigabit Ethernet Switch Matrix</h6>
+                            <small class="text-muted">Visual Front Panel Status (Green = Link Active 1000M Full-Duplex)</small>
+                        </div>
+                        <span class="badge bg-success text-dark">Spanning Tree: RSTP Root</span>
+                    </div>
+                    <div class="d-flex flex-wrap gap-2 justify-content-center p-2 bg-dark rounded border border-secondary border-opacity-25">
+                        ${portLeds}
+                    </div>
+                </div>
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <div class="p-3 bg-card-secondary rounded border border-accent">
+                            <h6 class="text-white small fw-bold mb-2">VLAN Allocation</h6>
+                            <table class="table table-sm table-dark border-secondary mb-0 small">
+                                <thead><tr class="text-secondary"><th>VLAN ID</th><th>Name</th><th>Ports</th></tr></thead>
+                                <tbody>
+                                    <tr><td>1</td><td>Default</td><td>Fa0/1 - Fa0/24</td></tr>
+                                    <tr><td>10</td><td>Corporate Data</td><td>Gi0/1 - Gi0/2</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="p-3 bg-card-secondary rounded border border-accent">
+                            <h6 class="text-white small fw-bold mb-2">PoE Power Budget</h6>
+                            <div class="d-flex justify-content-between small text-secondary mb-1">
+                                <span>Used: 38.5 W</span>
+                                <span>Total: 126.0 W</span>
+                            </div>
+                            <div class="progress mb-2" style="height: 8px;">
+                                <div class="progress-bar bg-success" style="width: 30%;"></div>
+                            </div>
+                            <small class="text-muted">Supplying power to connected IP Cameras & Wireless APs</small>
+                        </div>
+                    </div>
+                </div>
+            `;
+        } else if (cat.includes('cctv') || dNameLow.includes('nvr') || dNameLow.includes('camera')) {
+            innerContent = `
+                <div class="row g-3">
+                    <div class="col-md-8">
+                        <div class="p-3 bg-card-secondary rounded border border-accent">
+                            <div class="d-flex align-items-center justify-content-between mb-2">
+                                <h6 class="text-white small fw-bold mb-0"><i class="fa-solid fa-video text-warning me-2"></i>Live Video Stream Matrix (H.265 / 4K)</h6>
+                                <span class="badge bg-danger"><i class="fa-solid fa-record-vinyl me-1"></i>REC 24/7</span>
+                            </div>
+                            <div class="row g-2">
+                                <div class="col-6">
+                                    <div class="bg-black rounded p-3 text-center border border-secondary border-opacity-50 position-relative" style="min-height: 120px;">
+                                        <div class="position-absolute top-0 start-0 p-1 small text-info font-monospace" style="font-size:0.65rem;">CH-01: Main Entrance</div>
+                                        <div class="position-absolute bottom-0 end-0 p-1 small text-success font-monospace" style="font-size:0.65rem;">3840x2160 · 30 FPS</div>
+                                        <i class="fa-solid fa-building-user text-secondary opacity-50 fa-2x my-3"></i>
+                                    </div>
+                                </div>
+                                <div class="col-6">
+                                    <div class="bg-black rounded p-3 text-center border border-secondary border-opacity-50 position-relative" style="min-height: 120px;">
+                                        <div class="position-absolute top-0 start-0 p-1 small text-info font-monospace" style="font-size:0.65rem;">CH-02: Server Room</div>
+                                        <div class="position-absolute bottom-0 end-0 p-1 small text-success font-monospace" style="font-size:0.65rem;">3840x2160 · 30 FPS</div>
+                                        <i class="fa-solid fa-server text-secondary opacity-50 fa-2x my-3"></i>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="p-3 bg-card-secondary rounded border border-accent h-100">
+                            <h6 class="text-white small fw-bold mb-2">Surveillance Storage</h6>
+                            <div class="d-flex justify-content-between small text-secondary mb-1">
+                                <span>Used: 18.4 TB</span>
+                                <span>Max: 32.0 TB</span>
+                            </div>
+                            <div class="progress mb-3" style="height: 8px;">
+                                <div class="progress-bar bg-warning" style="width: 57%;"></div>
+                            </div>
+                            <div class="small text-muted mb-1"><i class="fa-solid fa-check text-success me-1"></i>RAID 5 Health: Optimal</div>
+                            <div class="small text-muted mb-1"><i class="fa-solid fa-clock text-info me-1"></i>Retention: 42 Days</div>
+                            <div class="small text-muted"><i class="fa-solid fa-network-wired text-cyan me-1"></i>RTSP Port: 554 (Open)</div>
+                        </div>
+                    </div>
+                </div>
+            `;
+        } else if (cat.includes('server') || dNameLow.includes('server')) {
+            innerContent = `
+                <div class="row g-3">
+                    <div class="col-md-4">
+                        <div class="p-3 bg-card-secondary rounded border border-accent">
+                            <div class="small text-secondary mb-1">CPU Load (8 Cores)</div>
+                            <div class="h4 text-white mb-2">18.4%</div>
+                            <div class="progress" style="height: 6px;"><div class="progress-bar bg-success" style="width: 18%;"></div></div>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="p-3 bg-card-secondary rounded border border-accent">
+                            <div class="small text-secondary mb-1">Memory Utilization</div>
+                            <div class="h4 text-white mb-2">4.2 / 16.0 GB</div>
+                            <div class="progress" style="height: 6px;"><div class="progress-bar bg-info" style="width: 26%;"></div></div>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="p-3 bg-card-secondary rounded border border-accent">
+                            <div class="small text-secondary mb-1">System Uptime</div>
+                            <div class="h4 text-white mb-2">14d 06h 22m</div>
+                            <span class="badge bg-success text-dark">HEALTHY</span>
+                        </div>
+                    </div>
+                    <div class="col-12">
+                        <div class="p-3 bg-card-secondary rounded border border-accent">
+                            <h6 class="text-white small fw-bold mb-2">Listening Network Services</h6>
+                            <div class="d-flex flex-wrap gap-2">
+                                <span class="badge bg-dark border border-secondary text-white p-2"><i class="fa-solid fa-globe text-cyan me-1"></i>Nginx Web (Port 80/443) - RUNNING</span>
+                                <span class="badge bg-dark border border-secondary text-white p-2"><i class="fa-solid fa-server text-purple me-1"></i>BIND9 DNS (Port 53) - RUNNING</span>
+                                <span class="badge bg-dark border border-secondary text-white p-2"><i class="fa-solid fa-terminal text-warning me-1"></i>OpenSSH (Port 22) - RUNNING</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+        } else if (cat.includes('firewall') || dNameLow.includes('firewall')) {
+            innerContent = `
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <div class="p-3 bg-card-secondary rounded border border-accent">
+                            <div class="d-flex align-items-center justify-content-between mb-2">
+                                <h6 class="text-white small fw-bold mb-0">Stateful Inspection Firewall</h6>
+                                <span class="badge bg-danger">DEFAULT DENY</span>
+                            </div>
+                            <table class="table table-sm table-dark border-secondary mb-0 small">
+                                <thead><tr class="text-secondary"><th>Rule</th><th>Source</th><th>Dest</th><th>Action</th></tr></thead>
+                                <tbody>
+                                    <tr><td>1</td><td>LAN (192.168.1.0/24)</td><td>ANY (Internet)</td><td><span class="badge bg-success text-dark">ALLOW</span></td></tr>
+                                    <tr><td>2</td><td>WAN (Internet)</td><td>DMZ Web (Port 80)</td><td><span class="badge bg-success text-dark">ALLOW</span></td></tr>
+                                    <tr><td>3</td><td>ANY</td><td>ANY</td><td><span class="badge bg-danger">DROP</span></td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="p-3 bg-card-secondary rounded border border-accent">
+                            <h6 class="text-white small fw-bold mb-2">Security & VPN Tunnels</h6>
+                            <div class="small text-muted mb-1"><i class="fa-solid fa-shield-halved text-success me-1"></i>Intrusion Prevention: Active (0 Threats)</div>
+                            <div class="small text-muted mb-1"><i class="fa-solid fa-lock text-info me-1"></i>IPsec Site-to-Site VPN: 1 Tunnel Connected</div>
+                            <div class="small text-muted"><i class="fa-solid fa-network-wired text-cyan me-1"></i>Active Connections in Table: 24 Sockets</div>
+                        </div>
+                    </div>
+                </div>
+            `;
+        } else {
+            // General Endpoint / PC / Printer / Storage
+            innerContent = `
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <div class="p-3 bg-card-secondary rounded border border-accent">
+                            <h6 class="text-white small fw-bold mb-3"><i class="fa-solid fa-network-wired text-cyan me-2"></i>Network Adapter Configuration</h6>
+                            <div class="small text-secondary mb-1">IPv4 Address: <strong class="text-white font-monospace">${devIp}</strong></div>
+                            <div class="small text-secondary mb-1">Subnet Mask: <strong class="text-white font-monospace">${device.subnet_mask || '255.255.255.0'}</strong></div>
+                            <div class="small text-secondary mb-1">Default Gateway: <strong class="text-white font-monospace">${device.gateway || '192.168.1.1'}</strong></div>
+                            <div class="small text-secondary">DNS Server: <strong class="text-white font-monospace">${device.dns || '8.8.8.8'}</strong></div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="p-3 bg-card-secondary rounded border border-accent">
+                            <h6 class="text-white small fw-bold mb-3"><i class="fa-solid fa-heart-pulse text-success me-2"></i>Device Operational State</h6>
+                            <div class="small text-muted mb-1"><i class="fa-solid fa-circle-check text-success me-1"></i>Status: ONLINE & RESPONSIVE</div>
+                            <div class="small text-muted mb-1"><i class="fa-solid fa-bolt text-warning me-1"></i>Power Draw: ${device.power_watts || 25} Watts</div>
+                            <div class="small text-muted"><i class="fa-solid fa-diagram-project text-info me-1"></i>Category: ${device.category || 'General'}</div>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        mount.innerHTML = `
+            <div class="device-web-gui-container bg-dark rounded border border-secondary border-opacity-50 overflow-hidden shadow">
+                <!-- Browser Header Bar -->
+                <div class="web-gui-browser-bar bg-sidebar p-2 d-flex align-items-center gap-2 border-bottom border-secondary border-opacity-25">
+                    <div class="d-flex align-items-center gap-1 text-secondary me-2">
+                        <i class="fa-solid fa-arrow-left small cursor-pointer opacity-50"></i>
+                        <i class="fa-solid fa-arrow-right small cursor-pointer opacity-50"></i>
+                        <i class="fa-solid fa-rotate-right small cursor-pointer hover-text-white" title="Refresh GUI" onclick="window.ramonetUI.renderDeviceWebGUI(window.ramonetCanvas.selectedDevice)"></i>
+                    </div>
+                    <div class="flex-grow-1 bg-dark px-2 py-1 rounded text-white small font-monospace d-flex align-items-center justify-content-between border border-secondary border-opacity-25" style="max-width: 500px;">
+                        <span><i class="fa-solid fa-lock text-success me-2"></i>https://${devIp}:443/admin</span>
+                        <span class="badge bg-secondary font-monospace" style="font-size:0.65rem;">SSL / TLS 1.3</span>
+                    </div>
+                    <div class="ms-auto d-flex align-items-center gap-2">
+                        <span class="badge bg-success text-dark"><i class="fa-solid fa-circle me-1" style="font-size:0.5rem;"></i>ONLINE</span>
+                    </div>
+                </div>
+
+                <!-- Web GUI App Workspace Header -->
+                <div class="p-3 bg-sidebar border-bottom border-secondary border-opacity-25 d-flex align-items-center justify-content-between">
+                    <div class="d-flex align-items-center gap-3">
+                        <img src="${picUrl}" class="palette-device-pic" alt="${devName}">
+                        <div>
+                            <h5 class="text-white fw-bold mb-0">${devName} Web Management Portal</h5>
+                            <small class="text-muted">Hardware: ${device.model_name || device.category || 'Enterprise Appliance'} · Firmware v2.0</small>
+                        </div>
+                    </div>
+                    <button class="btn btn-sm btn-outline-cyan" onclick="window.ramonetUI.showToast('Configuration Saved', 'Device web parameters updated successfully.', 'success')">
+                        <i class="fa-solid fa-floppy-disk me-1"></i>Save Configuration
+                    </button>
+                </div>
+
+                <!-- Web GUI App Workspace Body -->
+                <div class="p-3">
+                    ${innerContent}
+                </div>
+            </div>
+        `;
     }
 }
 

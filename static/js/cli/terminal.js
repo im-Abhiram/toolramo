@@ -140,6 +140,19 @@ class RamonetTerminal {
     }
 
     getSessionState() {
+        // Enforce mode synchronization from prompt if prompt explicitly indicates mode
+        if (this.prompt) {
+            const p = this.prompt.trim();
+            if (p.includes('(config-if)')) this.mode = 'interface_config';
+            else if (p.includes('(config-vlan)')) this.mode = 'vlan_config';
+            else if (p.includes('(config-router)')) this.mode = 'router_config';
+            else if (p.includes('(config-line)')) this.mode = 'line_config';
+            else if (p.includes('(dhcp-config)')) this.mode = 'dhcp_config';
+            else if (p.includes('(config)')) this.mode = 'global_config';
+            else if (p.endsWith('#')) this.mode = 'priv_exec';
+            else if (p.endsWith('>')) this.mode = 'user_exec';
+        }
+
         const devState = this.currentDevice?.cli_session_state || (this.currentDevice?.id && this.deviceSessions[this.currentDevice.id]) || {};
         const activeMode = this.mode || devState.mode || 'user_exec';
         return {
@@ -207,16 +220,22 @@ class RamonetTerminal {
         // Restore or initialize session state
         const savedSession = device.cli_session_state || (device.id && this.deviceSessions[device.id]);
         if (savedSession) {
-            this.mode = savedSession.mode || 'user_exec';
-            if (device.id) {
-                this.deviceSessions[device.id] = { ...savedSession };
-            }
-            device.cli_session_state = { ...savedSession };
             if (savedSession.prompt) {
+                const p = savedSession.prompt.trim();
+                if (p.includes('(config-if)')) this.mode = 'interface_config';
+                else if (p.includes('(config)')) this.mode = 'global_config';
+                else if (p.endsWith('#')) this.mode = 'priv_exec';
+                else if (p.endsWith('>')) this.mode = 'user_exec';
+                else this.mode = savedSession.mode || 'user_exec';
                 this.setPrompt(savedSession.prompt);
             } else {
+                this.mode = savedSession.mode || 'user_exec';
                 this.computeDefaultPrompt(device, platform);
             }
+            if (device.id) {
+                this.deviceSessions[device.id] = { ...savedSession, mode: this.mode };
+            }
+            device.cli_session_state = { ...savedSession, mode: this.mode };
         } else {
             this.mode = 'user_exec';
             const initSession = { mode: 'user_exec' };
@@ -248,6 +267,16 @@ class RamonetTerminal {
     setPrompt(promptStr) {
         if (!promptStr) promptStr = 'Device> ';
         this.prompt = promptStr.trimEnd() + ' ';
+        const p = this.prompt.trim();
+        if (p.includes('(config-if)')) this.mode = 'interface_config';
+        else if (p.includes('(config-vlan)')) this.mode = 'vlan_config';
+        else if (p.includes('(config-router)')) this.mode = 'router_config';
+        else if (p.includes('(config-line)')) this.mode = 'line_config';
+        else if (p.includes('(dhcp-config)')) this.mode = 'dhcp_config';
+        else if (p.includes('(config)')) this.mode = 'global_config';
+        else if (p.endsWith('#')) this.mode = 'priv_exec';
+        else if (p.endsWith('>')) this.mode = 'user_exec';
+
         if (this.promptLabelEl) {
             this.promptLabelEl.textContent = this.prompt;
         }
@@ -386,6 +415,19 @@ class RamonetTerminal {
                             (dev?.category || '').toLowerCase().includes('nvr') || 
                             (dev?.category || '').toLowerCase().includes('storage') ||
                             (dev?.category || '').toLowerCase().includes('nas');
+
+        // Mode-prompt consistency check
+        if (this.prompt) {
+            const p = this.prompt.trim();
+            if (p.includes('(config-if)')) this.mode = 'interface_config';
+            else if (p.includes('(config-vlan)')) this.mode = 'vlan_config';
+            else if (p.includes('(config-router)')) this.mode = 'router_config';
+            else if (p.includes('(config-line)')) this.mode = 'line_config';
+            else if (p.includes('(dhcp-config)')) this.mode = 'dhcp_config';
+            else if (p.includes('(config)')) this.mode = 'global_config';
+            else if (p.endsWith('#')) this.mode = 'priv_exec';
+            else if (p.endsWith('>')) this.mode = 'user_exec';
+        }
 
         // 1. Context Sensitive Help
         if (cmd === '?' || first === 'help' || first === '?') {
