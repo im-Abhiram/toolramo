@@ -140,21 +140,23 @@ class RamonetTerminal {
     }
 
     getSessionState() {
-        // Enforce mode synchronization from prompt if prompt explicitly indicates mode
+        const devState = this.currentDevice?.cli_session_state || (this.currentDevice?.id && this.deviceSessions[this.currentDevice.id]) || {};
+        let activeMode = this.mode || devState.mode || 'user_exec';
+
+        // Synchronize mode from prompt if prompt explicitly indicates mode
         if (this.prompt) {
             const p = this.prompt.trim();
-            if (p.includes('(config-if)')) this.mode = 'interface_config';
-            else if (p.includes('(config-vlan)')) this.mode = 'vlan_config';
-            else if (p.includes('(config-router)')) this.mode = 'router_config';
-            else if (p.includes('(config-line)')) this.mode = 'line_config';
-            else if (p.includes('(dhcp-config)')) this.mode = 'dhcp_config';
-            else if (p.includes('(config)')) this.mode = 'global_config';
-            else if (p.endsWith('#')) this.mode = 'priv_exec';
-            else if (p.endsWith('>')) this.mode = 'user_exec';
+            if (p.includes('(config-if)')) activeMode = 'interface_config';
+            else if (p.includes('(config-vlan)')) activeMode = 'vlan_config';
+            else if (p.includes('(config-router)')) activeMode = 'router_config';
+            else if (p.includes('(config-line)')) activeMode = 'line_config';
+            else if (p.includes('(dhcp-config)')) activeMode = 'dhcp_config';
+            else if (p.includes('(config)')) activeMode = 'global_config';
+            else if (p.endsWith('#')) activeMode = 'priv_exec';
+            else if (p.endsWith('>') && (activeMode === 'user_exec' || !activeMode)) activeMode = 'user_exec';
         }
+        this.mode = activeMode;
 
-        const devState = this.currentDevice?.cli_session_state || (this.currentDevice?.id && this.deviceSessions[this.currentDevice.id]) || {};
-        const activeMode = this.mode || devState.mode || 'user_exec';
         return {
             current_interface: null,
             current_vlan: null,
@@ -275,7 +277,7 @@ class RamonetTerminal {
         else if (p.includes('(dhcp-config)')) this.mode = 'dhcp_config';
         else if (p.includes('(config)')) this.mode = 'global_config';
         else if (p.endsWith('#')) this.mode = 'priv_exec';
-        else if (p.endsWith('>')) this.mode = 'user_exec';
+        else if (p.endsWith('>') && this.mode !== 'priv_exec' && !this.mode.includes('config')) this.mode = 'user_exec';
 
         if (this.promptLabelEl) {
             this.promptLabelEl.textContent = this.prompt;
@@ -374,15 +376,14 @@ class RamonetTerminal {
                 if (data.device && this.currentDevice) {
                     const oldName = this.currentDevice.name;
                     Object.assign(this.currentDevice, data.device);
-                    if (data.session_state) {
-                        this.currentDevice.cli_session_state = { ...data.session_state, mode: this.mode };
-                    }
+                    const syncedSession = {
+                        ...(data.session_state || {}),
+                        mode: this.mode,
+                        prompt: this.prompt
+                    };
+                    this.currentDevice.cli_session_state = syncedSession;
                     if (this.currentDevice.id) {
-                        this.deviceSessions[this.currentDevice.id] = {
-                            ...(this.deviceSessions[this.currentDevice.id] || {}),
-                            mode: this.mode,
-                            prompt: this.prompt
-                        };
+                        this.deviceSessions[this.currentDevice.id] = syncedSession;
                     }
                     
                     // Update canvas UI
@@ -426,7 +427,7 @@ class RamonetTerminal {
             else if (p.includes('(dhcp-config)')) this.mode = 'dhcp_config';
             else if (p.includes('(config)')) this.mode = 'global_config';
             else if (p.endsWith('#')) this.mode = 'priv_exec';
-            else if (p.endsWith('>')) this.mode = 'user_exec';
+            else if (p.endsWith('>') && this.mode !== 'priv_exec' && !this.mode.includes('config')) this.mode = 'user_exec';
         }
 
         // 1. Context Sensitive Help

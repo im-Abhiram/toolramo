@@ -369,9 +369,9 @@
 {% endblock %}
 
 {% block extra_js %}
-<script src="{% static 'js/topology/topology-canvas.js' %}"></script>
-<script src="{% static 'js/simulation/packet-visualizer.js' %}"></script>
-<script src="{% static 'js/cli/terminal.js' %}"></script>
+<script src="{% static 'js/topology/topology-canvas.js' %}?v=2.2"></script>
+<script src="{% static 'js/simulation/packet-visualizer.js' %}?v=2.2"></script>
+<script src="{% static 'js/cli/terminal.js' %}?v=2.2"></script>
 <script>
 document.addEventListener('DOMContentLoaded', async () => {
     // Initialize Canvas

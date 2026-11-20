@@ -76,7 +76,7 @@ class DeviceCLISession:
                 mode = 'global_config'
             elif p.endswith('#'):
                 mode = 'priv_exec'
-            elif p.endswith('>'):
+            elif p.endswith('>') and (not mode or mode == 'user_exec'):
                 mode = 'user_exec'
 
         self.mode = mode or 'user_exec'
@@ -90,6 +90,7 @@ class DeviceCLISession:
     def get_session_state(self) -> Dict[str, Any]:
         return {
             'mode': self.mode,
+            'prompt': self.get_prompt(),
             'current_interface': self.current_interface,
             'current_vlan': self.current_vlan,
             'current_router_proto': self.current_router_proto,

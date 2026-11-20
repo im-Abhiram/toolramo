@@ -5,37 +5,49 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Sign In — RAMONET Enterprise Network Platform</title>
+    
+    <!-- Google Fonts: Manrope Everywhere & JetBrains Mono for Code -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+
     <link rel="stylesheet" href="{% static 'vendor/bootstrap/bootstrap.min.css' %}">
     <link rel="stylesheet" href="{% static 'vendor/fontawesome/css/all.min.css' %}">
     <link rel="stylesheet" href="{% static 'css/ramonet-theme.css' %}">
     <style>
+        *, *::before, *::after {
+            font-family: 'Manrope', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif !important;
+        }
+        .font-monospace, code, kbd, pre, .terminal-mono {
+            font-family: 'JetBrains Mono', 'Fira Code', monospace !important;
+        }
         body {
             min-height: 100vh;
             display: flex;
             align-items: center;
             justify-content: center;
-            background: radial-gradient(circle at 50% 20%, #15213b 0%, #0b1020 80%);
+            background: radial-gradient(circle at 50% 20%, #101c38 0%, #060913 80%);
             padding: 1.5rem;
             color: var(--text-primary);
-            font-family: var(--font-sans);
         }
         .auth-card {
             width: 100%;
             max-width: 440px;
-            background: rgba(26, 39, 64, 0.88);
+            background: rgba(18, 27, 52, 0.88);
             backdrop-filter: blur(16px);
-            border: 1px solid rgba(56, 189, 248, 0.2);
+            border: 1px solid rgba(0, 240, 255, 0.22);
             border-radius: 14px;
             padding: 2.25rem 2rem;
-            box-shadow: 0 20px 45px rgba(0, 0, 0, 0.6), 0 0 25px rgba(56, 189, 248, 0.1);
+            box-shadow: 0 20px 45px rgba(0, 0, 0, 0.7), 0 0 25px rgba(0, 240, 255, 0.12);
         }
         .auth-brand-badge {
             font-size: 0.65rem;
-            background: linear-gradient(135deg, #38BDF8, #A78BFA);
-            color: #0B1020;
+            background: linear-gradient(135deg, #00f0ff, #a855f7);
+            color: #060913;
             padding: 0.2rem 0.5rem;
             border-radius: 4px;
-            font-weight: 700;
+            font-weight: 800;
+            letter-spacing: 0.5px;
         }
         .input-group-text {
             background-color: var(--bg-surface);
@@ -50,7 +62,7 @@
         .form-control:focus {
             background-color: var(--bg-surface);
             border-color: var(--primary-accent);
-            box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.2);
+            box-shadow: 0 0 0 3px rgba(0, 240, 255, 0.2);
             color: var(--text-primary);
         }
     </style>
@@ -59,14 +71,14 @@
     <div class="auth-card">
         <!-- Brand Header -->
         <div class="text-center mb-4">
-            <div class="d-inline-flex align-items-center justify-content-center p-3 rounded-circle mb-3" style="background: rgba(56, 189, 248, 0.1); width: 64px; height: 64px; border: 1px solid rgba(56, 189, 248, 0.25);">
+            <div class="d-inline-flex align-items-center justify-content-center p-3 rounded-circle mb-3" style="background: rgba(0, 240, 255, 0.1); width: 64px; height: 64px; border: 1px solid rgba(0, 240, 255, 0.3);">
                 <i class="fa-solid fa-network-wired text-cyan fa-2x"></i>
             </div>
             <div class="d-flex align-items-center justify-content-center gap-2 mb-1">
                 <h3 class="fw-bold text-white mb-0 tracking-wide">RAMONET</h3>
                 <span class="auth-brand-badge">2.0</span>
             </div>
-            <p class="text-secondary small mb-0">Sign in to your network simulation workspace</p>
+            <p class="text-secondary small mb-0">Sign in to your cyber network operations center</p>
         </div>
 
         <!-- Alert Messages -->
@@ -108,6 +120,25 @@
                 </div>
             </div>
 
+            <!-- Server-Side Security CAPTCHA Verification -->
+            <div class="mb-3">
+                <div class="d-flex justify-content-between align-items-center mb-1">
+                    <label class="form-label small text-secondary fw-semibold mb-0" for="id_captcha">
+                        <i class="fa-solid fa-shield-halved text-cyan me-1"></i>Security Verification
+                    </label>
+                    <button type="button" class="btn btn-link btn-sm text-cyan p-0 text-decoration-none small" id="btn-refresh-captcha" title="Get new calculation">
+                        <i class="fa-solid fa-arrows-rotate me-1" id="captcha-refresh-icon"></i>Change
+                    </button>
+                </div>
+                <div class="input-group">
+                    <span class="input-group-text font-monospace fw-bold px-3 text-cyan" id="captcha-display" style="background: rgba(0, 240, 255, 0.12); border-color: rgba(0, 240, 255, 0.28); letter-spacing: 1px; font-size: 0.95rem;">
+                        {{ captcha_challenge|default:"8 + 5 = ?" }}
+                    </span>
+                    <input type="text" name="captcha_answer" id="id_captcha" class="form-control" placeholder="Solve calculation" required autocomplete="off">
+                </div>
+                <div class="form-text small text-secondary mt-1">Solve the arithmetic verification above to prevent automated access.</div>
+            </div>
+
             <button type="submit" class="btn btn-primary-blue w-100 py-2 mt-2 fw-semibold d-flex align-items-center justify-content-center gap-2">
                 <span>Sign In</span>
                 <i class="fa-solid fa-arrow-right-to-bracket"></i>
@@ -126,6 +157,7 @@
     <script src="{% static 'vendor/bootstrap/bootstrap.bundle.min.js' %}"></script>
     <script>
     document.addEventListener('DOMContentLoaded', () => {
+        // Password toggle
         const toggleBtn = document.getElementById('btn-toggle-pwd');
         const pwdInput = document.getElementById('id_password');
         const pwdIcon = document.getElementById('pwd-icon');
@@ -136,6 +168,32 @@
                 pwdInput.type = isPassword ? 'text' : 'password';
                 if (pwdIcon) {
                     pwdIcon.className = isPassword ? 'fa-regular fa-eye-slash text-cyan' : 'fa-regular fa-eye text-secondary';
+                }
+            });
+        }
+
+        // Dynamic CAPTCHA Refresh
+        const refreshBtn = document.getElementById('btn-refresh-captcha');
+        const captchaDisplay = document.getElementById('captcha-display');
+        const refreshIcon = document.getElementById('captcha-refresh-icon');
+
+        if (refreshBtn && captchaDisplay) {
+            refreshBtn.addEventListener('click', async () => {
+                if (refreshIcon) refreshIcon.classList.add('fa-spin');
+                try {
+                    const resp = await fetch("{% url 'accounts:captcha_refresh' %}");
+                    if (resp.ok) {
+                        const data = await resp.json();
+                        if (data.challenge) {
+                            captchaDisplay.textContent = data.challenge;
+                        }
+                    }
+                } catch (e) {
+                    console.error('Captcha refresh error:', e);
+                } finally {
+                    if (refreshIcon) {
+                        setTimeout(() => refreshIcon.classList.remove('fa-spin'), 300);
+                    }
                 }
             });
         }

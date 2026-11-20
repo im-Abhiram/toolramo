@@ -16,14 +16,14 @@ class RamonetSecurityHeadersMiddleware:
         response = self.get_response(request)
 
         # Content-Security-Policy
-        # Self-contained offline assets with Bootstrap and FontAwesome icons
+        # Self-contained offline assets with Bootstrap, FontAwesome icons, and Google Fonts (Manrope)
         if 'Content-Security-Policy' not in response:
             response['Content-Security-Policy'] = (
                 "default-src 'self'; "
                 "script-src 'self' 'unsafe-inline'; "
-                "style-src 'self' 'unsafe-inline'; "
+                "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; "
                 "img-src 'self' data:; "
-                "font-src 'self'; "
+                "font-src 'self' https://fonts.gstatic.com data:; "
                 "connect-src 'self'; "
                 "frame-ancestors 'none'; "
                 "base-uri 'self'; "

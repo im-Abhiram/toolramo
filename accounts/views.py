@@ -4,15 +4,24 @@ from django.contrib.auth.models import User
 from django.contrib.auth.forms import AuthenticationForm, UserCreationForm
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
+from django.http import JsonResponse
 from django.utils.http import url_has_allowed_host_and_scheme
 from audit.logger import SecurityLogger
 from .models import UserProfile
 from .rate_limiter import login_rate_limiter
+from .captcha import generate_captcha, validate_captcha
+
+def refresh_captcha_api(request):
+    """
+    Returns a fresh captcha challenge as JSON for the refresh button.
+    """
+    challenge_text, challenge_token = generate_captcha(request)
+    return JsonResponse({'challenge': challenge_text, 'token': challenge_token})
 
 def login_view(request):
     """
     User authentication login view with rate limiting, brute-force protection,
-    audit logging, and open-redirect protection.
+    server-side CAPTCHA verification, audit logging, and open-redirect protection.
     """
     if request.user.is_authenticated:
         return redirect('dashboard')
@@ -35,7 +44,35 @@ def login_view(request):
             )
             messages.error(request, f"Too many failed login attempts. Access temporarily restricted. Try again in {remaining_sec} seconds.")
             form = AuthenticationForm(request)
-            return render(request, 'accounts/login.html', {'form': form, 'page_title': 'Login'}, status=429)
+            challenge_text, challenge_token = generate_captcha(request)
+            return render(request, 'accounts/login.html', {
+                'form': form,
+                'captcha_challenge': challenge_text,
+                'captcha_token': challenge_token,
+                'page_title': 'Login'
+            }, status=429)
+
+        # Server-side CAPTCHA verification
+        captcha_answer = request.POST.get('captcha_answer', '').strip()
+        captcha_valid, captcha_error = validate_captcha(request, captcha_answer)
+        if not captcha_valid:
+            login_rate_limiter.record_failure(client_ip, attempted_username)
+            SecurityLogger.log_event(
+                action='LOGIN_CAPTCHA_FAILED',
+                module='accounts',
+                request=request,
+                details={'username': attempted_username, 'error': captcha_error},
+                severity='warning'
+            )
+            messages.error(request, captcha_error)
+            form = AuthenticationForm(request, data=request.POST)
+            challenge_text, challenge_token = generate_captcha(request)
+            return render(request, 'accounts/login.html', {
+                'form': form,
+                'captcha_challenge': challenge_text,
+                'captcha_token': challenge_token,
+                'page_title': 'Login'
+            }, status=400)
 
         form = AuthenticationForm(request, data=request.POST)
         if form.is_valid():
@@ -68,10 +105,23 @@ def login_view(request):
                 severity='warning'
             )
             messages.error(request, "Invalid username or password.")
+            challenge_text, challenge_token = generate_captcha(request)
+            return render(request, 'accounts/login.html', {
+                'form': form,
+                'captcha_challenge': challenge_text,
+                'captcha_token': challenge_token,
+                'page_title': 'Login'
+            })
     else:
         form = AuthenticationForm()
+        challenge_text, challenge_token = generate_captcha(request)
 
-    return render(request, 'accounts/login.html', {'form': form, 'page_title': 'Login'})
+    return render(request, 'accounts/login.html', {
+        'form': form,
+        'captcha_challenge': challenge_text,
+        'captcha_token': challenge_token,
+        'page_title': 'Login'
+    })
 
 def logout_view(request):
     """User logout view with session invalidation and audit logging."""

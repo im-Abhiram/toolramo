@@ -8,4 +8,5 @@ urlpatterns = [
     path('logout/', views.logout_view, name='logout'),
     path('register/', views.register_view, name='register'),
     path('settings/', views.settings_view, name='settings'),
+    path('captcha/refresh/', views.refresh_captcha_api, name='captcha_refresh'),
 ]
