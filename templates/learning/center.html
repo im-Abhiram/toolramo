@@ -1,66 +1,354 @@
 {% extends 'base.html' %}
 {% load static %}
 
-{% block title %}Networking Learning Center | Ramonet{% endblock %}
+{% block title %}Networking Learning Center & OSI Study Guide | Ramonet{% endblock %}
 
 {% block content %}
 <div class="container-fluid px-0">
-    <div class="d-flex align-items-center justify-content-between mb-4">
+    <!-- Header -->
+    <div class="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-4">
         <div>
+            <div class="d-flex align-items-center gap-2 mb-1">
+                <span class="cyber-badge-purple px-2 py-0.5 rounded small" style="font-size:0.75rem;">
+                    <i class="fa-solid fa-graduation-cap me-1"></i>CCNA & Net+ Curriculum
+                </span>
+                <span class="badge bg-secondary font-monospace" style="font-size:0.75rem;">20 Core Modules</span>
+            </div>
             <h4 class="text-white fw-bold mb-1">
-                <i class="fa-solid fa-graduation-cap text-warning me-2"></i>Structured Networking Knowledge & Learning Center
+                Structured Networking Knowledge & Study Center
             </h4>
-            <p class="text-secondary small mb-0">20 comprehensive modules from foundational OSI/TCP models to advanced OSPF, Firewalls, NAS, CCTV, and Enterprise Troubleshooting.</p>
+            <p class="text-secondary small mb-0">From foundational OSI/TCP models, binary subnetting, and switching logic to advanced OSPF routing, firewalls, and troubleshooting.</p>
         </div>
-        <div class="btn-group btn-group-sm">
-            <a href="{% url 'learning:center' %}" class="btn {% if not selected_level %}btn-info text-dark fw-bold{% else %}btn-outline-secondary{% endif %}">All Topics</a>
-            <a href="{% url 'learning:center' %}?level=beginner" class="btn {% if selected_level == 'beginner' %}btn-info text-dark fw-bold{% else %}btn-outline-secondary{% endif %}">Beginner Path</a>
-            <a href="{% url 'learning:center' %}?level=intermediate" class="btn {% if selected_level == 'intermediate' %}btn-info text-dark fw-bold{% else %}btn-outline-secondary{% endif %}">Intermediate Path</a>
-            <a href="{% url 'learning:center' %}?level=advanced" class="btn {% if selected_level == 'advanced' %}btn-info text-dark fw-bold{% else %}btn-outline-secondary{% endif %}">Advanced Path</a>
+        <div class="d-flex gap-2">
+            <a href="{% url 'academy:dashboard' %}" class="btn btn-purple btn-sm">
+                <i class="fa-solid fa-play me-1"></i> Interactive Labs
+            </a>
+            <a href="{% url 'networktools:toolbox' %}" class="btn btn-outline-cyan btn-sm">
+                <i class="fa-solid fa-calculator me-1"></i> Subnetting Tools
+            </a>
         </div>
     </div>
 
-    <!-- 20 Topics Grid -->
-    <div class="row g-3">
-        {% for t in topics %}
-        <div class="col-xl-4 col-md-6">
-            <div class="ramonet-card h-100 d-flex flex-column justify-content-between">
-                <div class="ramonet-card-body">
-                    <div class="d-flex align-items-center justify-content-between mb-2">
-                        <span class="badge bg-secondary font-monospace" style="font-size:0.7rem;">Module {{ t.topic_number }}</span>
-                        <span class="badge {% if t.level == 'beginner' %}bg-success{% elif t.level == 'intermediate' %}bg-warning text-dark{% else %}bg-danger{% endif %}" style="font-size:0.65rem;">
-                            {{ t.get_level_display }}
-                        </span>
-                    </div>
+    <!-- Navigation Pills -->
+    <ul class="nav nav-pills mb-4 border-bottom border-secondary border-opacity-25 pb-2 gap-2" id="learningTabs" role="tablist">
+        <li class="nav-item">
+            <button class="nav-link active btn-sm" data-bs-toggle="pill" data-bs-target="#tab-modules">
+                <i class="fa-solid fa-book-open me-1 text-cyan"></i> 1. Study Modules (20)
+            </button>
+        </li>
+        <li class="nav-item">
+            <button class="nav-link btn-sm" data-bs-toggle="pill" data-bs-target="#tab-osi-model">
+                <i class="fa-solid fa-layer-group me-1 text-warning"></i> 2. OSI 7-Layer vs TCP/IP Guide
+            </button>
+        </li>
+        <li class="nav-item">
+            <button class="nav-link btn-sm" data-bs-toggle="pill" data-bs-target="#tab-encapsulation">
+                <i class="fa-solid fa-box-open me-1 text-purple"></i> 3. PDU Encapsulation Flow
+            </button>
+        </li>
+    </ul>
 
-                    <h6 class="text-white fw-bold mb-2">{{ t.title }}</h6>
-                    
-                    <!-- Simple Real-World Explanation Metaphor -->
-                    <div class="p-2 bg-sidebar rounded border border-secondary border-opacity-25 small text-secondary mb-3" style="min-height: 64px;">
-                        <span class="text-info small fw-bold d-block"><i class="fa-solid fa-lightbulb me-1"></i>Intuitive Concept:</span>
-                        {{ t.simple_explanation|truncatewords:20 }}
-                    </div>
+    <div class="tab-content" id="learningTabContent">
+        <!-- TAB 1: 20 Core Curriculum Modules -->
+        <div class="tab-pane fade show active" id="tab-modules">
+            <div class="d-flex align-items-center justify-content-between mb-3">
+                <span class="text-secondary small">Filter by difficulty level:</span>
+                <div class="btn-group btn-group-sm">
+                    <a href="{% url 'learning:center' %}" class="btn {% if not selected_level %}btn-info text-dark fw-bold{% else %}btn-outline-secondary{% endif %}">All Modules</a>
+                    <a href="{% url 'learning:center' %}?level=beginner" class="btn {% if selected_level == 'beginner' %}btn-info text-dark fw-bold{% else %}btn-outline-secondary{% endif %}">Beginner Path</a>
+                    <a href="{% url 'learning:center' %}?level=intermediate" class="btn {% if selected_level == 'intermediate' %}btn-info text-dark fw-bold{% else %}btn-outline-secondary{% endif %}">Intermediate Path</a>
+                    <a href="{% url 'learning:center' %}?level=advanced" class="btn {% if selected_level == 'advanced' %}btn-info text-dark fw-bold{% else %}btn-outline-secondary{% endif %}">Advanced Path</a>
+                </div>
+            </div>
 
-                    <!-- Relevant Commands Badge Preview -->
-                    <div class="small text-muted mb-1">Key Commands:</div>
-                    <div class="d-flex flex-wrap gap-1 mb-2">
-                        {% for cmd in t.relevant_commands|slice:":3" %}
-                        <span class="badge bg-dark font-monospace text-info border border-secondary border-opacity-25" style="font-size:0.68rem;">{{ cmd }}</span>
-                        {% endfor %}
+            <!-- 20 Topics Grid -->
+            <div class="row g-3">
+                {% for t in topics %}
+                <div class="col-xl-4 col-md-6">
+                    <div class="cyber-card h-100 d-flex flex-column justify-content-between">
+                        <div class="p-3">
+                            <div class="d-flex align-items-center justify-content-between mb-2">
+                                <span class="badge bg-secondary font-monospace" style="font-size:0.7rem;">Module {{ t.topic_number }}</span>
+                                <span class="badge {% if t.level == 'beginner' %}bg-success{% elif t.level == 'intermediate' %}bg-warning text-dark{% else %}bg-danger{% endif %}" style="font-size:0.65rem;">
+                                    {{ t.get_level_display }}
+                                </span>
+                            </div>
+
+                            <h6 class="text-white fw-bold mb-2">{{ t.title }}</h6>
+                            
+                            <!-- Simple Real-World Explanation Metaphor -->
+                            <div class="p-2 bg-sidebar rounded border border-secondary border-opacity-25 small text-secondary mb-3" style="min-height: 64px;">
+                                <span class="text-info small fw-bold d-block"><i class="fa-solid fa-lightbulb me-1"></i>Core Concept:</span>
+                                {{ t.simple_explanation|truncatewords:20 }}
+                            </div>
+
+                            <!-- Relevant Commands Badge Preview -->
+                            <div class="small text-muted mb-1">Essential Commands:</div>
+                            <div class="d-flex flex-wrap gap-1 mb-2">
+                                {% for cmd in t.relevant_commands|slice:":3" %}
+                                <span class="badge bg-dark font-monospace text-info border border-secondary border-opacity-25" style="font-size:0.68rem;">{{ cmd }}</span>
+                                {% endfor %}
+                            </div>
+                        </div>
+
+                        <div class="p-3 bg-sidebar border-top border-secondary border-opacity-25 d-flex justify-content-between align-items-center">
+                            <span class="text-muted small"><i class="fa-solid fa-layer-group me-1"></i>{{ t.category }}</span>
+                            <a href="{% url 'learning:topic_detail' t.slug %}" class="btn btn-sm btn-outline-cyan py-0 px-2">
+                                Read Lesson →
+                            </a>
+                        </div>
+                    </div>
+                </div>
+                {% empty %}
+                <div class="col-12 text-center text-muted py-5">No topics found.</div>
+                {% endfor %}
+            </div>
+        </div>
+
+        <!-- TAB 2: OSI 7-Layer vs TCP/IP Guide -->
+        <div class="tab-pane fade" id="tab-osi-model">
+            <div class="cyber-card p-4">
+                <div class="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-4 pb-3 border-bottom border-secondary border-opacity-25">
+                    <div>
+                        <h5 class="text-white fw-bold mb-1"><i class="fa-solid fa-layer-group text-warning me-2"></i>OSI 7-Layer Reference & TCP/IP Comparison</h5>
+                        <p class="text-secondary small mb-0">Understand Protocol Data Units (PDUs), active network hardware devices, and transport protocols across every architectural layer.</p>
+                    </div>
+                    <div class="text-end">
+                        <span class="badge bg-secondary font-monospace">Mnemonic: All People Seem To Need Data Processing</span>
                     </div>
                 </div>
 
-                <div class="p-3 bg-sidebar border-top border-secondary border-opacity-25 d-flex justify-content-between align-items-center">
-                    <span class="text-muted small"><i class="fa-solid fa-layer-group me-1"></i>{{ t.category }}</span>
-                    <a href="{% url 'learning:topic_detail' t.slug %}" class="btn btn-sm btn-outline-cyan py-0 px-2">
-                        Read Lesson →
-                    </a>
+                <!-- 7 Layer Stack -->
+                <div class="d-flex flex-column gap-2 mb-4">
+                    <!-- Layer 7 -->
+                    <div class="p-3 bg-sidebar rounded border border-secondary border-opacity-25 d-flex flex-wrap align-items-center justify-content-between gap-3">
+                        <div style="min-width: 140px;">
+                            <span class="badge bg-danger mb-1 font-monospace">Layer 7</span>
+                            <h6 class="text-white fw-bold mb-0">Application</h6>
+                        </div>
+                        <div style="min-width: 120px;">
+                            <span class="text-muted small d-block">PDU Unit</span>
+                            <strong class="text-white font-monospace">Data</strong>
+                        </div>
+                        <div style="min-width: 160px;">
+                            <span class="text-muted small d-block">Operating Devices</span>
+                            <span class="text-secondary small">Web Browser, Mail Client, Host</span>
+                        </div>
+                        <div class="flex-grow-1" style="min-width: 200px;">
+                            <span class="text-muted small d-block">Primary Protocols</span>
+                            <span class="text-info font-monospace small">HTTP, HTTPS, DNS, SSH, DHCP, FTP, Telnet, BGP</span>
+                        </div>
+                        <div class="text-end" style="min-width: 140px;">
+                            <span class="badge bg-dark text-cyan border border-cyan border-opacity-25">TCP/IP: Application</span>
+                        </div>
+                    </div>
+
+                    <!-- Layer 6 -->
+                    <div class="p-3 bg-sidebar rounded border border-secondary border-opacity-25 d-flex flex-wrap align-items-center justify-content-between gap-3">
+                        <div style="min-width: 140px;">
+                            <span class="badge bg-danger bg-opacity-75 mb-1 font-monospace">Layer 6</span>
+                            <h6 class="text-white fw-bold mb-0">Presentation</h6>
+                        </div>
+                        <div style="min-width: 120px;">
+                            <span class="text-muted small d-block">PDU Unit</span>
+                            <strong class="text-white font-monospace">Data</strong>
+                        </div>
+                        <div style="min-width: 160px;">
+                            <span class="text-muted small d-block">Operating Devices</span>
+                            <span class="text-secondary small">OS Crypto Subsystem, Gateway</span>
+                        </div>
+                        <div class="flex-grow-1" style="min-width: 200px;">
+                            <span class="text-muted small d-block">Primary Protocols</span>
+                            <span class="text-info font-monospace small">TLS, SSL, JPEG, ASCII, MPEG, Compression</span>
+                        </div>
+                        <div class="text-end" style="min-width: 140px;">
+                            <span class="badge bg-dark text-cyan border border-cyan border-opacity-25">TCP/IP: Application</span>
+                        </div>
+                    </div>
+
+                    <!-- Layer 5 -->
+                    <div class="p-3 bg-sidebar rounded border border-secondary border-opacity-25 d-flex flex-wrap align-items-center justify-content-between gap-3">
+                        <div style="min-width: 140px;">
+                            <span class="badge bg-warning text-dark mb-1 font-monospace">Layer 5</span>
+                            <h6 class="text-white fw-bold mb-0">Session</h6>
+                        </div>
+                        <div style="min-width: 120px;">
+                            <span class="text-muted small d-block">PDU Unit</span>
+                            <strong class="text-white font-monospace">Data</strong>
+                        </div>
+                        <div style="min-width: 160px;">
+                            <span class="text-muted small d-block">Operating Devices</span>
+                            <span class="text-secondary small">OS Sockets, API Sessions</span>
+                        </div>
+                        <div class="flex-grow-1" style="min-width: 200px;">
+                            <span class="text-muted small d-block">Primary Protocols</span>
+                            <span class="text-info font-monospace small">RPC, NetBIOS, Sockets, PPTP, NFS</span>
+                        </div>
+                        <div class="text-end" style="min-width: 140px;">
+                            <span class="badge bg-dark text-cyan border border-cyan border-opacity-25">TCP/IP: Application</span>
+                        </div>
+                    </div>
+
+                    <!-- Layer 4 -->
+                    <div class="p-3 bg-sidebar rounded border border-secondary border-opacity-25 d-flex flex-wrap align-items-center justify-content-between gap-3">
+                        <div style="min-width: 140px;">
+                            <span class="badge bg-primary mb-1 font-monospace">Layer 4</span>
+                            <h6 class="text-white fw-bold mb-0">Transport</h6>
+                        </div>
+                        <div style="min-width: 120px;">
+                            <span class="text-muted small d-block">PDU Unit</span>
+                            <strong class="text-cyan font-monospace">Segment / Datagram</strong>
+                        </div>
+                        <div style="min-width: 160px;">
+                            <span class="text-muted small d-block">Operating Devices</span>
+                            <span class="text-secondary small">Layer 4 Load Balancer, Firewall</span>
+                        </div>
+                        <div class="flex-grow-1" style="min-width: 200px;">
+                            <span class="text-muted small d-block">Primary Protocols</span>
+                            <span class="text-info font-monospace small">TCP (Connection-Oriented), UDP (Connectionless)</span>
+                        </div>
+                        <div class="text-end" style="min-width: 140px;">
+                            <span class="badge bg-dark text-purple border border-purple border-opacity-25">TCP/IP: Transport</span>
+                        </div>
+                    </div>
+
+                    <!-- Layer 3 -->
+                    <div class="p-3 bg-sidebar rounded border border-secondary border-opacity-25 d-flex flex-wrap align-items-center justify-content-between gap-3">
+                        <div style="min-width: 140px;">
+                            <span class="badge bg-success mb-1 font-monospace">Layer 3</span>
+                            <h6 class="text-white fw-bold mb-0">Network</h6>
+                        </div>
+                        <div style="min-width: 120px;">
+                            <span class="text-muted small d-block">PDU Unit</span>
+                            <strong class="text-success font-monospace">Packet</strong>
+                        </div>
+                        <div style="min-width: 160px;">
+                            <span class="text-muted small d-block">Operating Devices</span>
+                            <span class="text-secondary small">Router, Layer 3 Multilayer Switch</span>
+                        </div>
+                        <div class="flex-grow-1" style="min-width: 200px;">
+                            <span class="text-muted small d-block">Primary Protocols</span>
+                            <span class="text-info font-monospace small">IPv4, IPv6, ICMP, IPsec, OSPF, RIP, ARP Request</span>
+                        </div>
+                        <div class="text-end" style="min-width: 140px;">
+                            <span class="badge bg-dark text-success border border-success border-opacity-25">TCP/IP: Internet</span>
+                        </div>
+                    </div>
+
+                    <!-- Layer 2 -->
+                    <div class="p-3 bg-sidebar rounded border border-secondary border-opacity-25 d-flex flex-wrap align-items-center justify-content-between gap-3">
+                        <div style="min-width: 140px;">
+                            <span class="badge bg-info text-dark mb-1 font-monospace">Layer 2</span>
+                            <h6 class="text-white fw-bold mb-0">Data Link</h6>
+                        </div>
+                        <div style="min-width: 120px;">
+                            <span class="text-muted small d-block">PDU Unit</span>
+                            <strong class="text-info font-monospace">Frame</strong>
+                        </div>
+                        <div style="min-width: 160px;">
+                            <span class="text-muted small d-block">Operating Devices</span>
+                            <span class="text-secondary small">Layer 2 Switch, Bridge, NIC, WAP</span>
+                        </div>
+                        <div class="flex-grow-1" style="min-width: 200px;">
+                            <span class="text-muted small d-block">Primary Protocols</span>
+                            <span class="text-info font-monospace small">Ethernet (802.3), Wi-Fi (802.11), VLAN (802.1Q), STP, MAC</span>
+                        </div>
+                        <div class="text-end" style="min-width: 140px;">
+                            <span class="badge bg-dark text-warning border border-warning border-opacity-25">TCP/IP: Network Access</span>
+                        </div>
+                    </div>
+
+                    <!-- Layer 1 -->
+                    <div class="p-3 bg-sidebar rounded border border-secondary border-opacity-25 d-flex flex-wrap align-items-center justify-content-between gap-3">
+                        <div style="min-width: 140px;">
+                            <span class="badge bg-secondary mb-1 font-monospace">Layer 1</span>
+                            <h6 class="text-white fw-bold mb-0">Physical</h6>
+                        </div>
+                        <div style="min-width: 120px;">
+                            <span class="text-muted small d-block">PDU Unit</span>
+                            <strong class="text-secondary font-monospace">Bits (0s and 1s)</strong>
+                        </div>
+                        <div style="min-width: 160px;">
+                            <span class="text-muted small d-block">Operating Devices</span>
+                            <span class="text-secondary small">Hub, Repeater, SFP Transceiver, RJ45 Cable</span>
+                        </div>
+                        <div class="flex-grow-1" style="min-width: 200px;">
+                            <span class="text-muted small d-block">Primary Protocols</span>
+                            <span class="text-info font-monospace small">1000BASE-T, 10GBASE-SR, Fiber Optic, Radio Waves, Cat6</span>
+                        </div>
+                        <div class="text-end" style="min-width: 140px;">
+                            <span class="badge bg-dark text-warning border border-warning border-opacity-25">TCP/IP: Network Access</span>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
-        {% empty %}
-        <div class="col-12 text-center text-muted py-5">No topics found.</div>
-        {% endfor %}
+
+        <!-- TAB 3: PDU Encapsulation Flow -->
+        <div class="tab-pane fade" id="tab-encapsulation">
+            <div class="cyber-card p-4">
+                <div class="mb-4 pb-2 border-bottom border-secondary border-opacity-25">
+                    <h5 class="text-white fw-bold mb-1"><i class="fa-solid fa-box-open text-purple me-2"></i>Packet Encapsulation & Decapsulation Lifecycle</h5>
+                    <p class="text-secondary small mb-0">How a packet travels down the sending host's protocol stack (Encapsulation) and back up the receiving host (Decapsulation).</p>
+                </div>
+
+                <div class="row g-4 align-items-center">
+                    <div class="col-lg-6">
+                        <div class="p-3 bg-sidebar rounded border border-secondary border-opacity-25 mb-3">
+                            <span class="badge bg-danger mb-2">Step 1: Application Layer</span>
+                            <h6 class="text-white fw-bold">User Creates Data Payload</h6>
+                            <p class="text-secondary small mb-2">A browser requests a webpage via HTTP GET request. The raw payload is created.</p>
+                            <div class="p-2 bg-dark rounded font-monospace small text-white border border-secondary border-opacity-25">[ Data Payload: GET /index.html HTTP/1.1 ]</div>
+                        </div>
+
+                        <div class="p-3 bg-sidebar rounded border border-secondary border-opacity-25 mb-3">
+                            <span class="badge bg-primary mb-2">Step 2: Transport Layer</span>
+                            <h6 class="text-white fw-bold">TCP Header Added (Segment)</h6>
+                            <p class="text-secondary small mb-2">Source Port (e.g. 52140) and Destination Port (80) added with sequence numbers.</p>
+                            <div class="p-2 bg-dark rounded font-monospace small text-cyan border border-secondary border-opacity-25">[ TCP Header: Src 52140, Dst 80 ] [ Data ]</div>
+                        </div>
+
+                        <div class="p-3 bg-sidebar rounded border border-secondary border-opacity-25 mb-3">
+                            <span class="badge bg-success mb-2">Step 3: Network Layer</span>
+                            <h6 class="text-white fw-bold">IP Header Added (Packet)</h6>
+                            <p class="text-secondary small mb-2">Source IP (192.168.1.50) and Destination IP (192.168.1.1) added for routing.</p>
+                            <div class="p-2 bg-dark rounded font-monospace small text-success border border-secondary border-opacity-25">[ IP Header: Src IP, Dst IP, TTL 64 ] [ TCP ] [ Data ]</div>
+                        </div>
+
+                        <div class="p-3 bg-sidebar rounded border border-secondary border-opacity-25 mb-3">
+                            <span class="badge bg-info text-dark mb-2">Step 4: Data Link Layer</span>
+                            <h6 class="text-white fw-bold">Ethernet Frame Header & FCS Trailer Added</h6>
+                            <p class="text-secondary small mb-2">Source MAC, Next-Hop Destination MAC, and CRC Frame Check Sequence trailer appended.</p>
+                            <div class="p-2 bg-dark rounded font-monospace small text-info border border-secondary border-opacity-25">[ Eth Header: Src MAC, Dst MAC ] [ IP ] [ TCP ] [ Data ] [ FCS Trailer ]</div>
+                        </div>
+
+                        <div class="p-3 bg-sidebar rounded border border-secondary border-opacity-25">
+                            <span class="badge bg-secondary mb-2">Step 5: Physical Layer</span>
+                            <h6 class="text-white fw-bold">Transmitted as Physical Signals (Bits)</h6>
+                            <p class="text-secondary small mb-2">Converted to electrical voltages on copper twisted-pair or light pulses on fiber optics.</p>
+                            <div class="p-2 bg-dark rounded font-monospace small text-warning border border-secondary border-opacity-25">01001100 01101111 01100001 01100100 00101110 00101110</div>
+                        </div>
+                    </div>
+
+                    <div class="col-lg-6">
+                        <div class="p-4 bg-sidebar rounded border border-secondary border-opacity-25 text-center">
+                            <i class="fa-solid fa-arrow-down-up-across-line text-cyan fa-3x mb-3"></i>
+                            <h5 class="text-white fw-bold">Decapsulation on Receiver</h5>
+                            <p class="text-secondary small mb-3">
+                                When the destination server receives the physical bits:
+                            </p>
+                            <ul class="text-start small text-secondary font-monospace list-unstyled mb-0 d-flex flex-column gap-2">
+                                <li class="p-2 bg-dark rounded border border-secondary border-opacity-25">1. <strong>Physical Layer:</strong> Converts electrical/light signals into binary bits.</li>
+                                <li class="p-2 bg-dark rounded border border-secondary border-opacity-25">2. <strong>Data Link Layer:</strong> Checks FCS checksum, validates destination MAC, strips Ethernet header.</li>
+                                <li class="p-2 bg-dark rounded border border-secondary border-opacity-25">3. <strong>Network Layer:</strong> Inspects destination IP address, verifies TTL, strips IP header.</li>
+                                <li class="p-2 bg-dark rounded border border-secondary border-opacity-25">4. <strong>Transport Layer:</strong> Inspects destination port (80), reassembles TCP segment, strips TCP header.</li>
+                                <li class="p-2 bg-dark rounded border border-secondary border-opacity-25">5. <strong>Application Layer:</strong> Hands HTTP GET data payload directly to web server software process!</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
 </div>
 {% endblock %}

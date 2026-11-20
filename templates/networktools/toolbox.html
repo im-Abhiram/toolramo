@@ -1,57 +1,74 @@
 {% extends 'base.html' %}
 {% load static %}
 
-{% block title %}Network Engineering Toolbox (20-in-1) | Ramonet{% endblock %}
+{% block title %}Networking Engineering & Study Toolbox | Ramonet{% endblock %}
 
 {% block content %}
 <div class="container-fluid px-0">
-    <div class="d-flex align-items-center justify-content-between mb-4">
+    <!-- Header -->
+    <div class="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-4">
         <div>
+            <div class="d-flex align-items-center gap-2 mb-1">
+                <span class="cyber-badge-cyan px-2 py-0.5 rounded small" style="font-size:0.75rem;">
+                    <i class="fa-solid fa-calculator me-1"></i>Precision Calculations
+                </span>
+                <span class="badge bg-secondary font-monospace" style="font-size:0.75rem;">100% Client-Side Offline</span>
+            </div>
             <h4 class="text-white fw-bold mb-1">
-                <i class="fa-solid fa-calculator text-info me-2"></i>20-in-1 Network Engineering Toolbox
+                Networking Study & Engineering Precision Toolbox
             </h4>
-            <p class="text-secondary small mb-0">100% offline, client-side networking calculators, VLSM planners, PoE power budgets, CCTV capacity, and protocol references.</p>
+            <p class="text-secondary small mb-0">Interactive CIDR subnet calculator, CCNA exam quiz trainer, VLSM hierarchy planner, port matrix, and cabling references.</p>
         </div>
-        <a href="{% url 'topology:designer' %}" class="btn btn-outline-cyan btn-sm">
-            <i class="fa-solid fa-diagram-project me-1"></i> Open Designer
-        </a>
+        <div class="d-flex gap-2">
+            <a href="{% url 'topology:designer' %}" class="btn btn-outline-cyan btn-sm">
+                <i class="fa-solid fa-diagram-project me-1"></i> Network Designer
+            </a>
+            <a href="{% url 'academy:dashboard' %}" class="btn btn-purple btn-sm">
+                <i class="fa-solid fa-graduation-cap me-1"></i> Academy Labs
+            </a>
+        </div>
     </div>
 
     <!-- Navigation Pills for Calculator Tabs -->
-    <ul class="nav nav-pills mb-4 border-bottom border-secondary border-opacity-25 pb-2 overflow-x-auto" id="toolTabs" role="tablist">
+    <ul class="nav nav-pills mb-4 border-bottom border-secondary border-opacity-25 pb-2 overflow-x-auto gap-2" id="toolTabs" role="tablist">
         <li class="nav-item">
             <button class="nav-link active btn-sm" data-bs-toggle="pill" data-bs-target="#tab-ipv4-subnet">
-                <i class="fa-solid fa-calculator me-1"></i> 1. IPv4 Subnet Calculator
+                <i class="fa-solid fa-calculator me-1 text-cyan"></i> 1. IPv4 Subnet Calculator
+            </button>
+        </li>
+        <li class="nav-item">
+            <button class="nav-link btn-sm" data-bs-toggle="pill" data-bs-target="#tab-subnet-quiz">
+                <i class="fa-solid fa-brain me-1 text-warning"></i> 2. Subnetting Quiz Trainer
             </button>
         </li>
         <li class="nav-item">
             <button class="nav-link btn-sm" data-bs-toggle="pill" data-bs-target="#tab-vlsm">
-                <i class="fa-solid fa-sitemap me-1"></i> 2. VLSM Subnet Planner
-            </button>
-        </li>
-        <li class="nav-item">
-            <button class="nav-link btn-sm" data-bs-toggle="pill" data-bs-target="#tab-poe">
-                <i class="fa-solid fa-bolt me-1"></i> 3. PoE Power Budget
-            </button>
-        </li>
-        <li class="nav-item">
-            <button class="nav-link btn-sm" data-bs-toggle="pill" data-bs-target="#tab-cctv-calc">
-                <i class="fa-solid fa-video me-1"></i> 4. CCTV Bandwidth & Storage
-            </button>
-        </li>
-        <li class="nav-item">
-            <button class="nav-link btn-sm" data-bs-toggle="pill" data-bs-target="#tab-raid-calc">
-                <i class="fa-solid fa-hard-drive me-1"></i> 5. RAID Capacity Estimator
+                <i class="fa-solid fa-sitemap me-1 text-info"></i> 3. VLSM Subnet Planner
             </button>
         </li>
         <li class="nav-item">
             <button class="nav-link btn-sm" data-bs-toggle="pill" data-bs-target="#tab-ports-ref">
-                <i class="fa-solid fa-list-check me-1"></i> 6. Ports & Protocols Reference
+                <i class="fa-solid fa-list-check me-1 text-purple"></i> 4. Ports & Protocols Matrix
+            </button>
+        </li>
+        <li class="nav-item">
+            <button class="nav-link btn-sm" data-bs-toggle="pill" data-bs-target="#tab-poe">
+                <i class="fa-solid fa-bolt me-1 text-warning"></i> 5. PoE Power Budget
+            </button>
+        </li>
+        <li class="nav-item">
+            <button class="nav-link btn-sm" data-bs-toggle="pill" data-bs-target="#tab-cctv-calc">
+                <i class="fa-solid fa-video me-1 text-danger"></i> 6. CCTV Bandwidth
+            </button>
+        </li>
+        <li class="nav-item">
+            <button class="nav-link btn-sm" data-bs-toggle="pill" data-bs-target="#tab-raid-calc">
+                <i class="fa-solid fa-hard-drive me-1 text-success"></i> 7. RAID Storage
             </button>
         </li>
         <li class="nav-item">
             <button class="nav-link btn-sm" data-bs-toggle="pill" data-bs-target="#tab-cable-pinout">
-                <i class="fa-solid fa-plug me-1"></i> 7. Cable Pinout & T568A/B
+                <i class="fa-solid fa-plug me-1 text-cyan"></i> 8. T568A / T568B Cabling
             </button>
         </li>
     </ul>
@@ -62,63 +79,113 @@
         <div class="tab-pane fade show active" id="tab-ipv4-subnet">
             <div class="row g-4">
                 <div class="col-lg-5">
-                    <div class="ramonet-card">
-                        <div class="ramonet-card-header">
-                            <span class="text-white fw-bold small"><i class="fa-solid fa-sliders text-info me-2"></i>IPv4 Address & CIDR Inputs</span>
+                    <div class="cyber-card p-3">
+                        <div class="d-flex align-items-center justify-content-between mb-3 pb-2 border-bottom border-secondary border-opacity-25">
+                            <span class="text-white fw-bold small"><i class="fa-solid fa-sliders text-cyan me-2"></i>IPv4 Address & CIDR Prefix</span>
+                            <span class="badge bg-secondary font-monospace" style="font-size:0.65rem;">RFC 791 / RFC 4632</span>
                         </div>
-                        <div class="ramonet-card-body">
-                            <div class="mb-3">
-                                <label class="form-label small text-muted">IP Address</label>
-                                <input type="text" class="form-control form-control-sm" id="calc-ipv4-input" value="192.168.1.50">
+                        <div class="mb-3">
+                            <label class="form-label small text-secondary fw-semibold">IPv4 Host or Network Address</label>
+                            <div class="input-group input-group-sm">
+                                <span class="input-group-text"><i class="fa-solid fa-network-wired text-cyan"></i></span>
+                                <input type="text" class="form-control font-monospace" id="calc-ipv4-input" value="192.168.1.150" placeholder="e.g. 10.0.0.1 or 172.16.20.50">
                             </div>
-                            <div class="mb-3">
-                                <label class="form-label small text-muted">Subnet Mask / Prefix (CIDR)</label>
-                                <select class="form-select form-select-sm" id="calc-cidr-input">
-                                    <option value="24" selected>/24 - 255.255.255.0 (254 hosts)</option>
-                                    <option value="25">/25 - 255.255.255.128 (126 hosts)</option>
-                                    <option value="26">/26 - 255.255.255.192 (62 hosts)</option>
-                                    <option value="27">/27 - 255.255.255.224 (30 hosts)</option>
-                                    <option value="28">/28 - 255.255.255.240 (14 hosts)</option>
-                                    <option value="29">/29 - 255.255.255.248 (6 hosts)</option>
-                                    <option value="30">/30 - 255.255.255.252 (2 hosts - PtP)</option>
-                                    <option value="16">/16 - 255.255.0.0 (65,534 hosts)</option>
-                                    <option value="8">/8 - 255.0.0.0 (16,777,214 hosts)</option>
-                                </select>
-                            </div>
-                            <button class="btn btn-primary-blue btn-sm w-100" id="btn-calc-ipv4">Compute Subnet Details</button>
                         </div>
+                        <div class="mb-3">
+                            <label class="form-label small text-secondary fw-semibold">Subnet Mask Prefix (/CIDR)</label>
+                            <select class="form-select form-select-sm font-monospace" id="calc-cidr-input">
+                                <option value="32">/32 — 255.255.255.255 (Single Host / Loopback)</option>
+                                <option value="31">/31 — 255.255.255.254 (2 Hosts - RFC 3021 Point-to-Point)</option>
+                                <option value="30">/30 — 255.255.255.252 (2 Usable Hosts - PtP WAN Link)</option>
+                                <option value="29">/29 — 255.255.255.248 (6 Usable Hosts)</option>
+                                <option value="28">/28 — 255.255.255.240 (14 Usable Hosts)</option>
+                                <option value="27">/27 — 255.255.255.224 (30 Usable Hosts)</option>
+                                <option value="26">/26 — 255.255.255.192 (62 Usable Hosts)</option>
+                                <option value="25">/25 — 255.255.255.128 (126 Usable Hosts)</option>
+                                <option value="24" selected>/24 — 255.255.255.0 (254 Usable Hosts - Standard LAN)</option>
+                                <option value="23">/23 — 255.255.254.0 (510 Usable Hosts)</option>
+                                <option value="22">/22 — 255.255.252.0 (1,022 Usable Hosts)</option>
+                                <option value="21">/21 — 255.255.248.0 (2,046 Usable Hosts)</option>
+                                <option value="20">/20 — 255.255.240.0 (4,094 Usable Hosts)</option>
+                                <option value="19">/19 — 255.255.224.0 (8,190 Usable Hosts)</option>
+                                <option value="18">/18 — 255.255.192.0 (16,382 Usable Hosts)</option>
+                                <option value="17">/17 — 255.255.128.0 (32,766 Usable Hosts)</option>
+                                <option value="16">/16 — 255.255.0.0 (65,534 Usable Hosts - Class B Default)</option>
+                                <option value="12">/12 — 255.240.0.0 (1,048,574 Usable Hosts)</option>
+                                <option value="8">/8 — 255.0.0.0 (16,777,214 Usable Hosts - Class A Default)</option>
+                            </select>
+                        </div>
+                        <button class="btn btn-primary-blue btn-sm w-100 fw-semibold" id="btn-calc-ipv4">
+                            <i class="fa-solid fa-bolt me-1"></i> Compute Subnet Breakdown
+                        </button>
+                    </div>
+
+                    <!-- Quick CIDR Cheat Sheet Box -->
+                    <div class="cyber-card p-3 mt-3">
+                        <div class="text-white fw-bold small mb-2"><i class="fa-solid fa-lightbulb text-warning me-1"></i>Exam Subnetting Quick Trick</div>
+                        <p class="text-secondary small mb-0" style="font-size:0.78rem;">
+                            To find the subnet block size: <strong>256 − (Interesting Octet Mask) = Block Size</strong>.<br>
+                            Example: For <code class="text-cyan">/26 (255.255.255.192)</code>: 256 − 192 = <strong>64</strong>.<br>
+                            Subnets increment by 64: .0, .64, .128, .192.
+                        </p>
                     </div>
                 </div>
 
                 <div class="col-lg-7">
-                    <div class="ramonet-card">
-                        <div class="ramonet-card-header">
-                            <span class="text-white fw-bold small"><i class="fa-solid fa-table text-info me-2"></i>Subnet Breakdown Report</span>
+                    <div class="cyber-card p-3">
+                        <div class="d-flex align-items-center justify-content-between mb-3 pb-2 border-bottom border-secondary border-opacity-25">
+                            <span class="text-white fw-bold small"><i class="fa-solid fa-table text-cyan me-2"></i>Authoritative Subnet Breakdown</span>
+                            <div class="d-flex gap-1" id="out-badges">
+                                <span class="badge bg-info text-dark" id="out-class">Class C</span>
+                                <span class="badge bg-secondary" id="out-scope">Private RFC 1918</span>
+                            </div>
                         </div>
-                        <div class="ramonet-card-body font-monospace" id="calc-ipv4-results">
+
+                        <div class="font-monospace small mb-3" id="calc-ipv4-results">
                             <div class="d-flex justify-content-between p-2 border-bottom border-secondary border-opacity-25">
-                                <span class="text-muted">Network Address:</span>
-                                <strong class="text-white" id="out-net">192.168.1.0</strong>
+                                <span class="text-secondary">Network Address:</span>
+                                <strong class="text-cyan" id="out-net">192.168.1.0</strong>
                             </div>
                             <div class="d-flex justify-content-between p-2 border-bottom border-secondary border-opacity-25">
-                                <span class="text-muted">Broadcast Address:</span>
-                                <strong class="text-white" id="out-bcast">192.168.1.255</strong>
+                                <span class="text-secondary">Broadcast Address:</span>
+                                <strong class="text-warning" id="out-bcast">192.168.1.255</strong>
                             </div>
                             <div class="d-flex justify-content-between p-2 border-bottom border-secondary border-opacity-25">
-                                <span class="text-muted">Usable Host Range:</span>
-                                <strong class="text-info" id="out-range">192.168.1.1 - 192.168.1.254</strong>
+                                <span class="text-secondary">Usable Host Range:</span>
+                                <strong class="text-white" id="out-range">192.168.1.1 — 192.168.1.254</strong>
                             </div>
                             <div class="d-flex justify-content-between p-2 border-bottom border-secondary border-opacity-25">
-                                <span class="text-muted">Subnet Mask:</span>
+                                <span class="text-secondary">Subnet Mask:</span>
                                 <strong class="text-white" id="out-mask">255.255.255.0</strong>
                             </div>
                             <div class="d-flex justify-content-between p-2 border-bottom border-secondary border-opacity-25">
-                                <span class="text-muted">Wildcard Mask:</span>
+                                <span class="text-secondary">Wildcard Mask (ACLs & OSPF):</span>
                                 <strong class="text-secondary" id="out-wildcard">0.0.0.255</strong>
                             </div>
-                            <div class="d-flex justify-content-between p-2">
-                                <span class="text-muted">Usable Hosts / Total:</span>
+                            <div class="d-flex justify-content-between p-2 border-bottom border-secondary border-opacity-25">
+                                <span class="text-secondary">Usable Hosts:</span>
                                 <strong class="text-success" id="out-hosts">254 usable (256 total)</strong>
+                            </div>
+                            <div class="d-flex justify-content-between p-2">
+                                <span class="text-secondary">Prefix Split (Net / Host):</span>
+                                <strong class="text-purple" id="out-bits">24 Network Bits / 8 Host Bits</strong>
+                            </div>
+                        </div>
+
+                        <!-- Binary Breakdown Viewer -->
+                        <div class="p-3 bg-sidebar rounded border border-secondary border-opacity-25">
+                            <div class="text-white fw-bold small mb-2"><i class="fa-solid fa-binary text-cyan me-1"></i>32-Bit Binary Structure (Network vs Host)</div>
+                            <div class="font-monospace small mb-1" style="font-size:0.75rem;">
+                                <div class="text-secondary mb-1">IP Address Binary:</div>
+                                <div class="text-white p-1 bg-dark rounded border border-secondary border-opacity-25" id="out-bin-ip">11000000.10101000.00000001.10010110</div>
+                            </div>
+                            <div class="font-monospace small mb-1" style="font-size:0.75rem;">
+                                <div class="text-secondary mb-1">Subnet Mask Binary:</div>
+                                <div class="text-cyan p-1 bg-dark rounded border border-secondary border-opacity-25" id="out-bin-mask">11111111.11111111.11111111.00000000</div>
+                            </div>
+                            <div class="font-monospace small" style="font-size:0.75rem;">
+                                <div class="text-secondary mb-1">Network Address Binary:</div>
+                                <div class="text-success p-1 bg-dark rounded border border-secondary border-opacity-25" id="out-bin-net">11000000.10101000.00000001.00000000</div>
                             </div>
                         </div>
                     </div>
@@ -126,147 +193,161 @@
             </div>
         </div>
 
-        <!-- 2. VLSM Subnet Planner -->
+        <!-- 2. Subnetting Quiz Trainer -->
+        <div class="tab-pane fade" id="tab-subnet-quiz">
+            <div class="cyber-card p-4">
+                <div class="d-flex align-items-center justify-content-between mb-3 pb-2 border-bottom border-secondary border-opacity-25">
+                    <div>
+                        <h5 class="text-white fw-bold mb-1"><i class="fa-solid fa-brain text-warning me-2"></i>CCNA & Network+ Subnetting Quiz Practice</h5>
+                        <p class="text-secondary small mb-0">Sharpen your subnetting speed and accuracy. Practice finding Network IDs, Broadcasts, and Host Capacities under exam pressure.</p>
+                    </div>
+                    <div class="d-flex align-items-center gap-2">
+                        <span class="badge bg-success" id="quiz-score-badge">Score: 0 Correct</span>
+                        <button class="btn btn-outline-cyan btn-sm" id="btn-quiz-new">
+                            <i class="fa-solid fa-rotate me-1"></i> Next Question
+                        </button>
+                    </div>
+                </div>
+
+                <div class="p-4 bg-sidebar rounded border border-secondary border-opacity-25 mb-3" id="quiz-question-card">
+                    <div class="d-flex align-items-center gap-2 mb-2">
+                        <span class="badge bg-primary" id="quiz-difficulty-badge">Practice Question</span>
+                        <span class="text-muted small" id="quiz-ip-pill">IP Host: 172.16.45.10/22</span>
+                    </div>
+                    <h5 class="text-white mb-3" id="quiz-question-text">
+                        Given the IP host address <strong>172.16.45.10/22</strong>, calculate the <strong>Network Address</strong>:
+                    </h5>
+
+                    <form id="quiz-answer-form" class="row g-2 align-items-center">
+                        <div class="col-sm-8 col-md-6">
+                            <input type="text" class="form-control font-monospace" id="quiz-user-input" placeholder="Enter answer (e.g. 172.16.44.0 or 1022)" autofocus required>
+                        </div>
+                        <div class="col-sm-4 col-md-3">
+                            <button type="submit" class="btn btn-primary-blue w-100 fw-semibold">
+                                <i class="fa-solid fa-check me-1"></i> Submit Answer
+                            </button>
+                        </div>
+                        <div class="col-md-3">
+                            <button type="button" class="btn btn-outline-secondary w-100 btn-sm" id="btn-quiz-hint">
+                                <i class="fa-regular fa-lightbulb text-warning me-1"></i> Show Hint
+                            </button>
+                        </div>
+                    </form>
+
+                    <div id="quiz-feedback-box" class="mt-3 d-none"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 3. VLSM Subnet Planner -->
         <div class="tab-pane fade" id="tab-vlsm">
-            <div class="ramonet-card">
-                <div class="ramonet-card-header">
-                    <span class="text-white fw-bold small"><i class="fa-solid fa-sitemap text-info me-2"></i>Variable Length Subnet Masking (VLSM) Hierarchy Planner</span>
-                </div>
-                <div class="ramonet-card-body">
-                    <p class="text-secondary small mb-3">Allocates subnets of varying prefix lengths from a parent network block with zero address collision.</p>
-                    <div class="table-responsive">
-                        <table class="table table-ramonet mb-0" id="vlsm-results-table">
-                            <thead>
-                                <tr>
-                                    <th>Department / Subnet</th>
-                                    <th>Needed Hosts</th>
-                                    <th>Allocated Hosts</th>
-                                    <th>Network Address</th>
-                                    <th>Subnet Mask</th>
-                                    <th>Usable IP Range</th>
-                                    <th>Broadcast</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <tr>
-                                    <td class="text-white fw-bold">Engineering Subnet</td>
-                                    <td>50</td>
-                                    <td><span class="badge bg-info text-dark">62 (/26)</span></td>
-                                    <td class="font-monospace text-white">192.168.10.0</td>
-                                    <td class="font-monospace text-secondary">255.255.255.192</td>
-                                    <td class="font-monospace small text-info">192.168.10.1 - 192.168.10.62</td>
-                                    <td class="font-monospace small text-muted">192.168.10.63</td>
-                                </tr>
-                                <tr>
-                                    <td class="text-white fw-bold">Sales & Marketing</td>
-                                    <td>25</td>
-                                    <td><span class="badge bg-info text-dark">30 (/27)</span></td>
-                                    <td class="font-monospace text-white">192.168.10.64</td>
-                                    <td class="font-monospace text-secondary">255.255.255.224</td>
-                                    <td class="font-monospace small text-info">192.168.10.65 - 192.168.10.94</td>
-                                    <td class="font-monospace small text-muted">192.168.10.95</td>
-                                </tr>
-                                <tr>
-                                    <td class="text-white fw-bold">Executive Office</td>
-                                    <td>10</td>
-                                    <td><span class="badge bg-info text-dark">14 (/28)</span></td>
-                                    <td class="font-monospace text-white">192.168.10.96</td>
-                                    <td class="font-monospace text-secondary">255.255.255.240</td>
-                                    <td class="font-monospace small text-info">192.168.10.97 - 192.168.10.110</td>
-                                    <td class="font-monospace small text-muted">192.168.10.111</td>
-                                </tr>
-                                <tr>
-                                    <td class="text-white fw-bold">WAN Router-to-Router Link</td>
-                                    <td>2</td>
-                                    <td><span class="badge bg-danger">2 (/30)</span></td>
-                                    <td class="font-monospace text-white">192.168.10.112</td>
-                                    <td class="font-monospace text-secondary">255.255.255.252</td>
-                                    <td class="font-monospace small text-info">192.168.10.113 - 192.168.10.114</td>
-                                    <td class="font-monospace small text-muted">192.168.10.115</td>
-                                </tr>
-                            </tbody>
-                        </table>
+            <div class="cyber-card p-4">
+                <div class="d-flex align-items-center justify-content-between mb-3 pb-2 border-bottom border-secondary border-opacity-25">
+                    <div>
+                        <h5 class="text-white fw-bold mb-1"><i class="fa-solid fa-sitemap text-info me-2"></i>Variable Length Subnet Masking (VLSM) Hierarchy Planner</h5>
+                        <p class="text-secondary small mb-0">Allocates subnets of varying prefix lengths from a parent block with zero address collision and minimal address waste.</p>
                     </div>
                 </div>
-            </div>
-        </div>
 
-        <!-- 3. PoE Power Budget -->
-        <div class="tab-pane fade" id="tab-poe">
-            <div class="ramonet-card">
-                <div class="ramonet-card-header">
-                    <span class="text-white fw-bold small"><i class="fa-solid fa-bolt text-warning me-2"></i>802.3af / 802.3at / 802.3bt PoE Power Budget Calculator</span>
-                </div>
-                <div class="ramonet-card-body">
-                    <div class="row g-3">
-                        <div class="col-md-4">
-                            <label class="form-label small text-muted">Switch Power Budget (Watts)</label>
-                            <input type="number" class="form-control form-control-sm" id="poe-switch-watts" value="126">
-                        </div>
-                        <div class="col-md-4">
-                            <label class="form-label small text-muted">802.3af (15.4W) Cameras / APs</label>
-                            <input type="number" class="form-control form-control-sm" id="poe-af-count" value="4">
-                        </div>
-                        <div class="col-md-4">
-                            <label class="form-label small text-muted">802.3at PoE+ (30.0W) PTZ / Wi-Fi 6 APs</label>
-                            <input type="number" class="form-control form-control-sm" id="poe-at-count" value="1">
-                        </div>
+                <div class="row g-3 mb-4">
+                    <div class="col-md-4">
+                        <label class="form-label small text-secondary fw-semibold">Base Major Network</label>
+                        <input type="text" class="form-control form-control-sm font-monospace" id="vlsm-base-net" value="192.168.10.0">
                     </div>
-                    <button class="btn btn-primary-blue btn-sm mt-3" id="btn-calc-poe">Calculate Power Consumption</button>
-                    <div id="poe-result-box" class="mt-3 p-3 bg-sidebar rounded border border-secondary border-opacity-25">
-                        <div class="d-flex justify-content-between mb-1">
-                            <span class="text-muted small">Total Power Consumed:</span>
-                            <strong class="text-warning">91.6 Watts (73%)</strong>
-                        </div>
-                        <div class="d-flex justify-content-between">
-                            <span class="text-muted small">Remaining Safe Margin:</span>
-                            <strong class="text-success">34.4 Watts</strong>
-                        </div>
+                    <div class="col-md-3">
+                        <label class="form-label small text-secondary fw-semibold">Base Prefix (/CIDR)</label>
+                        <select class="form-select form-select-sm font-monospace" id="vlsm-base-cidr">
+                            <option value="24" selected>/24 (256 IP Block)</option>
+                            <option value="23">/23 (512 IP Block)</option>
+                            <option value="22">/22 (1,024 IP Block)</option>
+                            <option value="16">/16 (65,536 IP Block)</option>
+                        </select>
+                    </div>
+                    <div class="col-md-5 d-flex align-items-end">
+                        <button class="btn btn-primary-blue btn-sm fw-semibold w-100" id="btn-run-vlsm">
+                            <i class="fa-solid fa-calculator me-1"></i> Calculate Optimal VLSM Allocation
+                        </button>
                     </div>
                 </div>
+
+                <div class="table-responsive">
+                    <table class="table table-ramonet mb-0" id="vlsm-results-table">
+                        <thead>
+                            <tr>
+                                <th>Subnet Identifier</th>
+                                <th>Needed Hosts</th>
+                                <th>Allocated Hosts</th>
+                                <th>Network Address</th>
+                                <th>Subnet Mask</th>
+                                <th>Usable Host Range</th>
+                                <th>Broadcast Address</th>
+                            </tr>
+                        </thead>
+                        <tbody id="vlsm-tbody">
+                            <tr>
+                                <td class="text-white fw-bold">Engineering Department</td>
+                                <td>50</td>
+                                <td><span class="badge bg-info text-dark">62 (/26)</span></td>
+                                <td class="font-monospace text-cyan">192.168.10.0</td>
+                                <td class="font-monospace text-secondary">255.255.255.192</td>
+                                <td class="font-monospace small text-white">192.168.10.1 — 192.168.10.62</td>
+                                <td class="font-monospace small text-warning">192.168.10.63</td>
+                            </tr>
+                            <tr>
+                                <td class="text-white fw-bold">Sales & Operations</td>
+                                <td>25</td>
+                                <td><span class="badge bg-info text-dark">30 (/27)</span></td>
+                                <td class="font-monospace text-cyan">192.168.10.64</td>
+                                <td class="font-monospace text-secondary">255.255.255.224</td>
+                                <td class="font-monospace small text-white">192.168.10.65 — 192.168.10.94</td>
+                                <td class="font-monospace small text-warning">192.168.10.95</td>
+                            </tr>
+                            <tr>
+                                <td class="text-white fw-bold">Executive Office</td>
+                                <td>10</td>
+                                <td><span class="badge bg-info text-dark">14 (/28)</span></td>
+                                <td class="font-monospace text-cyan">192.168.10.96</td>
+                                <td class="font-monospace text-secondary">255.255.255.240</td>
+                                <td class="font-monospace small text-white">192.168.10.97 — 192.168.10.110</td>
+                                <td class="font-monospace small text-warning">192.168.10.111</td>
+                            </tr>
+                            <tr>
+                                <td class="text-white fw-bold">WAN Point-to-Point Link</td>
+                                <td>2</td>
+                                <td><span class="badge bg-danger">2 (/30)</span></td>
+                                <td class="font-monospace text-cyan">192.168.10.112</td>
+                                <td class="font-monospace text-secondary">255.255.255.252</td>
+                                <td class="font-monospace small text-white">192.168.10.113 — 192.168.10.114</td>
+                                <td class="font-monospace small text-warning">192.168.10.115</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
             </div>
         </div>
 
-        <!-- 4. CCTV Bandwidth -->
-        <div class="tab-pane fade" id="tab-cctv-calc">
-            <div class="ramonet-card">
-                <div class="ramonet-card-header">
-                    <span class="text-white fw-bold small"><i class="fa-solid fa-video text-warning me-2"></i>CCTV Storage & Bandwidth Calculator</span>
-                </div>
-                <div class="ramonet-card-body">
-                    <p class="text-secondary small">Calculate the continuous bit-rate load and storage retention capacity required for NVR surveillance recordings.</p>
-                    <a href="{% url 'configuration:cctv' %}" class="btn btn-outline-cyan btn-sm">Open Dedicated CCTV Manager →</a>
-                </div>
-            </div>
-        </div>
-
-        <!-- 5. RAID Capacity -->
-        <div class="tab-pane fade" id="tab-raid-calc">
-            <div class="ramonet-card">
-                <div class="ramonet-card-header">
-                    <span class="text-white fw-bold small"><i class="fa-solid fa-hard-drive text-secondary me-2"></i>RAID 0/1/5/6/10 Storage Capacity Estimator</span>
-                </div>
-                <div class="ramonet-card-body">
-                    <p class="text-secondary small">Evaluate storage efficiency and disk fault tolerance across enterprise storage configurations.</p>
-                    <a href="{% url 'configuration:storage' %}" class="btn btn-outline-cyan btn-sm">Open Dedicated NAS Manager →</a>
-                </div>
-            </div>
-        </div>
-
-        <!-- 6. Ports & Protocols Reference -->
+        <!-- 4. Ports & Protocols Matrix -->
         <div class="tab-pane fade" id="tab-ports-ref">
-            <div class="ramonet-card">
-                <div class="ramonet-card-header">
-                    <span class="text-white fw-bold small"><i class="fa-solid fa-list-check text-info me-2"></i>Well-Known TCP/UDP Ports (IANA Reference)</span>
+            <div class="cyber-card p-4">
+                <div class="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-3 pb-2 border-bottom border-secondary border-opacity-25">
+                    <div>
+                        <h5 class="text-white fw-bold mb-1"><i class="fa-solid fa-list-check text-purple me-2"></i>Standard Network Ports & Protocols Matrix (IANA Reference)</h5>
+                        <p class="text-secondary small mb-0">Crucial port and protocol definitions for CCNA, CompTIA Network+, and Security Operations.</p>
+                    </div>
+                    <div class="d-flex align-items-center gap-2">
+                        <input type="text" class="form-control form-control-sm" id="search-ports-input" placeholder="Search port, service, or proto..." style="max-width: 250px;">
+                    </div>
                 </div>
+
                 <div class="table-responsive">
                     <table class="table table-ramonet mb-0" id="ports-table">
                         <thead>
                             <tr>
-                                <th>Port</th>
-                                <th>Protocol</th>
-                                <th>Service Name</th>
-                                <th>Description</th>
+                                <th style="width: 100px;">Port #</th>
+                                <th style="width: 110px;">Transport</th>
+                                <th style="width: 150px;">OSI Layer</th>
+                                <th style="width: 180px;">Service Name</th>
+                                <th>Protocol Role & Exam Description</th>
                             </tr>
                         </thead>
                         <tbody></tbody>
@@ -275,36 +356,164 @@
             </div>
         </div>
 
-        <!-- 7. Cable Pinout & T568A/B -->
-        <div class="tab-pane fade" id="tab-cable-pinout">
-            <div class="ramonet-card">
-                <div class="ramonet-card-header">
-                    <span class="text-white fw-bold small"><i class="fa-solid fa-plug text-info me-2"></i>TIA/EIA-568-A vs TIA/EIA-568-B RJ45 Twisted Pair Wiring</span>
+        <!-- 5. PoE Power Budget -->
+        <div class="tab-pane fade" id="tab-poe">
+            <div class="cyber-card p-4">
+                <div class="d-flex align-items-center justify-content-between mb-3 pb-2 border-bottom border-secondary border-opacity-25">
+                    <h5 class="text-white fw-bold mb-0"><i class="fa-solid fa-bolt text-warning me-2"></i>802.3af / 802.3at / 802.3bt PoE Power Budget Calculator</h5>
                 </div>
-                <div class="ramonet-card-body">
-                    <div class="row g-4">
-                        <div class="col-md-6">
-                            <div class="p-3 bg-sidebar rounded border border-secondary border-opacity-25">
-                                <h6 class="text-white fw-bold mb-2">T568B Standard (Most Common Commercial)</h6>
-                                <ol class="list-unstyled small font-monospace text-secondary mb-0">
-                                    <li>Pin 1: White / Orange (Tx+)</li>
-                                    <li>Pin 2: Orange (Tx-)</li>
-                                    <li>Pin 3: White / Green (Rx+)</li>
-                                    <li>Pin 4: Blue</li>
-                                    <li>Pin 5: White / Blue</li>
-                                    <li>Pin 6: Green (Rx-)</li>
-                                    <li>Pin 7: White / Brown</li>
-                                    <li>Pin 8: Brown</li>
-                                </ol>
-                            </div>
+                <div class="row g-3">
+                    <div class="col-md-4">
+                        <label class="form-label small text-secondary fw-semibold">Switch Total PoE Power Budget (Watts)</label>
+                        <input type="number" class="form-control form-control-sm" id="poe-switch-watts" value="126">
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label small text-secondary fw-semibold">802.3af Devices (15.4W - IP Phones / Basic APs)</label>
+                        <input type="number" class="form-control form-control-sm" id="poe-af-count" value="4">
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label small text-secondary fw-semibold">802.3at PoE+ Devices (30W - PTZ Cameras / Wi-Fi 6 APs)</label>
+                        <input type="number" class="form-control form-control-sm" id="poe-at-count" value="1">
+                    </div>
+                </div>
+                <button class="btn btn-primary-blue btn-sm mt-3" id="btn-calc-poe">Calculate Power Consumption</button>
+                <div id="poe-result-box" class="mt-3 p-3 bg-sidebar rounded border border-secondary border-opacity-25">
+                    <div class="d-flex justify-content-between mb-1">
+                        <span class="text-secondary small">Total Power Consumed:</span>
+                        <strong class="text-warning" id="poe-out-consumed">91.6 Watts (73%)</strong>
+                    </div>
+                    <div class="d-flex justify-content-between">
+                        <span class="text-secondary small">Remaining Safe Margin:</span>
+                        <strong class="text-success" id="poe-out-remaining">34.4 Watts</strong>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 6. CCTV Bandwidth -->
+        <div class="tab-pane fade" id="tab-cctv-calc">
+            <div class="cyber-card p-4">
+                <div class="d-flex align-items-center justify-content-between mb-3 pb-2 border-bottom border-secondary border-opacity-25">
+                    <h5 class="text-white fw-bold mb-0"><i class="fa-solid fa-video text-danger me-2"></i>CCTV NVR Bandwidth & Storage Retention Estimator</h5>
+                </div>
+                <div class="row g-3 mb-3">
+                    <div class="col-md-3">
+                        <label class="form-label small text-secondary fw-semibold">Camera Count</label>
+                        <input type="number" class="form-control form-control-sm" id="cctv-cam-count" value="8">
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label small text-secondary fw-semibold">Stream Resolution</label>
+                        <select class="form-select form-select-sm" id="cctv-res">
+                            <option value="1080p" selected>1080p Full HD (2MP)</option>
+                            <option value="4MP">4MP (2560x1440)</option>
+                            <option value="4K">4K Ultra HD (8MP)</option>
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label small text-secondary fw-semibold">Video Codec</label>
+                        <select class="form-select form-select-sm" id="cctv-codec">
+                            <option value="H.265" selected>H.265 (High Efficiency)</option>
+                            <option value="H.264">H.264 (Standard)</option>
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label small text-secondary fw-semibold">Retention (Days)</label>
+                        <input type="number" class="form-control form-control-sm" id="cctv-days" value="30">
+                    </div>
+                </div>
+                <button class="btn btn-primary-blue btn-sm" id="btn-calc-cctv">Calculate NVR Storage</button>
+                <div id="cctv-result-box" class="mt-3 p-3 bg-sidebar rounded border border-secondary border-opacity-25 font-monospace">
+                    <div class="d-flex justify-content-between mb-1">
+                        <span class="text-secondary">Network Bandwidth Load:</span>
+                        <strong class="text-cyan" id="cctv-out-bw">17.6 Mbps</strong>
+                    </div>
+                    <div class="d-flex justify-content-between">
+                        <span class="text-secondary">Total NVR Storage Required:</span>
+                        <strong class="text-warning" id="cctv-out-storage">5.57 TB (5,700 GB)</strong>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 7. RAID Capacity -->
+        <div class="tab-pane fade" id="tab-raid-calc">
+            <div class="cyber-card p-4">
+                <div class="d-flex align-items-center justify-content-between mb-3 pb-2 border-bottom border-secondary border-opacity-25">
+                    <h5 class="text-white fw-bold mb-0"><i class="fa-solid fa-hard-drive text-success me-2"></i>RAID Storage Fault Tolerance & Capacity Estimator</h5>
+                </div>
+                <div class="row g-3 mb-3">
+                    <div class="col-md-4">
+                        <label class="form-label small text-secondary fw-semibold">Number of Disk Drives</label>
+                        <input type="number" class="form-control form-control-sm" id="raid-count" value="4">
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label small text-secondary fw-semibold">Drive Size (TB each)</label>
+                        <input type="number" class="form-control form-control-sm" id="raid-size" value="8">
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label small text-secondary fw-semibold">RAID Level</label>
+                        <select class="form-select form-select-sm" id="raid-level">
+                            <option value="RAID5" selected>RAID 5 (Single Parity - 1 Drive Failure)</option>
+                            <option value="RAID6">RAID 6 (Dual Parity - 2 Drive Failures)</option>
+                            <option value="RAID1">RAID 1 (Mirroring - 50% Capacity)</option>
+                            <option value="RAID10">RAID 10 (Stripe of Mirrors)</option>
+                            <option value="RAID0">RAID 0 (Striping - 0 Fault Tolerance)</option>
+                        </select>
+                    </div>
+                </div>
+                <button class="btn btn-primary-blue btn-sm" id="btn-calc-raid">Calculate RAID Capacity</button>
+                <div id="raid-result-box" class="mt-3 p-3 bg-sidebar rounded border border-secondary border-opacity-25 font-monospace">
+                    <div class="d-flex justify-content-between mb-1">
+                        <span class="text-secondary">Usable Storage Capacity:</span>
+                        <strong class="text-success" id="raid-out-usable">24.0 TB (75% Efficiency)</strong>
+                    </div>
+                    <div class="d-flex justify-content-between mb-1">
+                        <span class="text-secondary">Fault Tolerance:</span>
+                        <strong class="text-info" id="raid-out-fault">Can survive 1 drive failure</strong>
+                    </div>
+                    <div class="text-muted small mt-2" id="raid-out-desc">Block-level striping with distributed parity. Can survive 1 drive failure.</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 8. T568A / T568B Cabling -->
+        <div class="tab-pane fade" id="tab-cable-pinout">
+            <div class="cyber-card p-4">
+                <div class="d-flex align-items-center justify-content-between mb-3 pb-2 border-bottom border-secondary border-opacity-25">
+                    <h5 class="text-white fw-bold mb-0"><i class="fa-solid fa-plug text-cyan me-2"></i>TIA/EIA-568-A vs TIA/EIA-568-B RJ45 Twisted Pair Wiring Standards</h5>
+                </div>
+                <div class="row g-4">
+                    <div class="col-md-6">
+                        <div class="p-3 bg-sidebar rounded border border-secondary border-opacity-25">
+                            <h6 class="text-white fw-bold mb-2"><span class="badge bg-primary me-2">T568B</span>Commercial Standard (Most Widely Used)</h6>
+                            <ol class="list-unstyled small font-monospace text-secondary mb-0">
+                                <li class="p-1 rounded mb-1 bg-dark"><strong class="text-warning">Pin 1:</strong> White / Orange (Tx+)</li>
+                                <li class="p-1 rounded mb-1 bg-dark"><strong class="text-warning">Pin 2:</strong> Solid Orange (Tx-)</li>
+                                <li class="p-1 rounded mb-1 bg-dark"><strong class="text-success">Pin 3:</strong> White / Green (Rx+)</li>
+                                <li class="p-1 rounded mb-1 bg-dark"><strong class="text-info">Pin 4:</strong> Solid Blue (PoE+)</li>
+                                <li class="p-1 rounded mb-1 bg-dark"><strong class="text-info">Pin 5:</strong> White / Blue (PoE+)</li>
+                                <li class="p-1 rounded mb-1 bg-dark"><strong class="text-success">Pin 6:</strong> Solid Green (Rx-)</li>
+                                <li class="p-1 rounded mb-1 bg-dark"><strong class="text-secondary">Pin 7:</strong> White / Brown (PoE-)</li>
+                                <li class="p-1 rounded bg-dark"><strong class="text-secondary">Pin 8:</strong> Solid Brown (PoE-)</li>
+                            </ol>
                         </div>
-                        <div class="col-md-6">
-                            <div class="p-3 bg-sidebar rounded border border-secondary border-opacity-25">
-                                <h6 class="text-white fw-bold mb-2">Straight-Through vs Crossover Rules</h6>
-                                <p class="text-secondary small">
-                                    <strong>Straight-Through:</strong> Both ends wired as T568B (Used to connect PC to Switch, Switch to Router).<br>
-                                    <strong>Crossover:</strong> One end T568A, opposite end T568B (Legacy connection between Switch to Switch, PC to PC). Modern switches use <strong>Auto-MDIX</strong> to automatically resolve crossover needs.
-                                </p>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="p-3 bg-sidebar rounded border border-secondary border-opacity-25">
+                            <h6 class="text-white fw-bold mb-2"><span class="badge bg-secondary me-2">T568A</span>Government & Legacy Standard</h6>
+                            <ol class="list-unstyled small font-monospace text-secondary mb-3">
+                                <li class="p-1 rounded mb-1 bg-dark"><strong class="text-success">Pin 1:</strong> White / Green</li>
+                                <li class="p-1 rounded mb-1 bg-dark"><strong class="text-success">Pin 2:</strong> Solid Green</li>
+                                <li class="p-1 rounded mb-1 bg-dark"><strong class="text-warning">Pin 3:</strong> White / Orange</li>
+                                <li class="p-1 rounded mb-1 bg-dark"><strong class="text-info">Pin 4:</strong> Solid Blue</li>
+                                <li class="p-1 rounded mb-1 bg-dark"><strong class="text-info">Pin 5:</strong> White / Blue</li>
+                                <li class="p-1 rounded mb-1 bg-dark"><strong class="text-warning">Pin 6:</strong> Solid Orange</li>
+                                <li class="p-1 rounded mb-1 bg-dark"><strong class="text-secondary">Pin 7:</strong> White / Brown</li>
+                                <li class="p-1 rounded bg-dark"><strong class="text-secondary">Pin 8:</strong> Solid Brown</li>
+                            </ol>
+                            <div class="p-2 bg-dark rounded border border-secondary border-opacity-25 text-secondary small">
+                                <strong class="text-white d-block mb-1"><i class="fa-solid fa-code-compare text-info me-1"></i>Straight-Through vs Crossover:</strong>
+                                Straight-through uses T568B at both ends (PC to Switch, Switch to Router). Crossover swaps pairs 2 & 3 (T568A on one end, T568B on the other). Modern NICs use Auto-MDIX to auto-detect.
                             </div>
                         </div>
                     </div>
@@ -316,34 +525,152 @@
 {% endblock %}
 
 {% block extra_js %}
+<!-- Load 100% Client-Side Calculators Suite -->
+<script src="{% static 'js/tools/calculators.js' %}?v=2.2"></script>
 <script>
-// IPv4 Subnet Calculator logic
-document.getElementById('btn-calc-ipv4')?.addEventListener('click', () => {
-    const ip = document.getElementById('calc-ipv4-input').value;
-    const cidr = document.getElementById('calc-cidr-input').value;
-    const res = window.RamonetCalculators.calculateSubnet(ip, cidr);
-    if (res) {
-        document.getElementById('out-net').textContent = res.network;
-        document.getElementById('out-bcast').textContent = res.broadcast;
-        document.getElementById('out-range').textContent = `${res.firstUsable} - ${res.lastUsable}`;
-        document.getElementById('out-mask').textContent = res.netmask;
-        document.getElementById('out-wildcard').textContent = res.wildcard;
-        document.getElementById('out-hosts').textContent = `${res.usableHosts} usable (${res.totalHosts} total)`;
+document.addEventListener('DOMContentLoaded', () => {
+    // 1. IPv4 Subnet Calculator Runner
+    function runSubnetCalc() {
+        const ip = document.getElementById('calc-ipv4-input').value;
+        const cidr = document.getElementById('calc-cidr-input').value;
+        if (!window.RamonetCalculators) return;
+        const res = window.RamonetCalculators.calculateSubnet(ip, cidr);
+        if (res) {
+            document.getElementById('out-net').textContent = res.network;
+            document.getElementById('out-bcast').textContent = res.broadcast;
+            document.getElementById('out-range').textContent = `${res.firstUsable} — ${res.lastUsable}`;
+            document.getElementById('out-mask').textContent = res.netmask;
+            document.getElementById('out-wildcard').textContent = res.wildcard;
+            document.getElementById('out-hosts').textContent = `${res.usableHosts.toLocaleString()} usable (${res.totalHosts.toLocaleString()} total)`;
+            document.getElementById('out-bits').textContent = `${res.networkBits} Network Bits / ${res.hostBits} Host Bits`;
+            document.getElementById('out-class').textContent = res.ipClass;
+            document.getElementById('out-scope').textContent = res.ipScope;
+            document.getElementById('out-bin-ip').textContent = res.ipBinary;
+            document.getElementById('out-bin-mask').textContent = res.maskBinary;
+            document.getElementById('out-bin-net').textContent = res.netBinary;
+        }
     }
-});
 
-// Load Well-Known Ports
-const ports = window.RamonetCalculators.getWellKnownPorts();
-const pBody = document.querySelector('#ports-table tbody');
-if (pBody) {
-    pBody.innerHTML = ports.map(p => `
-        <tr>
-            <td class="font-monospace text-info fw-bold">${p.port}</td>
-            <td><span class="badge bg-secondary">${p.proto}</span></td>
-            <td class="text-white">${p.name}</td>
-            <td class="text-secondary small">${p.desc}</td>
-        </tr>
-    `).join('');
-}
+    document.getElementById('btn-calc-ipv4')?.addEventListener('click', runSubnetCalc);
+    document.getElementById('calc-ipv4-input')?.addEventListener('input', runSubnetCalc);
+    document.getElementById('calc-cidr-input')?.addEventListener('change', runSubnetCalc);
+    runSubnetCalc();
+
+    // 2. Subnetting Quiz Trainer
+    let currentQuiz = null;
+    let quizScore = 0;
+
+    function loadNextQuizQuestion() {
+        if (!window.RamonetCalculators) return;
+        currentQuiz = window.RamonetCalculators.generateQuizQuestion();
+        document.getElementById('quiz-ip-pill').textContent = `IP Host: ${currentQuiz.ip}/${currentQuiz.cidr}`;
+        document.getElementById('quiz-question-text').innerHTML = currentQuiz.questionText;
+        document.getElementById('quiz-user-input').value = '';
+        document.getElementById('quiz-user-input').focus();
+        
+        const fb = document.getElementById('quiz-feedback-box');
+        fb.className = 'mt-3 d-none';
+        fb.innerHTML = '';
+    }
+
+    document.getElementById('btn-quiz-new')?.addEventListener('click', loadNextQuizQuestion);
+
+    document.getElementById('btn-quiz-hint')?.addEventListener('click', () => {
+        if (!currentQuiz) return;
+        const fb = document.getElementById('quiz-feedback-box');
+        fb.className = 'mt-3 p-3 bg-dark rounded border border-warning text-warning small font-monospace';
+        fb.innerHTML = `<i class="fa-solid fa-lightbulb me-1"></i><strong>Hint:</strong> ${currentQuiz.hint}`;
+    });
+
+    document.getElementById('quiz-answer-form')?.addEventListener('submit', (e) => {
+        e.preventDefault();
+        if (!currentQuiz) return;
+        const inputVal = document.getElementById('quiz-user-input').value.trim();
+        const fb = document.getElementById('quiz-feedback-box');
+        
+        if (inputVal.toLowerCase() === currentQuiz.correctAnswer.toLowerCase()) {
+            quizScore++;
+            document.getElementById('quiz-score-badge').textContent = `Score: ${quizScore} Correct`;
+            fb.className = 'mt-3 p-3 bg-success bg-opacity-15 rounded border border-success text-success small font-monospace';
+            fb.innerHTML = `<i class="fa-solid fa-circle-check me-1"></i><strong>Correct!</strong> The ${currentQuiz.field} is indeed <strong>${currentQuiz.correctAnswer}</strong>.`;
+        } else {
+            fb.className = 'mt-3 p-3 bg-danger bg-opacity-15 rounded border border-danger text-danger small font-monospace';
+            fb.innerHTML = `<i class="fa-solid fa-circle-xmark me-1"></i><strong>Incorrect.</strong> Your answer: <code>${inputVal}</code>. Correct answer: <strong>${currentQuiz.correctAnswer}</strong>.<br><span class="text-secondary">${currentQuiz.hint}</span>`;
+        }
+    });
+
+    loadNextQuizQuestion();
+
+    // 3. Ports & Protocols Table
+    const ports = window.RamonetCalculators?.getWellKnownPorts() || [];
+    const pBody = document.querySelector('#ports-table tbody');
+    
+    function renderPortsTable(filterText = '') {
+        if (!pBody) return;
+        const q = filterText.toLowerCase().trim();
+        const filtered = ports.filter(p => 
+            !q || 
+            String(p.port).includes(q) || 
+            p.proto.toLowerCase().includes(q) || 
+            p.name.toLowerCase().includes(q) || 
+            p.desc.toLowerCase().includes(q) ||
+            p.layer.toLowerCase().includes(q)
+        );
+
+        pBody.innerHTML = filtered.map(p => `
+            <tr>
+                <td class="font-monospace text-cyan fw-bold">${p.port}</td>
+                <td><span class="badge ${p.proto.includes('UDP') ? 'bg-warning text-dark' : 'bg-primary'} font-monospace" style="font-size:0.7rem;">${p.proto}</span></td>
+                <td><span class="badge bg-secondary font-monospace" style="font-size:0.68rem;">${p.layer}</span></td>
+                <td class="text-white fw-semibold">${p.name}</td>
+                <td class="text-secondary small">${p.desc}</td>
+            </tr>
+        `).join('');
+    }
+
+    renderPortsTable();
+    document.getElementById('search-ports-input')?.addEventListener('input', (e) => {
+        renderPortsTable(e.target.value);
+    });
+
+    // 4. PoE Calculator
+    document.getElementById('btn-calc-poe')?.addEventListener('click', () => {
+        const sw = parseFloat(document.getElementById('poe-switch-watts').value) || 0;
+        const af = parseInt(document.getElementById('poe-af-count').value, 10) || 0;
+        const at = parseInt(document.getElementById('poe-at-count').value, 10) || 0;
+        const devList = [];
+        for (let i = 0; i < af; i++) devList.push({ name: '802.3af Device', class: '802.3af' });
+        for (let i = 0; i < at; i++) devList.push({ name: '802.3at Device', class: '802.3at' });
+        
+        const res = window.RamonetCalculators.calculatePoEBudget(sw, devList);
+        document.getElementById('poe-out-consumed').textContent = `${res.consumed} Watts (${res.percentage}%)`;
+        document.getElementById('poe-out-remaining').textContent = `${res.remaining} Watts`;
+        document.getElementById('poe-out-remaining').className = res.isOverloaded ? 'text-danger' : 'text-success';
+    });
+
+    // 5. CCTV Storage
+    document.getElementById('btn-calc-cctv')?.addEventListener('click', () => {
+        const count = parseInt(document.getElementById('cctv-cam-count').value, 10) || 1;
+        const res = document.getElementById('cctv-res').value;
+        const codec = document.getElementById('cctv-codec').value;
+        const days = parseInt(document.getElementById('cctv-days').value, 10) || 30;
+
+        const out = window.RamonetCalculators.calculateCCTVStorage(count, res, codec, 25, days);
+        document.getElementById('cctv-out-bw').textContent = `${out.totalBandwidthMbps} Mbps`;
+        document.getElementById('cctv-out-storage').textContent = `${out.storageTB} TB (${out.storageGB.toLocaleString()} GB)`;
+    });
+
+    // 6. RAID Calculator
+    document.getElementById('btn-calc-raid')?.addEventListener('click', () => {
+        const count = parseInt(document.getElementById('raid-count').value, 10) || 4;
+        const size = parseFloat(document.getElementById('raid-size').value) || 4;
+        const lvl = document.getElementById('raid-level').value;
+
+        const out = window.RamonetCalculators.calculateRAIDCapacity(count, size, lvl);
+        document.getElementById('raid-out-usable').textContent = `${out.usableCapacityTB} TB (${out.storageEfficiencyPercent}% Efficiency)`;
+        document.getElementById('raid-out-fault').textContent = `Can survive ${out.faultToleranceDrives} drive failure(s)`;
+        document.getElementById('raid-out-desc').textContent = out.description;
+    });
+});
 </script>
 {% endblock %}

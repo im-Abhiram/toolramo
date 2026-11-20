@@ -69,23 +69,33 @@
                     {% for cmd in commands %}
                     <tr>
                         <td>
-                            <strong class="text-white d-block">{{ cmd.name }}</strong>
-                            <code class="text-info font-monospace small">{{ cmd.syntax }}</code>
+                            <strong class="text-white d-block mb-1">{{ cmd.name }}</strong>
+                            <div class="d-flex align-items-center gap-1">
+                                <code class="text-cyan font-monospace small bg-dark px-2 py-0.5 rounded border border-secondary border-opacity-25" id="code-{{ cmd.id }}">{{ cmd.syntax }}</code>
+                                <button class="btn btn-xs btn-outline-secondary p-1" onclick="copyCommandSyntax('{{ cmd.syntax|escapejs }}', this)" title="Copy Syntax">
+                                    <i class="fa-regular fa-copy"></i>
+                                </button>
+                            </div>
                         </td>
                         <td>
-                            <span class="badge bg-secondary-subtle text-secondary">{{ cmd.get_platform_display }}</span>
+                            <span class="badge bg-secondary-subtle text-secondary font-monospace" style="font-size:0.75rem;">{{ cmd.get_platform_display }}</span>
                         </td>
                         <td>
                             <span class="badge bg-dark border border-secondary border-opacity-25 text-muted font-monospace" style="font-size:0.7rem;">{{ cmd.get_mode_display }}</span>
                         </td>
                         <td>
-                            <div class="small text-secondary mb-1">{{ cmd.purpose }}</div>
-                            <div class="text-muted" style="font-size: 0.75rem;">{{ cmd.description|truncatewords:20 }}</div>
+                            <div class="small text-white fw-semibold mb-1">{{ cmd.purpose }}</div>
+                            <div class="text-secondary" style="font-size: 0.78rem;">{{ cmd.description|truncatewords:20 }}</div>
                         </td>
                         <td class="text-end">
-                            <button class="btn btn-sm btn-outline-cyan py-0 px-2" onclick="showCommandDetails('{{ cmd.id }}')" title="Command Explainer">
-                                <i class="fa-solid fa-circle-info me-1"></i> Explain
-                            </button>
+                            <div class="d-flex justify-content-end gap-1">
+                                <button class="btn btn-sm btn-outline-cyan py-0 px-2" onclick="showCommandDetails('{{ cmd.id }}')" title="Command Explainer">
+                                    <i class="fa-solid fa-circle-info me-1"></i> Explain
+                                </button>
+                                <a href="{% url 'topology:designer' %}?open=cli" class="btn btn-sm btn-outline-secondary py-0 px-2" title="Test in CLI Terminal">
+                                    <i class="fa-solid fa-terminal"></i>
+                                </a>
+                            </div>
                         </td>
                     </tr>
                     {% empty %}
@@ -154,9 +164,14 @@ function showCommandDetails(cmdId) {
     
     bodyEl.innerHTML = `
         <div class="p-3 mb-3 bg-sidebar rounded border border-secondary border-opacity-25 font-monospace">
-            <div class="text-muted small mb-1">Full Syntax:</div>
-            <div class="text-info fw-bold">${cmd.syntax}</div>
-            <div class="text-muted small mt-2">Execution Mode: <span class="text-white">${cmd.mode}</span></div>
+            <div class="d-flex align-items-center justify-content-between mb-1">
+                <span class="text-muted small">Full Syntax:</span>
+                <button class="btn btn-xs btn-outline-cyan px-2 py-0" onclick="copyCommandSyntax('${cmd.syntax.replace(/'/g, "\\'")}', this)">
+                    <i class="fa-regular fa-copy me-1"></i> Copy
+                </button>
+            </div>
+            <div class="text-cyan fw-bold fs-6">${cmd.syntax}</div>
+            <div class="text-muted small mt-2">Execution Mode: <span class="badge bg-secondary font-monospace">${cmd.mode}</span></div>
         </div>
 
         <h6 class="text-white small fw-bold mb-1"><i class="fa-solid fa-bullseye text-info me-1"></i>Purpose</h6>
@@ -165,7 +180,12 @@ function showCommandDetails(cmdId) {
         <h6 class="text-white small fw-bold mb-1"><i class="fa-solid fa-book-open text-info me-1"></i>Detailed Explanation</h6>
         <p class="text-secondary small mb-3">${cmd.description}</p>
 
-        <h6 class="text-white small fw-bold mb-1"><i class="fa-solid fa-code text-info me-1"></i>Example Usage</h6>
+        <div class="d-flex align-items-center justify-content-between mb-1">
+            <h6 class="text-white small fw-bold mb-0"><i class="fa-solid fa-code text-info me-1"></i>Example Usage</h6>
+            <button class="btn btn-xs btn-outline-secondary px-2 py-0" onclick="copyCommandSyntax('${(cmd.example_usage || '').replace(/'/g, "\\'")}', this)">
+                <i class="fa-regular fa-copy me-1"></i> Copy Example
+            </button>
+        </div>
         <pre class="p-2 bg-sidebar rounded text-success font-monospace small border border-secondary border-opacity-25 mb-3">${cmd.example_usage}</pre>
 
         ${cmd.example_output ? `
@@ -191,6 +211,20 @@ function showCommandDetails(cmdId) {
 
     const bsModal = new bootstrap.Modal(modalEl);
     bsModal.show();
+}
+
+function copyCommandSyntax(text, btnEl) {
+    if (!text) return;
+    navigator.clipboard.writeText(text).then(() => {
+        if (btnEl) {
+            const originalHtml = btnEl.innerHTML;
+            btnEl.innerHTML = '<i class="fa-solid fa-check text-success"></i> Copied!';
+            setTimeout(() => { btnEl.innerHTML = originalHtml; }, 1500);
+        }
+        window.ramonetUI?.showToast('Clipboard', 'Command copied to clipboard!', 'success');
+    }).catch(() => {
+        window.ramonetUI?.showToast('Notice', 'Press Ctrl+C to copy', 'info');
+    });
 }
 </script>
 {% endblock %}
