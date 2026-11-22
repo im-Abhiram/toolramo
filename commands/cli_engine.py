@@ -40,8 +40,16 @@ class DeviceCLISession:
         self.topology = topology_data or {'devices': [self.device], 'connections': []}
         
         # Determine platform intelligently based on explicit platform or device category
-        self.platform = self.device.get('cli_platform')
-        if not self.platform:
+        raw_platform = str(self.device.get('cli_platform') or '').strip().lower()
+        if 'cisco' in raw_platform or raw_platform == 'ios':
+            self.platform = 'cisco_ios'
+        elif 'linux' in raw_platform or 'shell' in raw_platform or 'server' in raw_platform:
+            self.platform = 'linux_shell'
+        elif 'win' in raw_platform or 'cmd' in raw_platform:
+            self.platform = 'windows_cmd'
+        elif 'mikrotik' in raw_platform or 'routeros' in raw_platform:
+            self.platform = 'mikrotik'
+        elif not raw_platform:
             cat = (self.device.get('category') or self.device.get('type') or '').lower()
             if 'server' in cat or 'linux' in cat:
                 self.platform = 'linux_shell'
@@ -51,6 +59,8 @@ class DeviceCLISession:
                 self.platform = 'mikrotik'
             else:
                 self.platform = 'cisco_ios'
+        else:
+            self.platform = raw_platform
         self.device['cli_platform'] = self.platform
         
         # State tracking for Cisco IOS (check passed parameter first, then device state)
@@ -128,7 +138,11 @@ class DeviceCLISession:
         elif self.platform == 'mikrotik':
             return f"[{self.device.get('name', 'admin')}@MikroTik] > "
             
-        return f"{hostname}> "
+        if self.mode == 'priv_exec':
+            return f"{hostname}#"
+        elif 'config' in self.mode:
+            return f"{hostname}(config)#"
+        return f"{hostname}>"
 
     def execute(self, cmd_line: str) -> Dict[str, Any]:
         raw_cmd = cmd_line.strip()

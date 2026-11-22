@@ -1,0 +1,284 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Common Network Ports Cheat Sheet (TCP/UDP) & CCNA Reference — RAMONET{% endblock %}
+{% block meta_description %}{{ meta_description }}{% endblock %}
+{% block meta_keywords %}{{ meta_keywords }}{% endblock %}
+
+{% block extra_head %}
+<!-- JSON-LD Structured Data for SEO Rich Snippets -->
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "WebApplication",
+  "name": "Ramonet Common Ports Reference & Cheat Sheet",
+  "applicationCategory": "EducationalApplication",
+  "operatingSystem": "All",
+  "offers": {
+    "@type": "Offer",
+    "price": "0",
+    "priceCurrency": "USD"
+  },
+  "description": "Interactive, searchable cheat sheet of common TCP and UDP network ports (1-65535) with transport protocols, security ratings, and CCNA study definitions."
+}
+</script>
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  "mainEntity": [
+    {
+      "@type": "Question",
+      "name": "What is the difference between TCP and UDP ports?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "TCP (Transmission Control Protocol) is connection-oriented, reliable, and establishes a 3-way handshake (SYN, SYN-ACK, ACK) with error recovery and flow control. UDP (User Datagram Protocol) is connectionless, lightweight, and low-latency, sending datagrams without guarantees or handshakes, making it ideal for DNS queries, streaming audio/video, and DHCP."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "What are the Well-Known Ports range?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "IANA divides port numbers into three ranges: Well-Known Ports (0 to 1023) reserved for system/core network services, Registered Ports (1024 to 49151) used by vendor applications and databases, and Dynamic/Private/Ephemeral Ports (49152 to 65535) used by client operating systems for outbound client sockets."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "Why is SSH port 22 preferred over Telnet port 23?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Telnet transmits all keystrokes, usernames, and passwords in cleartext over the wire, making it vulnerable to packet sniffing. SSH encrypts the entire administrative session with asymmetric cryptography (RSA/ED25519) and symmetric ciphers (AES), protecting passwords and commands."
+      }
+    }
+  ]
+}
+</script>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4 px-lg-5">
+    <!-- Breadcrumb & Top Bar -->
+    <nav aria-label="breadcrumb" class="mb-3">
+        <ol class="breadcrumb mb-0 small">
+            <li class="breadcrumb-item"><a href="{% url 'dashboard' %}" class="text-cyan text-decoration-none"><i class="fa-solid fa-house me-1"></i>Home</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'networktools:toolbox' %}" class="text-secondary text-decoration-none">Tools</a></li>
+            <li class="breadcrumb-item active text-white" aria-current="page">Ports Cheat Sheet</li>
+        </ol>
+    </nav>
+
+    <!-- Header Banner -->
+    <div class="row align-items-center mb-4">
+        <div class="col-lg-8">
+            <div class="d-flex align-items-center gap-3">
+                <div class="p-3 rounded bg-cyan bg-opacity-10 border border-cyan border-opacity-25 text-cyan">
+                    <i class="fa-solid fa-list-ol fa-2x"></i>
+                </div>
+                <div>
+                    <h1 class="h3 text-white fw-bold mb-1">Common Network Ports Cheat Sheet (TCP/UDP)</h1>
+                    <p class="text-secondary mb-0 small">
+                        Complete reference guide to Well-Known & Registered Ports (0–1023 & 1024–49151), transport protocols, security notes, and CCNA exam definitions.
+                    </p>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-4 text-lg-end mt-3 mt-lg-0">
+            <button class="btn btn-outline-cyan btn-sm" onclick="openShareModal('Ramonet Common Ports Cheat Sheet', window.location.href)">
+                <i class="fa-solid fa-share-nodes me-1"></i> Share Sheet
+            </button>
+            <a href="{% url 'commands:library' %}" class="btn btn-cyan btn-sm text-dark fw-bold ms-2">
+                <i class="fa-solid fa-terminal me-1"></i> Command Reference
+            </a>
+        </div>
+    </div>
+
+    <!-- Filter & Search Controls -->
+    <div class="card bg-surface border-secondary border-opacity-25 shadow-sm mb-4">
+        <div class="card-body p-3">
+            <div class="row g-3 align-items-center">
+                <div class="col-md-5">
+                    <div class="input-group">
+                        <span class="input-group-text bg-dark border-secondary border-opacity-25 text-secondary"><i class="fa-solid fa-magnifying-glass"></i></span>
+                        <input type="text" id="port-search-input" class="form-control bg-dark text-white border-secondary border-opacity-25 font-monospace" placeholder="Search port number, service, or keyword (e.g. 443, DNS, SSH, VoIP)...">
+                    </div>
+                </div>
+                <div class="col-md-7 d-flex flex-wrap gap-2 justify-content-md-end">
+                    <button class="btn btn-sm btn-outline-cyan active filter-btn" data-cat="all">All Ports</button>
+                    <button class="btn btn-sm btn-outline-secondary filter-btn" data-cat="Web">Web</button>
+                    <button class="btn btn-sm btn-outline-secondary filter-btn" data-cat="Core Infrastructure">Core Services</button>
+                    <button class="btn btn-sm btn-outline-secondary filter-btn" data-cat="Remote Access">Remote Access</button>
+                    <button class="btn btn-sm btn-outline-secondary filter-btn" data-cat="Email">Email</button>
+                    <button class="btn btn-sm btn-outline-secondary filter-btn" data-cat="Database">Database</button>
+                    <button class="btn btn-sm btn-outline-secondary filter-btn" data-cat="Monitoring">Monitoring</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Ports Table -->
+    <div class="card bg-surface border-secondary border-opacity-25 shadow-sm mb-4">
+        <div class="table-responsive">
+            <table class="table table-dark table-hover align-middle mb-0" id="ports-table">
+                <thead class="table-secondary">
+                    <tr>
+                        <th class="ps-3" style="width: 100px;">Port</th>
+                        <th style="width: 110px;">Protocol</th>
+                        <th style="width: 160px;">Service</th>
+                        <th style="width: 160px;">Category</th>
+                        <th>Description & CCNA Exam Notes</th>
+                        <th style="width: 120px;" class="text-center">Security</th>
+                        <th class="pe-3 text-end" style="width: 100px;">Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for p in common_ports %}
+                    <tr class="port-row" data-cat="{{ p.category }}" data-port="{{ p.port }}" data-service="{{ p.service|lower }}" data-desc="{{ p.desc|lower }}">
+                        <td class="ps-3">
+                            <span class="badge bg-dark border border-cyan text-cyan font-monospace px-2 py-1 fs-6">{{ p.port }}</span>
+                        </td>
+                        <td>
+                            <span class="badge bg-secondary bg-opacity-25 text-white font-monospace">{{ p.proto }}</span>
+                        </td>
+                        <td>
+                            <strong class="text-white">{{ p.service }}</strong>
+                        </td>
+                        <td>
+                            <span class="badge bg-dark text-secondary border border-secondary border-opacity-25">{{ p.category }}</span>
+                        </td>
+                        <td>
+                            <span class="text-secondary small">{{ p.desc }}</span>
+                        </td>
+                        <td class="text-center">
+                            {% if p.secure %}
+                            <span class="badge bg-success bg-opacity-25 text-success border border-success border-opacity-25"><i class="fa-solid fa-lock me-1"></i>Encrypted</span>
+                            {% else %}
+                            <span class="badge bg-danger bg-opacity-25 text-danger border border-danger border-opacity-25"><i class="fa-solid fa-lock-open me-1"></i>Cleartext</span>
+                            {% endif %}
+                        </td>
+                        <td class="pe-3 text-end">
+                            <button class="btn btn-xs btn-outline-secondary py-1 px-2" title="Copy port number" onclick="navigator.clipboard.writeText('{{ p.port }}'); showToast('Port {{ p.port }} copied!');">
+                                <i class="fa-regular fa-copy"></i>
+                            </button>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Educational Port Ranges Guide & FAQ -->
+    <div class="row g-4">
+        <div class="col-lg-6">
+            <div class="card bg-surface border-secondary border-opacity-25 h-100 shadow-sm">
+                <div class="card-header bg-dark bg-opacity-50 border-secondary border-opacity-25 py-3">
+                    <span class="text-white fw-bold small"><i class="fa-solid fa-layer-group text-cyan me-2"></i>IANA Port Range Classifications</span>
+                </div>
+                <div class="card-body p-4">
+                    <div class="mb-3 p-3 rounded bg-dark border border-secondary border-opacity-25">
+                        <div class="d-flex justify-content-between align-items-center mb-1">
+                            <strong class="text-cyan font-monospace">0 – 1,023</strong>
+                            <span class="badge bg-cyan text-dark font-monospace">System / Well-Known</span>
+                        </div>
+                        <p class="text-secondary small mb-0">Assigned by IANA to ubiquitous network services (HTTP, SSH, DNS, DHCP, Telnet, NTP). On POSIX operating systems, binding to these ports requires superuser (root) privileges.</p>
+                    </div>
+
+                    <div class="mb-3 p-3 rounded bg-dark border border-secondary border-opacity-25">
+                        <div class="d-flex justify-content-between align-items-center mb-1">
+                            <strong class="text-info font-monospace">1,024 – 49,151</strong>
+                            <span class="badge bg-info text-dark font-monospace">Registered Ports</span>
+                        </div>
+                        <p class="text-secondary small mb-0">Registered by software corporations and database vendors (Microsoft SQL 1433, MySQL 3306, PostgreSQL 5432, RDP 3389, SIP 5060).</p>
+                    </div>
+
+                    <div class="p-3 rounded bg-dark border border-secondary border-opacity-25">
+                        <div class="d-flex justify-content-between align-items-center mb-1">
+                            <strong class="text-warning font-monospace">49,152 – 65,535</strong>
+                            <span class="badge bg-warning text-dark font-monospace">Dynamic / Ephemeral</span>
+                        </div>
+                        <p class="text-secondary small mb-0">Assigned dynamically by client operating systems as source ports for outbound communication sockets, terminated when the session closes.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-6">
+            <div class="card bg-surface border-secondary border-opacity-25 h-100 shadow-sm">
+                <div class="card-header bg-dark bg-opacity-50 border-secondary border-opacity-25 py-3">
+                    <span class="text-white fw-bold small"><i class="fa-solid fa-shield-halved text-cyan me-2"></i>Security Best Practices for Ports</span>
+                </div>
+                <div class="card-body p-4">
+                    <ul class="text-secondary small mb-0 ps-3">
+                        <li class="mb-3">
+                            <strong class="text-white">Disable Cleartext Management (Telnet 23 & HTTP 80):</strong>
+                            Replace with SSH (Port 22) with public-key authentication and HTTPS (Port 443) with valid TLS certificates.
+                        </li>
+                        <li class="mb-3">
+                            <strong class="text-white">Default Deny Ingress Firewall Rules:</strong>
+                            Block all inbound connections at edge firewalls; allow only explicitly required stateful return traffic and necessary public listeners.
+                        </li>
+                        <li class="mb-3">
+                            <strong class="text-white">Secure SNMP Infrastructure:</strong>
+                            SNMP v1 and v2c send community strings in plain text. Migrate all monitoring polling to SNMP v3 (authPriv mode) with SHA-256 and AES-256.
+                        </li>
+                        <li class="mb-0">
+                            <strong class="text-white">Protect Active Directory & SMB Ports:</strong>
+                            Never expose Port 445 (SMB) or Port 3389 (RDP) directly to the public internet; enforce VPN or Zero Trust Network Access (ZTNA).
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    const searchInput = document.getElementById('port-search-input');
+    const filterButtons = document.querySelectorAll('.filter-btn');
+    const rows = document.querySelectorAll('.port-row');
+
+    let currentCategory = 'all';
+    let searchQuery = '';
+
+    function applyFilters() {
+        rows.forEach(row => {
+            const rowCat = row.getAttribute('data-cat') || '';
+            const rowPort = row.getAttribute('data-port') || '';
+            const rowService = row.getAttribute('data-service') || '';
+            const rowDesc = row.getAttribute('data-desc') || '';
+
+            const matchesCategory = currentCategory === 'all' || rowCat === currentCategory;
+            const matchesSearch = !searchQuery || 
+                rowPort.includes(searchQuery) || 
+                rowService.includes(searchQuery) || 
+                rowDesc.includes(searchQuery);
+
+            if (matchesCategory && matchesSearch) {
+                row.style.display = '';
+            } else {
+                row.style.display = 'none';
+            }
+        });
+    }
+
+    searchInput?.addEventListener('input', (e) => {
+        searchQuery = e.target.value.trim().toLowerCase();
+        applyFilters();
+    });
+
+    filterButtons.forEach(btn => {
+        btn.addEventListener('click', () => {
+            filterButtons.forEach(b => {
+                b.classList.remove('active', 'btn-outline-cyan');
+                b.classList.add('btn-outline-secondary');
+            });
+            btn.classList.add('active', 'btn-outline-cyan');
+            btn.classList.remove('btn-outline-secondary');
+            currentCategory = btn.getAttribute('data-cat') || 'all';
+            applyFilters();
+        });
+    });
+});
+</script>
+{% endblock %}

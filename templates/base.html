@@ -6,6 +6,59 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}RAMONET — Enterprise Network Simulator & Operations Lab{% endblock %}</title>
     
+    <!-- Technical SEO & Social Metadata -->
+    <meta name="description" content="{% block meta_description %}RAMONET is a free enterprise network simulator and CCNA study lab. Practice real Cisco IOS, Linux, and Windows CLI commands, design rack topologies, calculate subnets, and solve network troubleshooting scenarios in your browser.{% endblock %}">
+    <meta name="keywords" content="{% block meta_keywords %}network simulator, cisco packet tracer online, ccna lab simulator, free subnet calculator, cisco ios cli simulator, network topology designer, cidr calculator, networking study helper, port cheat sheet, osi model guide{% endblock %}">
+    <meta name="author" content="RAMONET Team">
+    <meta name="robots" content="index, follow">
+    <link rel="canonical" href="{% block canonical_url %}{{ request.build_absolute_uri }}{% endblock %}">
+
+    <!-- Open Graph (Facebook / LinkedIn / Discord) -->
+    <meta property="og:site_name" content="RAMONET 2.0">
+    <meta property="og:type" content="website">
+    <meta property="og:title" content="{% block og_title %}RAMONET — Enterprise Network Simulator & CCNA Lab{% endblock %}">
+    <meta property="og:description" content="{% block og_desc %}Free interactive enterprise network simulator, Cisco IOS CLI terminal, subnet calculator, and CCNA study helper.{% endblock %}">
+    <meta property="og:url" content="{{ request.build_absolute_uri }}">
+    <meta property="og:image" content="{% static 'img/ramonet-icon.svg' %}">
+
+    <!-- Twitter / X Cards -->
+    <meta name="twitter:card" content="summary">
+    <meta name="twitter:title" content="{% block twitter_title %}RAMONET — Enterprise Network Simulator & CCNA Lab{% endblock %}">
+    <meta name="twitter:description" content="{% block twitter_desc %}Free interactive network simulator, Cisco IOS terminal, CIDR calculator, and CCNA labs.{% endblock %}">
+    <meta name="twitter:image" content="{% static 'img/ramonet-icon.svg' %}">
+
+    <!-- PWA & Mobile Icons -->
+    <link rel="manifest" href="{% static 'manifest.json' %}">
+    <meta name="theme-color" content="#060913">
+    <link rel="icon" type="image/svg+xml" href="{% static 'img/ramonet-icon.svg' %}">
+    <link rel="apple-touch-icon" href="{% static 'img/ramonet-icon.svg' %}">
+
+    <!-- Schema.org Global JSON-LD -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "WebApplication",
+      "name": "RAMONET Network Simulator",
+      "url": "https://ramonet.pythonanywhere.com",
+      "applicationCategory": "EducationalApplication",
+      "operatingSystem": "All",
+      "offers": {
+        "@type": "Offer",
+        "price": "0",
+        "priceCurrency": "USD"
+      },
+      "featureList": [
+        "Interactive Canvas Network Topology Designer",
+        "Stateful Multi-Platform CLI Engine (Cisco IOS, Linux, Windows CMD)",
+        "32-Bit IPv4 & IPv6 Subnet & CIDR Calculator",
+        "TCP/UDP Common Ports Cheat Sheet",
+        "Interactive 7-Layer OSI & TCP/IP Model Explorer",
+        "CCNA Exam Practice Labs & Troubleshooting Scenarios"
+      ]
+    }
+    </script>
+    {% block extra_head %}{% endblock %}
+    
     <!-- Google Fonts: Manrope & JetBrains Mono -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -54,6 +107,12 @@
             <button class="btn btn-sm btn-outline-secondary d-none d-sm-inline-flex align-items-center gap-1" id="btn-header-tour" data-bs-toggle="modal" data-bs-target="#ramonetTourModal" title="Platform Tour & Guide">
                 <i class="fa-solid fa-compass text-warning"></i>
                 <span class="small">Tour</span>
+            </button>
+
+            <!-- Share Platform Button -->
+            <button class="btn btn-sm btn-outline-cyan d-none d-sm-inline-flex align-items-center gap-1" onclick="openShareModal()" title="Share RAMONET Lab & Tools">
+                <i class="fa-solid fa-share-nodes text-cyan"></i>
+                <span class="small">Share</span>
             </button>
 
             <!-- Theme Toggle Button -->
@@ -294,9 +353,22 @@
                     <span>Capacity & Cost BOM</span>
                     <span class="badge bg-success ms-auto" style="font-size:0.6rem;">BOM</span>
                 </a>
-                <a href="{% url 'networktools:toolbox' %}" class="sidebar-nav-item {% if 'toolbox' in request.path %}active{% endif %}">
-                    <i class="fa-solid fa-calculator text-info"></i>
-                    <span>Network Calculators</span>
+                <a href="{% url 'networktools:toolbox' %}" class="sidebar-nav-item {% if request.path == '/networktools/' %}active{% endif %}">
+                    <i class="fa-solid fa-toolbox text-info"></i>
+                    <span>Network Engineering Tools</span>
+                </a>
+                <a href="{% url 'networktools:subnet_calculator' %}" class="sidebar-nav-item {% if 'subnet-calculator' in request.path %}active{% endif %}">
+                    <i class="fa-solid fa-calculator text-cyan"></i>
+                    <span>Subnet & CIDR Calculator</span>
+                    <span class="badge bg-cyan text-dark ms-auto" style="font-size:0.6rem;">SEO</span>
+                </a>
+                <a href="{% url 'networktools:ports_cheatsheet' %}" class="sidebar-nav-item {% if 'ports-cheat-sheet' in request.path %}active{% endif %}">
+                    <i class="fa-solid fa-list-ol text-warning"></i>
+                    <span>Common Ports Reference</span>
+                </a>
+                <a href="{% url 'networktools:osi_model' %}" class="sidebar-nav-item {% if 'osi-model' in request.path %}active{% endif %}">
+                    <i class="fa-solid fa-layer-group text-primary"></i>
+                    <span>OSI 7-Layer Guide</span>
                 </a>
                 <a href="{% url 'projects:scenarios' %}" class="sidebar-nav-item">
                     <i class="fa-solid fa-shapes text-secondary"></i>
@@ -515,6 +587,9 @@
             { title: 'QoS & Traffic Engineering', icon: 'fa-arrows-split-up-and-left text-info', url: '{% url "monitoring:qos" %}', cat: 'Operations' },
             { title: 'Cable & Port Tracing', icon: 'fa-route text-cyan', url: '{% url "topology:cable_trace" %}', cat: 'Infrastructure' },
             { title: 'Capacity & Cost Planner', icon: 'fa-money-bill-trend-up text-success', url: '{% url "networktools:capacity_cost" %}', cat: 'Tools' },
+            { title: 'Subnet & CIDR Calculator', icon: 'fa-calculator text-cyan', url: '{% url "networktools:subnet_calculator" %}', cat: 'Tools' },
+            { title: 'Common Network Ports Cheat Sheet', icon: 'fa-list-ol text-warning', url: '{% url "networktools:ports_cheatsheet" %}', cat: 'Tools' },
+            { title: 'OSI 7-Layer vs TCP/IP Guide', icon: 'fa-layer-group text-primary', url: '{% url "networktools:osi_model" %}', cat: 'Learning' },
             { title: 'Incident Response Simulator', icon: 'fa-biohazard text-danger', url: '{% url "troubleshooting:incident_simulator" %}', cat: 'Operations' },
             { title: 'Physical Rack Designer', icon: 'fa-bars-staggered', url: '{% url "topology:rack" %}', cat: 'Infrastructure' },
             { title: 'CCTV Surveillance Planner', icon: 'fa-video', url: '{% url "configuration:cctv" %}', cat: 'Infrastructure' },
@@ -597,6 +672,10 @@
         });
     });
     </script>
+    
+    <!-- Viral Social Share Modal & Utility -->
+    {% include 'components/share_modal.html' %}
+    <script src="{% static 'js/share.js' %}?v=2.2"></script>
     {% block extra_js %}{% endblock %}
 </body>
 </html>

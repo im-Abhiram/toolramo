@@ -227,7 +227,7 @@ class RamonetTerminal {
                 if (p.includes('(config-if)')) this.mode = 'interface_config';
                 else if (p.includes('(config)')) this.mode = 'global_config';
                 else if (p.endsWith('#')) this.mode = 'priv_exec';
-                else if (p.endsWith('>')) this.mode = 'user_exec';
+                else if (p.endsWith('>') && (!savedSession.mode || savedSession.mode === 'user_exec')) this.mode = 'user_exec';
                 else this.mode = savedSession.mode || 'user_exec';
                 this.setPrompt(savedSession.prompt);
             } else {

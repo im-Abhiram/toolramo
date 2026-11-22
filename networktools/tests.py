@@ -28,3 +28,35 @@ class NetworkToolsAppTests(TestCase):
         self.assertGreater(data['discovered_devices_count'], 0)
         self.assertGreater(len(data['arp_table']), 0)
         self.assertGreaterEqual(data['rogue_devices_detected'], 1)
+
+    def test_subnet_calculator_view(self):
+        resp = self.client.get(reverse('networktools:subnet_calculator'))
+        self.assertEqual(resp.status_code, 200)
+        self.assertContains(resp, 'Subnet Calculator')
+        self.assertContains(resp, 'RFC 4632 CIDR')
+
+    def test_ports_cheatsheet_view(self):
+        resp = self.client.get(reverse('networktools:ports_cheatsheet'))
+        self.assertEqual(resp.status_code, 200)
+        self.assertContains(resp, 'Common Network Ports Cheat Sheet')
+        self.assertContains(resp, 'SSH / SFTP')
+
+    def test_osi_model_view(self):
+        resp = self.client.get(reverse('networktools:osi_model'))
+        self.assertEqual(resp.status_code, 200)
+        self.assertContains(resp, 'OSI 7-Layer Model')
+        self.assertContains(resp, 'Application Layer')
+
+    def test_sitemap_xml(self):
+        resp = self.client.get('/sitemap.xml')
+        self.assertEqual(resp.status_code, 200)
+        self.assertIn('application/xml', resp.headers.get('Content-Type', '') or resp.headers.get('content-type', ''))
+        self.assertContains(resp, '<urlset')
+        self.assertContains(resp, 'subnet-calculator')
+
+    def test_robots_txt(self):
+        resp = self.client.get('/robots.txt')
+        self.assertEqual(resp.status_code, 200)
+        self.assertIn('text/plain', resp.headers.get('Content-Type', ''))
+        self.assertContains(resp, 'User-agent: *')
+        self.assertContains(resp, 'Sitemap:')

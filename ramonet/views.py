@@ -66,3 +66,32 @@ def dashboard_view(request):
         'completed_courses': completed_courses,
     }
     return render(request, 'dashboard.html', context)
+
+
+def robots_txt_view(request):
+    """
+    Dynamically renders SEO robots.txt file informing web crawlers of crawl policies.
+    """
+    domain = request.get_host()
+    scheme = 'https' if request.is_secure() or 'pythonanywhere' in domain else 'http'
+    sitemap_url = f"{scheme}://{domain}/sitemap.xml"
+    content = (
+        "User-agent: *\n"
+        "Allow: /\n"
+        "Allow: /topology/\n"
+        "Allow: /networktools/\n"
+        "Allow: /tools/\n"
+        "Allow: /commands/\n"
+        "Allow: /learning/\n"
+        "Allow: /academy/\n"
+        "Allow: /projects/scenarios/\n"
+        "Disallow: /admin/\n"
+        "Disallow: /storage/\n"
+        "Disallow: /api/\n"
+        "Disallow: /accounts/captcha/\n"
+        "\n"
+        f"Sitemap: {sitemap_url}\n"
+    )
+    from django.http import HttpResponse
+    return HttpResponse(content, content_type="text/plain")
+

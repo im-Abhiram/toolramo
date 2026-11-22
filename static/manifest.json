@@ -1,0 +1,41 @@
+{
+  "name": "RAMONET — Enterprise Network Simulator & Lab",
+  "short_name": "Ramonet",
+  "description": "Enterprise interactive network simulation, Cisco IOS CLI terminal, subnet calculator, and CCNA study lab.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#060913",
+  "theme_color": "#00f0ff",
+  "orientation": "any",
+  "icons": [
+    {
+      "src": "/static/img/ramonet-icon.svg",
+      "sizes": "512x512 192x192 128x128 64x64",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": ["education", "developer", "utilities", "productivity"],
+  "shortcuts": [
+    {
+      "name": "Network Designer",
+      "url": "/topology/designer/",
+      "description": "Launch visual canvas network topology designer"
+    },
+    {
+      "name": "Subnet Calculator",
+      "url": "/tools/subnet-calculator/",
+      "description": "Calculate IPv4 and IPv6 subnets, CIDR masks, and usable host ranges"
+    },
+    {
+      "name": "Command Reference",
+      "url": "/commands/",
+      "description": "Search Cisco IOS, Linux, and Windows CLI commands"
+    },
+    {
+      "name": "Learning Center",
+      "url": "/learning/",
+      "description": "Explore 20+ CCNA and networking study guides"
+    }
+  ]
+}

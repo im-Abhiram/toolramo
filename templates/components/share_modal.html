@@ -1,0 +1,81 @@
+<!-- Viral Social Share Modal -->
+<div class="modal fade" id="ramonetShareModal" tabindex="-1" aria-labelledby="ramonetShareModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content bg-surface border-cyan border-opacity-50 shadow-lg text-white">
+            <div class="modal-header border-secondary border-opacity-25 pb-3">
+                <div class="d-flex align-items-center gap-2">
+                    <div class="p-2 rounded bg-cyan bg-opacity-10 text-cyan">
+                        <i class="fa-solid fa-share-nodes"></i>
+                    </div>
+                    <div>
+                        <h6 class="modal-title fw-bold mb-0" id="ramonetShareModalLabel">Share RAMONET Lab & Tools</h6>
+                        <small class="text-secondary">Share with peers, study groups, or on social media</small>
+                    </div>
+                </div>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-4">
+                <!-- 1-Click Social Buttons Grid -->
+                <div class="text-secondary small fw-bold mb-3">Share directly to communities:</div>
+                <div class="row g-2 mb-4">
+                    <div class="col-4">
+                        <a id="share-btn-reddit" href="#" target="_blank" rel="noopener noreferrer" class="btn btn-outline-danger w-100 py-2 d-flex flex-column align-items-center gap-1">
+                            <i class="fa-brands fa-reddit fa-lg"></i>
+                            <span style="font-size: 0.75rem;">Reddit</span>
+                        </a>
+                    </div>
+                    <div class="col-4">
+                        <a id="share-btn-twitter" href="#" target="_blank" rel="noopener noreferrer" class="btn btn-outline-info w-100 py-2 d-flex flex-column align-items-center gap-1">
+                            <i class="fa-brands fa-x-twitter fa-lg"></i>
+                            <span style="font-size: 0.75rem;">Twitter / X</span>
+                        </a>
+                    </div>
+                    <div class="col-4">
+                        <a id="share-btn-linkedin" href="#" target="_blank" rel="noopener noreferrer" class="btn btn-outline-primary w-100 py-2 d-flex flex-column align-items-center gap-1">
+                            <i class="fa-brands fa-linkedin-in fa-lg"></i>
+                            <span style="font-size: 0.75rem;">LinkedIn</span>
+                        </a>
+                    </div>
+                    <div class="col-6">
+                        <a id="share-btn-whatsapp" href="#" target="_blank" rel="noopener noreferrer" class="btn btn-outline-success w-100 py-2 d-flex align-items-center justify-content-center gap-2">
+                            <i class="fa-brands fa-whatsapp fa-lg"></i>
+                            <span style="font-size: 0.8rem;">WhatsApp</span>
+                        </a>
+                    </div>
+                    <div class="col-6">
+                        <a id="share-btn-telegram" href="#" target="_blank" rel="noopener noreferrer" class="btn btn-outline-cyan w-100 py-2 d-flex align-items-center justify-content-center gap-2">
+                            <i class="fa-brands fa-telegram fa-lg"></i>
+                            <span style="font-size: 0.8rem;">Telegram</span>
+                        </a>
+                    </div>
+                </div>
+
+                <!-- Direct Copyable Link -->
+                <div class="mb-3">
+                    <label class="form-label text-secondary small fw-bold">Direct URL</label>
+                    <div class="input-group">
+                        <input type="text" id="share-modal-url" class="form-control bg-dark text-white border-secondary border-opacity-25 font-monospace small" readonly>
+                        <button class="btn btn-cyan text-dark fw-bold px-3" type="button" onclick="copyShareLink()">
+                            <i class="fa-regular fa-copy me-1"></i> Copy
+                        </button>
+                    </div>
+                </div>
+
+                <!-- GitHub / Markdown Embed Badge -->
+                <div>
+                    <label class="form-label text-secondary small fw-bold">Markdown Badge (for GitHub Repos & Portfolios)</label>
+                    <div class="input-group">
+                        <input type="text" id="share-modal-badge" class="form-control bg-dark text-white border-secondary border-opacity-25 font-monospace small" readonly>
+                        <button class="btn btn-outline-secondary px-3" type="button" onclick="copyShareBadge()" title="Copy Markdown badge">
+                            <i class="fa-regular fa-copy"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer border-secondary border-opacity-25 py-2 px-4 justify-content-between">
+                <span class="small text-secondary"><i class="fa-solid fa-gift text-cyan me-1"></i>Free & Open Learning Tool</span>
+                <button type="button" class="btn btn-sm btn-secondary" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>

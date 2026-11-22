@@ -137,3 +137,17 @@ class CLISimulationEngineTests(TestCase):
         resp = client.post('/api/commands/execute/', payload, content_type='application/json')
         self.assertEqual(resp.status_code, 200)
         self.assertEqual(resp.data.get('mode'), 'priv_exec')
+
+    def test_cisco_help_preserves_privileged_mode(self):
+        """Verify that typing ? after enable never reverts mode back to user_exec or prompt to >"""
+        res_enable = self.session.execute('enable')
+        self.assertEqual(res_enable['mode'], 'priv_exec')
+        self.assertEqual(self.session.get_prompt(), 'EdgeRouter#')
+
+        # Simulate subsequent HTTP request passing previous session state
+        subsequent_session = DeviceCLISession(self.router_data, session_state=res_enable['session_state'])
+        res_help = subsequent_session.execute('?')
+        self.assertEqual(res_help['mode'], 'priv_exec')
+        self.assertEqual(res_help['prompt'], 'EdgeRouter#')
+        self.assertIn('configure', res_help['output'])
+        self.assertNotIn("Turn on privileged commands", res_help['output'])

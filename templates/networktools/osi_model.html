@@ -1,0 +1,283 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}OSI 7 Layer Model vs TCP/IP Protocol Stack Reference Guide — RAMONET{% endblock %}
+{% block meta_description %}{{ meta_description }}{% endblock %}
+{% block meta_keywords %}{{ meta_keywords }}{% endblock %}
+
+{% block extra_head %}
+<!-- JSON-LD Structured Data for SEO Rich Snippets -->
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "WebApplication",
+  "name": "Ramonet Interactive OSI Model & TCP/IP Reference",
+  "applicationCategory": "EducationalApplication",
+  "operatingSystem": "All",
+  "offers": {
+    "@type": "Offer",
+    "price": "0",
+    "priceCurrency": "USD"
+  },
+  "description": "Interactive study guide to the 7 Layers of the OSI model and 4 Layers of TCP/IP. Protocol Data Units (PDUs), protocols, real networking hardware, and systematic troubleshooting workflows."
+}
+</script>
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  "mainEntity": [
+    {
+      "@type": "Question",
+      "name": "What are the 7 layers of the OSI model?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "The 7 layers from top to bottom are: Layer 7 Application, Layer 6 Presentation, Layer 5 Session, Layer 4 Transport, Layer 3 Network, Layer 2 Data Link, and Layer 1 Physical. A common mnemonic is 'All People Seem To Need Data Processing' or from bottom up 'Please Do Not Throw Sausage Pizza Away'."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "What is the difference between OSI model and TCP/IP stack?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "The OSI model is a 7-layer theoretical conceptual framework developed by ISO. The TCP/IP model is a practical 4-layer architecture (Application, Transport, Internet, Network Access) that powers the modern global Internet."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "What is a Protocol Data Unit (PDU)?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "A PDU is the specific unit of data transmitted at each layer: Data at Layers 7-5, Segment (TCP) or Datagram (UDP) at Layer 4, Packet at Layer 3, Frame at Layer 2, and Bits at Layer 1."
+      }
+    }
+  ]
+}
+</script>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4 px-lg-5">
+    <!-- Breadcrumb & Top Bar -->
+    <nav aria-label="breadcrumb" class="mb-3">
+        <ol class="breadcrumb mb-0 small">
+            <li class="breadcrumb-item"><a href="{% url 'dashboard' %}" class="text-cyan text-decoration-none"><i class="fa-solid fa-house me-1"></i>Home</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'learning:center' %}" class="text-secondary text-decoration-none">Study Center</a></li>
+            <li class="breadcrumb-item active text-white" aria-current="page">OSI 7-Layer Guide</li>
+        </ol>
+    </nav>
+
+    <!-- Header Banner -->
+    <div class="row align-items-center mb-4">
+        <div class="col-lg-8">
+            <div class="d-flex align-items-center gap-3">
+                <div class="p-3 rounded bg-cyan bg-opacity-10 border border-cyan border-opacity-25 text-cyan">
+                    <i class="fa-solid fa-layer-group fa-2x"></i>
+                </div>
+                <div>
+                    <h1 class="h3 text-white fw-bold mb-1">OSI 7-Layer Model vs. TCP/IP Architecture</h1>
+                    <p class="text-secondary mb-0 small">
+                        In-depth interactive explorer of Protocol Data Units (PDUs), encapsulation flows, hardware tiers, and systematic bottom-up network troubleshooting.
+                    </p>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-4 text-lg-end mt-3 mt-lg-0">
+            <button class="btn btn-outline-cyan btn-sm" onclick="openShareModal('Ramonet OSI 7 Layer Model Guide', window.location.href)">
+                <i class="fa-solid fa-share-nodes me-1"></i> Share Guide
+            </button>
+            <a href="{% url 'topology:designer' %}" class="btn btn-cyan btn-sm text-dark fw-bold ms-2">
+                <i class="fa-solid fa-diagram-project me-1"></i> Build Topology
+            </a>
+        </div>
+    </div>
+
+    <!-- Interactive Layer Stack & Deep-Dive Inspector -->
+    <div class="row g-4 mb-4">
+        <!-- Left: Interactive 7 Layer Visual Stack -->
+        <div class="col-xl-5">
+            <div class="card bg-surface border-secondary border-opacity-25 shadow-sm">
+                <div class="card-header bg-dark bg-opacity-50 border-secondary border-opacity-25 d-flex justify-content-between align-items-center py-3">
+                    <span class="text-white fw-bold small"><i class="fa-solid fa-bars-staggered text-cyan me-2"></i>OSI 7-Layer Hierarchy</span>
+                    <span class="badge bg-secondary bg-opacity-25 text-secondary font-monospace">ISO/IEC 7498-1</span>
+                </div>
+                <div class="card-body p-3">
+                    <div class="d-flex flex-column gap-2" id="osi-stack-buttons">
+                        {% for layer in osi_layers %}
+                        <div class="p-3 rounded border border-secondary border-opacity-25 osi-card-btn {% if layer.number == 7 %}border-cyan bg-cyan bg-opacity-10{% else %}bg-dark{% endif %}"
+                             style="cursor: pointer; transition: all 0.2s;"
+                             onclick="selectOsiLayer({{ layer.number }})"
+                             id="osi-btn-{{ layer.number }}">
+                            <div class="d-flex justify-content-between align-items-center mb-1">
+                                <span class="fw-bold {% if layer.number == 7 %}text-cyan{% else %}text-white{% endif %} layer-title">
+                                    Layer {{ layer.number }}: {{ layer.name }}
+                                </span>
+                                <span class="badge bg-black border border-secondary border-opacity-25 font-monospace text-cyan" style="font-size: 0.75rem;">
+                                    PDU: {{ layer.pdu }}
+                                </span>
+                            </div>
+                            <div class="text-secondary small text-truncate">{{ layer.desc }}</div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Right: Active Layer Detail Inspector -->
+        <div class="col-xl-7">
+            <div class="card bg-surface border-secondary border-opacity-25 shadow-sm h-100" id="osi-detail-card">
+                <div class="card-header bg-dark bg-opacity-50 border-secondary border-opacity-25 d-flex justify-content-between align-items-center py-3">
+                    <span class="text-white fw-bold small"><i class="fa-solid fa-magnifying-glass-chart text-cyan me-2"></i>Layer Deep Dive & Troubleshooting</span>
+                    <span class="badge bg-cyan text-dark font-monospace" id="detail-layer-badge">Layer 7</span>
+                </div>
+                <div class="card-body p-4">
+                    <h4 class="text-cyan fw-bold mb-2" id="detail-layer-name">Layer 7: Application Layer</h4>
+                    <p class="text-white mb-4" id="detail-layer-desc">
+                        Provides human-computer interaction, network services to end-user applications, and API interfaces.
+                    </p>
+
+                    <div class="row g-3 mb-4">
+                        <div class="col-md-6">
+                            <div class="p-3 rounded bg-dark border border-secondary border-opacity-25 h-100">
+                                <div class="text-secondary small fw-bold mb-2"><i class="fa-solid fa-cube text-cyan me-1"></i>Protocol Data Unit (PDU)</div>
+                                <div class="h5 text-warning font-monospace fw-bold mb-0" id="detail-layer-pdu">Data</div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="p-3 rounded bg-dark border border-secondary border-opacity-25 h-100">
+                                <div class="text-secondary small fw-bold mb-2"><i class="fa-solid fa-server text-cyan me-1"></i>Hardware / Devices</div>
+                                <div class="text-white small fw-bold mb-0" id="detail-layer-devices">Endpoints, Firewalls (WAF), Proxies, Web Browsers</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="mb-4">
+                        <div class="text-secondary small fw-bold mb-2"><i class="fa-solid fa-network-wired text-cyan me-1"></i>Key Associated Protocols:</div>
+                        <div class="d-flex flex-wrap gap-2" id="detail-layer-protocols">
+                            <span class="badge bg-secondary bg-opacity-25 text-white font-monospace p-2">HTTP / HTTPS</span>
+                            <span class="badge bg-secondary bg-opacity-25 text-white font-monospace p-2">DNS</span>
+                            <span class="badge bg-secondary bg-opacity-25 text-white font-monospace p-2">DHCP</span>
+                            <span class="badge bg-secondary bg-opacity-25 text-white font-monospace p-2">SSH</span>
+                            <span class="badge bg-secondary bg-opacity-25 text-white font-monospace p-2">BGP</span>
+                        </div>
+                    </div>
+
+                    <div class="p-3 rounded bg-dark border border-warning border-opacity-25">
+                        <div class="text-warning small fw-bold mb-2"><i class="fa-solid fa-stethoscope me-1"></i>Standard Troubleshooting Checklist:</div>
+                        <p class="text-secondary small mb-0" id="detail-layer-troubleshoot">
+                            Check DNS resolution, browser cache, authentication credentials, SSL/TLS certificates, API payloads.
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- OSI vs TCP/IP Comparison Mapping Table -->
+    <div class="card bg-surface border-secondary border-opacity-25 shadow-sm mb-4">
+        <div class="card-header bg-dark bg-opacity-50 border-secondary border-opacity-25 py-3">
+            <span class="text-white fw-bold small"><i class="fa-solid fa-arrows-split-up-and-left text-cyan me-2"></i>Side-by-Side Architectural Mapping: OSI vs TCP/IP</span>
+        </div>
+        <div class="table-responsive">
+            <table class="table table-dark table-hover align-middle mb-0 font-monospace" style="font-size: 0.85rem;">
+                <thead class="table-secondary">
+                    <tr>
+                        <th class="ps-3">OSI Layer (7 Layers)</th>
+                        <th>OSI PDU</th>
+                        <th>TCP/IP Layer (4 Layers)</th>
+                        <th>Primary Protocols</th>
+                        <th class="pe-3">Primary Equipment</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td class="ps-3 text-cyan fw-bold">7. Application</td>
+                        <td rowspan="3" class="text-warning align-middle border-end border-secondary border-opacity-25">Data</td>
+                        <td rowspan="3" class="text-white fw-bold align-middle border-end border-secondary border-opacity-25">1. Application</td>
+                        <td rowspan="3" class="text-secondary align-middle border-end border-secondary border-opacity-25">HTTP, HTTPS, DNS, DHCP, SSH, Telnet, FTP, SMTP, BGP</td>
+                        <td rowspan="3" class="text-secondary align-middle pe-3">Host, Next-Gen Firewall, Proxy, Application Gateway</td>
+                    </tr>
+                    <tr>
+                        <td class="ps-3 text-cyan fw-bold">6. Presentation</td>
+                    </tr>
+                    <tr>
+                        <td class="ps-3 text-cyan fw-bold">5. Session</td>
+                    </tr>
+                    <tr>
+                        <td class="ps-3 text-cyan fw-bold">4. Transport</td>
+                        <td class="text-warning border-end border-secondary border-opacity-25">Segment / Datagram</td>
+                        <td class="text-white fw-bold border-end border-secondary border-opacity-25">2. Transport</td>
+                        <td class="text-secondary border-end border-secondary border-opacity-25">TCP, UDP, SCTP</td>
+                        <td class="text-secondary pe-3">Layer 4 Firewall, Load Balancer</td>
+                    </tr>
+                    <tr>
+                        <td class="ps-3 text-cyan fw-bold">3. Network</td>
+                        <td class="text-warning border-end border-secondary border-opacity-25">Packet</td>
+                        <td class="text-white fw-bold border-end border-secondary border-opacity-25">3. Internet</td>
+                        <td class="text-secondary border-end border-secondary border-opacity-25">IPv4, IPv6, ICMP, IPsec, OSPF, EIGRP</td>
+                        <td class="text-secondary pe-3">Router, Multilayer Switch (L3)</td>
+                    </tr>
+                    <tr>
+                        <td class="ps-3 text-cyan fw-bold">2. Data Link</td>
+                        <td class="text-warning border-end border-secondary border-opacity-25">Frame</td>
+                        <td rowspan="2" class="text-white fw-bold align-middle border-end border-secondary border-opacity-25">4. Network Access (Link)</td>
+                        <td class="text-secondary border-end border-secondary border-opacity-25">Ethernet (802.3), Wi-Fi (802.11), ARP, VLAN (802.1Q), STP</td>
+                        <td class="text-secondary pe-3">Layer 2 Switch, Wireless AP, NIC</td>
+                    </tr>
+                    <tr>
+                        <td class="ps-3 text-cyan fw-bold">1. Physical</td>
+                        <td class="text-warning border-end border-secondary border-opacity-25">Bit</td>
+                        <td class="text-secondary border-end border-secondary border-opacity-25">1000BASE-T, 10GBASE-SR, RJ-45, Fiber Optic, Radio Waves</td>
+                        <td class="text-secondary pe-3">Cabling, Transceiver, Hub, Patch Panel</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<script>
+const osiLayersData = {{ osi_layers|safe }};
+
+function selectOsiLayer(num) {
+    const layer = osiLayersData.find(l => l.number === num);
+    if (!layer) return;
+
+    // Highlight button
+    document.querySelectorAll('.osi-card-btn').forEach(btn => {
+        btn.classList.remove('border-cyan', 'bg-cyan', 'bg-opacity-10');
+        btn.classList.add('bg-dark');
+        btn.querySelector('.layer-title')?.classList.remove('text-cyan');
+        btn.querySelector('.layer-title')?.classList.add('text-white');
+    });
+
+    const activeBtn = document.getElementById(`osi-btn-${num}`);
+    if (activeBtn) {
+        activeBtn.classList.remove('bg-dark');
+        activeBtn.classList.add('border-cyan', 'bg-cyan', 'bg-opacity-10');
+        activeBtn.querySelector('.layer-title')?.classList.add('text-cyan');
+        activeBtn.querySelector('.layer-title')?.classList.remove('text-white');
+    }
+
+    // Update Detail Card
+    document.getElementById('detail-layer-badge').textContent = `Layer ${layer.number}`;
+    document.getElementById('detail-layer-name').textContent = `Layer ${layer.number}: ${layer.name}`;
+    document.getElementById('detail-layer-desc').textContent = layer.desc;
+    document.getElementById('detail-layer-pdu').textContent = layer.pdu;
+    document.getElementById('detail-layer-devices').textContent = Array.isArray(layer.devices) ? layer.devices.join(', ') : layer.devices;
+    document.getElementById('detail-layer-troubleshoot').textContent = layer.troubleshooting;
+
+    // Protocols
+    const protoContainer = document.getElementById('detail-layer-protocols');
+    protoContainer.innerHTML = '';
+    const protos = Array.isArray(layer.protocols) ? layer.protocols : [layer.protocols];
+    protos.forEach(p => {
+        const span = document.createElement('span');
+        span.className = 'badge bg-secondary bg-opacity-25 text-white font-monospace p-2';
+        span.textContent = p;
+        protoContainer.appendChild(span);
+    });
+}
+</script>
+{% endblock %}
