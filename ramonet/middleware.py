@@ -21,9 +21,9 @@ class RamonetSecurityHeadersMiddleware:
             response['Content-Security-Policy'] = (
                 "default-src 'self'; "
                 "script-src 'self' 'unsafe-inline'; "
-                "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; "
-                "img-src 'self' data:; "
-                "font-src 'self' https://fonts.gstatic.com data:; "
+                "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdnjs.cloudflare.com; "
+                "img-src 'self' data: https://img.shields.io; "
+                "font-src 'self' https://fonts.gstatic.com https://cdnjs.cloudflare.com data:; "
                 "connect-src 'self'; "
                 "frame-ancestors 'none'; "
                 "base-uri 'self'; "

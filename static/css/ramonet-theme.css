@@ -93,15 +93,53 @@
 }
 
 /* ==========================================================================
-   GLOBAL TYPOGRAPHY — GOOGLE FONT: MANROPE EVERYWHERE
+   GLOBAL TYPOGRAPHY — GOOGLE FONT: MANROPE
    ========================================================================== */
 *, *::before, *::after {
     box-sizing: border-box;
+}
+
+html, body {
     font-family: 'Manrope', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
 }
 
-html, body, button, input, select, textarea, .form-control, .form-select, .btn, .card, .modal, .table, .navbar, .dropdown-menu, .nav, .nav-link, .badge, h1, h2, h3, h4, h5, h6, p, span, div, a, label, strong, b, em, small {
-    font-family: 'Manrope', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif !important;
+button, input, select, textarea, .form-control, .form-select, .btn, .card, .modal, .table, .navbar, .dropdown-menu, .nav, .nav-link, .badge, h1, h2, h3, h4, h5, h6, p, label, strong, b, em, small {
+    font-family: 'Manrope', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+}
+
+/* ==========================================================================
+   BULLETPROOF FONTAWESOME ICON FONT PRESERVATION
+   Guarantees that FontAwesome icon glyphs are never overridden by text fonts
+   ========================================================================== */
+.fa, .fas, .far, .fal, .fad, .fab,
+.fa-solid, .fa-regular, .fa-brands, .fa-light, .fa-thin, .fa-duotone,
+[class^="fa-"], [class*=" fa-"],
+.fa::before, .fas::before, .far::before, .fa-solid::before, .fa-regular::before, .fa-brands::before,
+[class^="fa-"]::before, [class*=" fa-"]::before {
+    font-family: "Font Awesome 6 Free" !important;
+    font-style: normal !important;
+    font-variant: normal !important;
+    text-rendering: auto !important;
+    line-height: 1 !important;
+    -webkit-font-smoothing: antialiased !important;
+    -moz-osx-font-smoothing: grayscale !important;
+}
+
+.fa-brands, .fab, .fa-brands::before, .fab::before {
+    font-family: "Font Awesome 6 Brands" !important;
+    font-style: normal !important;
+}
+
+.fa-regular, .far, .fa-regular::before, .far::before {
+    font-family: "Font Awesome 6 Free" !important;
+    font-weight: 400 !important;
+    font-style: normal !important;
+}
+
+.fa-solid, .fas, .fa-solid::before, .fas::before {
+    font-family: "Font Awesome 6 Free" !important;
+    font-weight: 900 !important;
+    font-style: normal !important;
 }
 
 /* Monospace restricted specifically to technical code & terminal interfaces */

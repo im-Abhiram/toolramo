@@ -1,26 +1,38 @@
 {% load static %}
 <!DOCTYPE html>
 <html lang="en" data-bs-theme="dark">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Sign In — RAMONET Enterprise Network Platform</title>
-    
+
     <!-- Google Fonts: Manrope Everywhere & JetBrains Mono for Code -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+    <link
+        href="https://fonts.googleapis.com/css2?family=Manrope:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap"
+        rel="stylesheet">
 
     <link rel="stylesheet" href="{% static 'vendor/bootstrap/bootstrap.min.css' %}">
     <link rel="stylesheet" href="{% static 'vendor/fontawesome/css/all.min.css' %}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"
+        crossorigin="anonymous" referrerpolicy="no-referrer">
     <link rel="stylesheet" href="{% static 'css/ramonet-theme.css' %}">
     <style>
-        *, *::before, *::after {
-            font-family: 'Manrope', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif !important;
+        html,
+        body {
+            font-family: 'Manrope', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
         }
-        .font-monospace, code, kbd, pre, .terminal-mono {
+
+        .font-monospace,
+        code,
+        kbd,
+        pre,
+        .terminal-mono {
             font-family: 'JetBrains Mono', 'Fira Code', monospace !important;
         }
+
         body {
             min-height: 100vh;
             display: flex;
@@ -30,6 +42,7 @@
             padding: 1.5rem;
             color: var(--text-primary);
         }
+
         .auth-card {
             width: 100%;
             max-width: 440px;
@@ -40,6 +53,7 @@
             padding: 2.25rem 2rem;
             box-shadow: 0 20px 45px rgba(0, 0, 0, 0.7), 0 0 25px rgba(0, 240, 255, 0.12);
         }
+
         .auth-brand-badge {
             font-size: 0.65rem;
             background: linear-gradient(135deg, #00f0ff, #a855f7);
@@ -49,16 +63,19 @@
             font-weight: 800;
             letter-spacing: 0.5px;
         }
+
         .input-group-text {
             background-color: var(--bg-surface);
             border-color: var(--border-color);
             color: var(--text-secondary);
         }
+
         .form-control {
             background-color: var(--bg-surface);
             border-color: var(--border-color);
             color: var(--text-primary);
         }
+
         .form-control:focus {
             background-color: var(--bg-surface);
             border-color: var(--primary-accent);
@@ -67,11 +84,13 @@
         }
     </style>
 </head>
+
 <body>
     <div class="auth-card">
         <!-- Brand Header -->
         <div class="text-center mb-4">
-            <div class="d-inline-flex align-items-center justify-content-center p-3 rounded-circle mb-3" style="background: rgba(0, 240, 255, 0.1); width: 64px; height: 64px; border: 1px solid rgba(0, 240, 255, 0.3);">
+            <div class="d-inline-flex align-items-center justify-content-center p-3 rounded-circle mb-3"
+                style="background: rgba(0, 240, 255, 0.1); width: 64px; height: 64px; border: 1px solid rgba(0, 240, 255, 0.3);">
                 <i class="fa-solid fa-network-wired text-cyan fa-2x"></i>
             </div>
             <div class="d-flex align-items-center justify-content-center gap-2 mb-1">
@@ -84,8 +103,10 @@
         <!-- Alert Messages -->
         {% if messages %}
         {% for m in messages %}
-        <div class="alert alert-{{ m.tags }} alert-dismissible fade show small py-2 px-3 mb-3 border-0 rounded" role="alert">
-            <i class="fa-solid {% if m.tags == 'success' %}fa-circle-check text-success{% elif m.tags == 'error' or m.tags == 'danger' %}fa-circle-xmark text-danger{% else %}fa-circle-info text-info{% endif %} me-2"></i>
+        <div class="alert alert-{{ m.tags }} alert-dismissible fade show small py-2 px-3 mb-3 border-0 rounded"
+            role="alert">
+            <i
+                class="fa-solid {% if m.tags == 'success' %}fa-circle-check text-success{% elif m.tags == 'error' or m.tags == 'danger' %}fa-circle-xmark text-danger{% else %}fa-circle-info text-info{% endif %} me-2"></i>
             {{ m }}
             <button type="button" class="btn-close py-2" data-bs-dismiss="alert"></button>
         </div>
@@ -103,7 +124,8 @@
                 <label class="form-label small text-secondary fw-semibold mb-1" for="id_username">Username</label>
                 <div class="input-group">
                     <span class="input-group-text"><i class="fa-regular fa-user"></i></span>
-                    <input type="text" name="username" id="id_username" class="form-control" placeholder="Enter your username" required autofocus autocomplete="username">
+                    <input type="text" name="username" id="id_username" class="form-control"
+                        placeholder="Enter your username" required autofocus autocomplete="username">
                 </div>
             </div>
 
@@ -113,8 +135,10 @@
                 </div>
                 <div class="input-group">
                     <span class="input-group-text"><i class="fa-solid fa-lock"></i></span>
-                    <input type="password" name="password" id="id_password" class="form-control" placeholder="Enter your password" required autocomplete="current-password">
-                    <button class="btn btn-outline-secondary" type="button" id="btn-toggle-pwd" title="Show/Hide Password">
+                    <input type="password" name="password" id="id_password" class="form-control"
+                        placeholder="Enter your password" required autocomplete="current-password">
+                    <button class="btn btn-outline-secondary" type="button" id="btn-toggle-pwd"
+                        title="Show/Hide Password">
                         <i class="fa-regular fa-eye text-secondary" id="pwd-icon"></i>
                     </button>
                 </div>
@@ -126,20 +150,25 @@
                     <label class="form-label small text-secondary fw-semibold mb-0" for="id_captcha">
                         <i class="fa-solid fa-shield-halved text-cyan me-1"></i>Security Verification
                     </label>
-                    <button type="button" class="btn btn-link btn-sm text-cyan p-0 text-decoration-none small" id="btn-refresh-captcha" title="Get new calculation">
+                    <button type="button" class="btn btn-link btn-sm text-cyan p-0 text-decoration-none small"
+                        id="btn-refresh-captcha" title="Get new calculation">
                         <i class="fa-solid fa-arrows-rotate me-1" id="captcha-refresh-icon"></i>Change
                     </button>
                 </div>
                 <div class="input-group">
-                    <span class="input-group-text font-monospace fw-bold px-3 text-cyan" id="captcha-display" style="background: rgba(0, 240, 255, 0.12); border-color: rgba(0, 240, 255, 0.28); letter-spacing: 1px; font-size: 0.95rem;">
+                    <span class="input-group-text font-monospace fw-bold px-3 text-cyan" id="captcha-display"
+                        style="background: rgba(0, 240, 255, 0.12); border-color: rgba(0, 240, 255, 0.28); letter-spacing: 1px; font-size: 0.95rem;">
                         {{ captcha_challenge|default:"8 + 5 = ?" }}
                     </span>
-                    <input type="text" name="captcha_answer" id="id_captcha" class="form-control" placeholder="Solve calculation" required autocomplete="off">
+                    <input type="text" name="captcha_answer" id="id_captcha" class="form-control"
+                        placeholder="Solve calculation" required autocomplete="off">
                 </div>
-                <div class="form-text small text-secondary mt-1">Solve the arithmetic verification above to prevent automated access.</div>
+                <div class="form-text small text-secondary mt-1">Solve the arithmetic verification above to prevent
+                    automated access.</div>
             </div>
 
-            <button type="submit" class="btn btn-primary-blue w-100 py-2 mt-2 fw-semibold d-flex align-items-center justify-content-center gap-2">
+            <button type="submit"
+                class="btn btn-primary-blue w-100 py-2 mt-2 fw-semibold d-flex align-items-center justify-content-center gap-2">
                 <span>Sign In</span>
                 <i class="fa-solid fa-arrow-right-to-bracket"></i>
             </button>
@@ -156,48 +185,33 @@
 
     <script src="{% static 'vendor/bootstrap/bootstrap.bundle.min.js' %}"></script>
     <script>
-    document.addEventListener('DOMContentLoaded', () => {
-        // Password toggle
-        const toggleBtn = document.getElementById('btn-toggle-pwd');
-        const pwdInput = document.getElementById('id_password');
-        const pwdIcon = document.getElementById('pwd-icon');
+        document.addEventListener('DOMContentLoaded', () => {
+            // Password toggle
+            const toggleBtn = document.getElementById('btn-toggle-pwd');
+            const pwdInput = document.getElementById('id_password');
+            const pwdIcon = document.getElementById('pwd-icon');
 
-        if (toggleBtn && pwdInput) {
-            toggleBtn.addEventListener('click', () => {
-                const isPassword = pwdInput.type === 'password';
-                pwdInput.type = isPassword ? 'text' : 'password';
-                if (pwdIcon) {
-                    pwdIcon.className = isPassword ? 'fa-regular fa-eye-slash text-cyan' : 'fa-regular fa-eye text-secondary';
-                }
-            });
-        }
-
-        // Dynamic CAPTCHA Refresh
-        const refreshBtn = document.getElementById('btn-refresh-captcha');
-        const captchaDisplay = document.getElementById('captcha-display');
-        const refreshIcon = document.getElementById('captcha-refresh-icon');
-
-        if (refreshBtn && captchaDisplay) {
-            refreshBtn.addEventListener('click', async () => {
-                if (refreshIcon) refreshIcon.classList.add('fa-spin');
-                try {
-                    const resp = await fetch("{% url 'accounts:captcha_refresh' %}");
-                    if (resp.ok) {
-                        const data = await resp.json();
-                        if (data.challenge) {
-                            captchaDisplay.textContent = data.challenge;
-                        }
+            if (toggleBtn && pwdInput) {
+                toggleBtn.addEventListener('click', () => {
+                    const isPassword = pwdInput.type === 'password';
+                    pwdInput.type = isPassword ? 'text' : 'password';
+                    if (pwdIcon) {
+                        pwdIcon.className = isPassword ? 'fa-regular fa-eye-slash text-cyan' : 'fa-regular fa-eye text-secondary';
                     }
-                } catch (e) {
-                    console.error('Captcha refresh error:', e);
-                } finally {
-                    if (refreshIcon) {
-                        setTimeout(() => refreshIcon.classList.remove('fa-spin'), 300);
-                    }
-                }
-            });
-        }
-    });
-    </script>
-</body>
-</html>
+                });
+            }
+
+            // Dynamic CAPTCHA Refresh
+            const refreshBtn = document.getElementById('btn-refresh-captcha');
+            const captchaDisplay = document.getElementById('captcha-display');
+            const refreshIcon = document.getElementById('captcha-refresh-icon');
+
+            if (refreshBtn && captchaDisplay) {
+                refreshBtn.addEventListener('click', async () => {
+                    if (refreshIcon) refreshIcon.classList.add('fa-spin');
+                    try {
+                        const resp = await fetch("{% url 'accounts:captcha_refresh' %}");
+                        if (resp.ok) {
+                            const data = await resp.json();
+                            if (data.challenge) {
+                                captchaDisplay.textContent = data.challenge;
