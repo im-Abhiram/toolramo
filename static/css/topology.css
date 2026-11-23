@@ -732,7 +732,7 @@
     border-left: 1px solid var(--border-color);
     display: flex;
     flex-direction: column;
-    z-index: 20;
+    z-index: 30;
     transition: transform 0.25s ease;
 }
 
@@ -796,6 +796,10 @@
 
 .workbench-drawer.minimized {
     transform: translateY(calc(100% - 40px));
+}
+
+.topology-workspace-wrapper:has(.device-inspector-panel:not(.closed)) .workbench-drawer {
+    right: 360px;
 }
 
 .workbench-header {

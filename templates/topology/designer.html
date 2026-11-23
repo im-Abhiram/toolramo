@@ -414,6 +414,11 @@
 <script src="{% static 'js/cli/terminal.js' %}?v=2.2"></script>
 <script>
 document.addEventListener('DOMContentLoaded', async () => {
+    // Ensure RamonetUI is instantiated
+    if (!window.ramonetUI && typeof RamonetUI !== 'undefined') {
+        window.ramonetUI = new RamonetUI();
+    }
+
     // Initialize Canvas
     window.ramonetCanvas = new TopologyCanvas('topology-container');
     window.ramonetVisualizer = new PacketVisualizer(window.ramonetCanvas);
@@ -471,10 +476,18 @@ document.addEventListener('DOMContentLoaded', async () => {
     // Check if scenario, template, or project parameter is in URL
     const urlParams = new URLSearchParams(window.location.search);
     const templateName = urlParams.get('scenario') || urlParams.get('template') || urlParams.get('project');
-    if (templateName) {
-        window.ramonetUI?.loadNetworkTemplate(templateName);
+    const targetTemplate = templateName || 'Basic Home Network';
+    
+    // Auto-load starter network template and focus Switch1 device
+    if (window.ramonetUI?.loadNetworkTemplate) {
+        window.ramonetUI.loadNetworkTemplate(targetTemplate);
     } else {
-        window.ramonetUI?.loadNetworkTemplate('Basic Home Network');
+        setTimeout(() => {
+            if (!window.ramonetUI && typeof RamonetUI !== 'undefined') {
+                window.ramonetUI = new RamonetUI();
+            }
+            window.ramonetUI?.loadNetworkTemplate(targetTemplate);
+        }, 50);
     }
 
     // Check if CLI should be opened directly
@@ -545,6 +558,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     // Inspector Close
     document.getElementById('btn-close-inspector')?.addEventListener('click', () => {
         document.getElementById('device-inspector-panel')?.classList.add('closed');
+        const drawer = document.getElementById('workbench-drawer');
+        if (drawer) drawer.style.right = '0px';
         window.ramonetCanvas.deselectAll();
     });
 
