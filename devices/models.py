@@ -57,6 +57,7 @@ class DeviceDefinition(models.Model):
     poe_budget_watts = models.FloatField(default=0.0)
     storage_capacity_gb = models.IntegerField(default=0)
     bandwidth_mbps = models.FloatField(default=0.0)
+    display_order = models.PositiveIntegerField(default=10)
     
     # Educational guide content
     overview_text = models.TextField(blank=True, default='')
@@ -68,7 +69,7 @@ class DeviceDefinition(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
-        ordering = ['category', 'name']
+        ordering = ['category', 'display_order', 'name']
 
     @property
     def picture_url(self):
@@ -112,6 +113,7 @@ class DeviceDefinition(models.Model):
             'picture_url': self.picture_url,
             'is_layer3': self.is_layer3,
             'cli_platform': self.cli_platform,
+            'display_order': self.display_order,
             'power_watts': self.power_watts,
             'poe_budget_watts': self.poe_budget_watts,
             'available_interfaces': self.available_interfaces,

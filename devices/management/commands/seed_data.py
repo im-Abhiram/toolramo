@@ -52,6 +52,7 @@ class Command(BaseCommand):
                 'cli_platform': 'cisco_ios',
                 'power_watts': 35.0,
                 'poe_budget_watts': 0.0,
+                'display_order': 1,
                 'available_interfaces': [
                     {'name': f'FastEthernet0/{i}', 'type': 'copper', 'speed': 100, 'poe': False} for i in range(1, 9)
                 ] + [
@@ -76,6 +77,7 @@ class Command(BaseCommand):
                 'cli_platform': 'cisco_ios',
                 'power_watts': 65.0,
                 'poe_budget_watts': 435.0,
+                'display_order': 2,
                 'available_interfaces': [
                     {'name': f'GigabitEthernet1/0/{i}', 'type': 'copper', 'speed': 1000, 'poe': True} for i in range(1, 9)
                 ] + [
@@ -101,6 +103,7 @@ class Command(BaseCommand):
                 'cli_platform': 'web_gui',
                 'power_watts': 15.0,
                 'poe_budget_watts': 126.0,
+                'display_order': 3,
                 'available_interfaces': [
                     {'name': f'Port{i}', 'type': 'copper', 'speed': 1000, 'poe': True} for i in range(1, 9)
                 ],
@@ -110,6 +113,54 @@ class Command(BaseCommand):
                 'overview_text': 'Delivers DC power and Ethernet data over Cat5e/6 cables directly to security cameras, eliminating separate power bricks.',
                 'troubleshooting_notes': 'If camera fails to power on, verify that total device wattage does not exceed the 126W switch power budget.',
                 'security_notes': 'Isolate camera ports on a dedicated Surveillance VLAN to prevent direct LAN sniffing.',
+            },
+            {
+                'category': cat_objs['switches'],
+                'name': '48-Port Switch',
+                'manufacturer': 'Enterprise Switch',
+                'model_name': '48-Port Enterprise Managed Switch',
+                'device_type': 'enterprise_48p_switch',
+                'description': 'High-density 48-port Gigabit Managed Layer 2/3 Switch with 4x 10G SFP+ fiber uplinks. Ideal for enterprise data distribution and core access aggregation.',
+                'icon': 'fa-network-wired',
+                'is_layer3': False,
+                'cli_platform': 'cisco_ios',
+                'power_watts': 55.0,
+                'poe_budget_watts': 0.0,
+                'display_order': 4,
+                'available_interfaces': [
+                    {'name': f'GigabitEthernet1/0/{i}', 'type': 'copper', 'speed': 1000, 'poe': False} for i in range(1, 25)
+                ] + [
+                    {'name': f'TenGigabitEthernet1/1/{i}', 'type': 'fiber', 'speed': 10000, 'poe': False} for i in range(1, 5)
+                ],
+                'supported_protocols': ['Ethernet', '802.1Q VLAN', 'STP', 'RSTP', 'MSTP', 'LACP', 'Port Security', 'LLDP'],
+                'supported_connection_types': ['copper_straight', 'copper_crossover', 'fiber', 'console'],
+                'default_config': {'hostname': 'Switch48-1', 'vlans': {'1': {'name': 'default'}}},
+                'overview_text': 'High-density access switch providing wire-speed 10/100/1000Base-T ports for large departments, server racks, and campus distribution.',
+                'troubleshooting_notes': 'Inspect 10G uplink status with "show interfaces status" and fiber transceivers with "show inventory".',
+                'security_notes': 'Enable BPDU Guard and DHCP Snooping across all edge access interfaces.',
+            },
+            {
+                'category': cat_objs['switches'],
+                'name': 'Unmanaged Switch',
+                'manufacturer': 'Plug-and-Play Switch',
+                'model_name': '8-Port Desktop Unmanaged Switch',
+                'device_type': 'unmanaged_switch',
+                'description': 'Zero-configuration 8-port Gigabit desktop switch with auto-MDI/MDIX and non-blocking wire-speed forwarding for small offices and test benches.',
+                'icon': 'fa-network-wired',
+                'is_layer3': False,
+                'cli_platform': 'none',
+                'power_watts': 8.0,
+                'poe_budget_watts': 0.0,
+                'display_order': 5,
+                'available_interfaces': [
+                    {'name': f'Port{i}', 'type': 'copper', 'speed': 1000, 'poe': False} for i in range(1, 9)
+                ],
+                'supported_protocols': ['Ethernet', '802.3x Flow Control'],
+                'supported_connection_types': ['copper_straight', 'copper_crossover'],
+                'default_config': {},
+                'overview_text': 'Plug-and-play desktop switch requiring no IP configuration, CLI, or management interface.',
+                'troubleshooting_notes': 'Check port LED link and activity status. Unmanaged switches cannot be pinged or accessed via CLI.',
+                'security_notes': 'Unmanaged switches do not support VLAN segmentation or port security.',
             },
 
             # Routers
@@ -360,7 +411,7 @@ class Command(BaseCommand):
         ]
 
         for dev in devices_data:
-            obj, _ = DeviceDefinition.objects.get_or_create(
+            obj, _ = DeviceDefinition.objects.update_or_create(
                 name=dev['name'],
                 category=dev['category'],
                 defaults=dev

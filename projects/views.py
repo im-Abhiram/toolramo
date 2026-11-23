@@ -189,6 +189,26 @@ def project_template_api(request):
             {'id': 'c1', 'source_device': 'pc1', 'source_port': 'eth0', 'target_device': 'sw1', 'target_port': 'Fa0/1', 'type': 'copper_straight', 'status': 'connected'},
             {'id': 'c2', 'source_device': 'sw1', 'source_port': 'Fa0/10', 'target_device': 'prn1', 'target_port': 'eth0', 'type': 'copper_straight', 'status': 'connected'}
         ]
+    elif 'enterprise' in name_lower or 'campus' in name_lower or 'multi-switch' in name_lower or 'multiswitch' in name_lower:
+        devices = [
+            {'id': 'r_gw', 'name': 'Edge-Router', 'category': 'routers', 'icon': 'fa-route', 'x': 450, 'y': 60, 'ip': '192.168.1.1', 'interfaces': [{'name': 'Gi0/0', 'ip': '192.168.1.1', 'mask': '255.255.255.0', 'status': 'up'}, {'name': 'Gi0/1', 'ip': '203.0.113.2', 'mask': '255.255.255.0', 'status': 'up'}]},
+            {'id': 'sw_core', 'name': 'Core-Switch-L3', 'category': 'switches', 'icon': 'fa-network-wired', 'x': 450, 'y': 180, 'interfaces': [{'name': 'Gi1/0/1', 'status': 'up'}, {'name': 'Gi1/0/2', 'status': 'up'}, {'name': 'Gi1/0/24', 'status': 'up'}], 'is_layer3': True},
+            {'id': 'sw_dist1', 'name': 'Dist-Switch1', 'category': 'switches', 'icon': 'fa-network-wired', 'x': 260, 'y': 300, 'interfaces': [{'name': 'Gi0/1', 'status': 'up'}, {'name': 'Gi0/24', 'status': 'up'}]},
+            {'id': 'sw_dist2', 'name': 'Dist-Switch2', 'category': 'switches', 'icon': 'fa-network-wired', 'x': 640, 'y': 300, 'interfaces': [{'name': 'Gi0/1', 'status': 'up'}, {'name': 'Gi0/24', 'status': 'up'}]},
+            {'id': 'sw_acc1', 'name': 'Access-Switch1', 'category': 'switches', 'icon': 'fa-network-wired', 'x': 180, 'y': 430, 'interfaces': [{'name': 'Fa0/1', 'status': 'up'}, {'name': 'Gi0/1', 'status': 'up'}]},
+            {'id': 'sw_acc2', 'name': 'Access-Switch2', 'category': 'switches', 'icon': 'fa-network-wired', 'x': 720, 'y': 430, 'interfaces': [{'name': 'Fa0/1', 'status': 'up'}, {'name': 'Gi0/1', 'status': 'up'}]},
+            {'id': 'pc1', 'name': 'Client-PC1', 'category': 'computers', 'icon': 'fa-desktop', 'x': 180, 'y': 560, 'ip': '192.168.10.15', 'subnet_mask': '255.255.255.0', 'gateway': '192.168.10.1', 'interfaces': [{'name': 'eth0', 'status': 'up'}]},
+            {'id': 'srv1', 'name': 'Campus-Server', 'category': 'servers', 'icon': 'fa-server', 'x': 720, 'y': 560, 'ip': '192.168.20.100', 'subnet_mask': '255.255.255.0', 'gateway': '192.168.20.1', 'interfaces': [{'name': 'eth0', 'status': 'up'}]}
+        ]
+        connections = [
+            {'id': 'c1', 'source_device': 'r_gw', 'source_port': 'Gi0/0', 'target_device': 'sw_core', 'target_port': 'Gi1/0/24', 'type': 'copper_straight', 'status': 'connected'},
+            {'id': 'c2', 'source_device': 'sw_core', 'source_port': 'Gi1/0/1', 'target_device': 'sw_dist1', 'target_port': 'Gi0/24', 'type': 'fiber', 'status': 'connected'},
+            {'id': 'c3', 'source_device': 'sw_core', 'source_port': 'Gi1/0/2', 'target_device': 'sw_dist2', 'target_port': 'Gi0/24', 'type': 'fiber', 'status': 'connected'},
+            {'id': 'c4', 'source_device': 'sw_dist1', 'source_port': 'Gi0/1', 'target_device': 'sw_acc1', 'target_port': 'Gi0/1', 'type': 'copper_straight', 'status': 'connected'},
+            {'id': 'c5', 'source_device': 'sw_dist2', 'source_port': 'Gi0/1', 'target_device': 'sw_acc2', 'target_port': 'Gi0/1', 'type': 'copper_straight', 'status': 'connected'},
+            {'id': 'c6', 'source_device': 'sw_acc1', 'source_port': 'Fa0/1', 'target_device': 'pc1', 'target_port': 'eth0', 'type': 'copper_straight', 'status': 'connected'},
+            {'id': 'c7', 'source_device': 'sw_acc2', 'source_port': 'Fa0/1', 'target_device': 'srv1', 'target_port': 'eth0', 'type': 'copper_straight', 'status': 'connected'}
+        ]
     else: # Basic Home / SOHO / Default Starter
         devices = [
             {'id': 'pc1', 'name': 'PC1', 'category': 'computers', 'icon': 'fa-desktop', 'x': 120, 'y': 180, 'ip': '192.168.1.10', 'subnet_mask': '255.255.255.0', 'gateway': '192.168.1.1', 'interfaces': [{'name': 'eth0', 'status': 'up'}]},
@@ -201,13 +221,6 @@ def project_template_api(request):
             {'id': 'c2', 'source_device': 'sw1', 'source_port': 'Gi0/1', 'target_device': 'r1', 'target_port': 'Gi0/0', 'type': 'copper_straight', 'status': 'connected'},
             {'id': 'c3', 'source_device': 'r1', 'source_port': 'Gi0/1', 'target_device': 'srv1', 'target_port': 'eth0', 'type': 'copper_straight', 'status': 'connected'}
         ]
-
-    return Response({
-        'id': 'proj_' + sanitize_filename(name).lower(),
-        'name': name,
-        'devices': devices,
-        'connections': connections
-    })
 
     return Response({
         'id': 'proj_' + sanitize_filename(name).lower(),

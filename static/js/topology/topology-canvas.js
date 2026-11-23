@@ -252,18 +252,22 @@ class TopologyCanvas {
         this.project.devices.forEach(d => {
             minX = Math.min(minX, d.x);
             minY = Math.min(minY, d.y);
-            maxX = Math.max(maxX, d.x + 100);
-            maxY = Math.max(maxY, d.y + 90);
+            maxX = Math.max(maxX, d.x + 90);
+            maxY = Math.max(maxY, d.y + 80);
         });
 
-        const width = maxX - minX + 150;
-        const height = maxY - minY + 150;
-        const contW = this.container.clientWidth;
-        const contH = this.container.clientHeight;
+        const pad = 60;
+        const bboxW = (maxX - minX) + pad * 2;
+        const bboxH = (maxY - minY) + pad * 2;
+        const contW = this.container.clientWidth || 1000;
+        const contH = this.container.clientHeight || 700;
 
-        this.scale = Math.min(Math.max(Math.min(contW / width, contH / height), 0.5), 1.4);
-        this.panX = (contW - width * this.scale) / 2 - minX * this.scale;
-        this.panY = (contH - height * this.scale) / 2 - minY * this.scale;
+        const centerX = (minX + maxX) / 2;
+        const centerY = (minY + maxY) / 2;
+
+        this.scale = Math.min(Math.max(Math.min(contW / bboxW, contH / bboxH), 0.4), 1.2);
+        this.panX = (contW / 2) - (centerX * this.scale);
+        this.panY = (contH / 2) - (centerY * this.scale);
 
         this.applyTransform();
         this.renderMinimap();
@@ -542,14 +546,14 @@ class TopologyCanvas {
         return 'computer';
     }
 
-    selectDevice(deviceId) {
+    selectDevice(deviceId, openInspector = false) {
         this.deselectAll(false);
         this.selectedDevice = this.project.devices.find(d => d.id === deviceId);
         if (this.selectedDevice) {
             const el = document.getElementById(deviceId);
             if (el) el.classList.add('selected');
             this.updateModeIndicator();
-            window.ramonetUI?.updateSelectedDevice(this.selectedDevice);
+            window.ramonetUI?.updateSelectedDevice(this.selectedDevice, openInspector);
         }
     }
 

@@ -21,21 +21,36 @@
         <div class="device-palette-search">
             <input type="text" class="form-control form-control-sm" id="palette-search-input" placeholder="Search devices (e.g. switch, router)...">
         </div>
+        <!-- Quick Category Filter Pills -->
+        <div class="palette-category-filters" id="palette-category-filters">
+            <button type="button" class="palette-filter-pill active" data-filter="all">All</button>
+            <button type="button" class="palette-filter-pill pill-switches" data-filter="switches" title="Show all switches"><i class="fa-solid fa-network-wired me-1"></i>Switches</button>
+            <button type="button" class="palette-filter-pill" data-filter="routers"><i class="fa-solid fa-route me-1"></i>Routers</button>
+            <button type="button" class="palette-filter-pill" data-filter="firewalls"><i class="fa-solid fa-shield-halved me-1"></i>Security</button>
+            <button type="button" class="palette-filter-pill" data-filter="computers"><i class="fa-solid fa-desktop me-1"></i>Endpoints</button>
+            <button type="button" class="palette-filter-pill" data-filter="servers"><i class="fa-solid fa-server me-1"></i>Servers</button>
+            <button type="button" class="palette-filter-pill" data-filter="cctv"><i class="fa-solid fa-video me-1"></i>CCTV / NVR</button>
+        </div>
         <div class="device-palette-list" id="palette-device-list">
             {% for cat in categories %}
-            <div class="palette-category-title">{{ cat.name }}</div>
-            {% for dev in cat.devices.all %}
-            <div class="palette-device-item" draggable="true" data-definition-id="{{ dev.id }}" data-json='{{ dev.to_palette_json|safe }}' title="Click to add or drag onto canvas">
-                <div class="palette-device-icon p-1">
-                    <img src="{{ dev.picture_url }}" class="palette-device-pic" alt="{{ dev.name }}" draggable="false">
+            <div class="palette-category-block" data-category="{{ cat.slug }}">
+                <div class="palette-category-title d-flex align-items-center justify-content-between">
+                    <span><i class="fa-solid {{ cat.icon|default:'fa-folder' }} text-cyan me-1 opacity-75"></i>{{ cat.name }}</span>
+                    <span class="badge bg-dark text-muted border border-secondary border-opacity-25" style="font-size:0.65rem;">{{ cat.devices.count }}</span>
                 </div>
-                <div class="overflow-hidden">
-                    <div class="palette-device-name" title="{{ dev.name }}">{{ dev.name }}</div>
-                    <div class="palette-device-desc">{{ dev.get_device_type_display|default:cat.name }}</div>
+                {% for dev in cat.devices.all %}
+                <div class="palette-device-item" draggable="true" data-definition-id="{{ dev.id }}" data-category="{{ cat.slug }}" data-json='{{ dev.to_palette_json|safe }}' title="Click to add or drag onto canvas">
+                    <div class="palette-device-icon p-1">
+                        <img src="{{ dev.picture_url }}" class="palette-device-pic" alt="{{ dev.name }}" draggable="false">
+                    </div>
+                    <div class="overflow-hidden flex-grow-1">
+                        <div class="palette-device-name" title="{{ dev.name }}">{{ dev.name }}</div>
+                        <div class="palette-device-desc text-truncate" title="{{ dev.model_name|default:cat.name }}">{{ dev.model_name|default:cat.name }}</div>
+                    </div>
+                    <i class="fa-solid fa-plus text-secondary ms-1 small opacity-50" title="Click to add"></i>
                 </div>
-                <i class="fa-solid fa-plus text-secondary ms-auto small opacity-50" title="Click to add"></i>
+                {% endfor %}
             </div>
-            {% endfor %}
             {% endfor %}
         </div>
     </div>
@@ -52,6 +67,29 @@
                 <i class="fa-solid fa-plug"></i>
                 <span class="toolbar-btn-text">Connect Cable</span>
             </button>
+            <div class="toolbar-divider"></div>
+            <!-- Quick Prebuilt Network Template Dropdown -->
+            <div class="dropdown d-inline-block">
+                <button class="toolbar-btn dropdown-toggle" id="btn-templates-dropdown" data-bs-toggle="dropdown" aria-expanded="false" title="Load Prebuilt Network Topologies (Campus, STP, VLAN, SOHO)">
+                    <i class="fa-solid fa-diagram-project text-cyan me-1"></i>
+                    <span class="toolbar-btn-text">Templates</span>
+                </button>
+                <ul class="dropdown-menu dropdown-menu-dark shadow border-secondary border-opacity-50" style="font-size: 0.78rem; min-width: 290px;">
+                    <li><h6 class="dropdown-header text-uppercase text-cyan fw-bold" style="font-size: 0.65rem; letter-spacing:0.05em;"><i class="fa-solid fa-network-wired me-1"></i>Switch & Campus Labs</h6></li>
+                    <li><a class="dropdown-item template-loader-link" href="#" data-template="Enterprise Campus LAN"><i class="fa-solid fa-sitemap text-cyan me-2"></i>Enterprise Multi-Switch Campus <span class="badge bg-primary text-dark ms-1" style="font-size:0.6rem;">Multi-Switch</span></a></li>
+                    <li><a class="dropdown-item template-loader-link" href="#" data-template="STP Spanning Tree Loop"><i class="fa-solid fa-circle-nodes text-warning me-2"></i>STP Loop (3 Switches Redundant)</a></li>
+                    <li><a class="dropdown-item template-loader-link" href="#" data-template="VLAN Segmentation"><i class="fa-solid fa-layer-group text-info me-2"></i>VLAN Segmentation (Access Switch)</a></li>
+                    <li><a class="dropdown-item template-loader-link" href="#" data-template="PoE Surveillance Network"><i class="fa-solid fa-bolt text-warning me-2"></i>PoE Switch Surveillance (CCTV)</a></li>
+                    <li><hr class="dropdown-divider border-secondary border-opacity-25"></li>
+                    <li><h6 class="dropdown-header text-uppercase text-secondary fw-bold" style="font-size: 0.65rem; letter-spacing:0.05em;"><i class="fa-solid fa-laptop-code me-1"></i>Standard Labs</h6></li>
+                    <li><a class="dropdown-item template-loader-link" href="#" data-template="Basic Home Network"><i class="fa-solid fa-house-signal text-success me-2"></i>Basic SOHO (PC - Switch - Router - Server)</a></li>
+                    <li><a class="dropdown-item template-loader-link" href="#" data-template="Enterprise Firewall DMZ"><i class="fa-solid fa-shield-halved text-danger me-2"></i>Firewall & DMZ Zone</a></li>
+                    <li><a class="dropdown-item template-loader-link" href="#" data-template="OSPF Multi-Branch WAN"><i class="fa-solid fa-route text-primary me-2"></i>OSPF Multi-Branch WAN</a></li>
+                    <li><a class="dropdown-item template-loader-link" href="#" data-template="HSRP Gateway Redundancy"><i class="fa-solid fa-arrows-split-up-and-left text-warning me-2"></i>HSRP Gateway Redundancy</a></li>
+                    <li><hr class="dropdown-divider border-secondary border-opacity-25"></li>
+                    <li><a class="dropdown-item text-danger template-loader-link" href="#" data-template="blank"><i class="fa-solid fa-file-circle-plus me-2"></i>Clear Canvas (Blank Project)</a></li>
+                </ul>
+            </div>
             <button class="toolbar-btn active" id="btn-toggle-grid" title="Toggle Grid Snapping"><i class="fa-solid fa-border-all"></i></button>
             <div class="toolbar-divider"></div>
             <button class="toolbar-btn" id="btn-zoom-in" title="Zoom In"><i class="fa-solid fa-magnifying-glass-plus"></i></button>
@@ -640,12 +678,66 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
     });
 
+    // Palette Category Filter Pills & Search Filtering
+    let activeFilter = 'all';
+    const filterPills = document.querySelectorAll('.palette-filter-pill');
+    const categoryBlocks = document.querySelectorAll('.palette-category-block');
+
+    function applyPaletteFilter() {
+        const query = document.getElementById('palette-search-input')?.value.toLowerCase().trim() || '';
+        
+        categoryBlocks.forEach(block => {
+            const cat = block.getAttribute('data-category') || '';
+            const matchesCat = (activeFilter === 'all' || activeFilter === cat);
+            
+            let visibleCount = 0;
+            const items = block.querySelectorAll('.palette-device-item');
+            items.forEach(item => {
+                const text = item.textContent.toLowerCase();
+                const matchesSearch = !query || text.includes(query);
+                if (matchesCat && matchesSearch) {
+                    item.style.display = 'flex';
+                    visibleCount++;
+                } else {
+                    item.style.display = 'none';
+                }
+            });
+
+            if (matchesCat && visibleCount > 0) {
+                block.classList.remove('d-none');
+            } else {
+                block.classList.add('d-none');
+            }
+        });
+    }
+
+    filterPills.forEach(pill => {
+        pill.addEventListener('click', () => {
+            filterPills.forEach(p => p.classList.remove('active'));
+            pill.classList.add('active');
+            activeFilter = pill.getAttribute('data-filter') || 'all';
+            applyPaletteFilter();
+        });
+    });
+
     // Palette Search Filter
-    document.getElementById('palette-search-input')?.addEventListener('input', (e) => {
-        const val = e.target.value.toLowerCase();
-        document.querySelectorAll('.palette-device-item').forEach(item => {
-            const text = item.textContent.toLowerCase();
-            item.style.display = text.includes(val) ? 'flex' : 'none';
+    document.getElementById('palette-search-input')?.addEventListener('input', () => {
+        applyPaletteFilter();
+    });
+
+    // Template Dropdown Links
+    document.querySelectorAll('.template-loader-link').forEach(link => {
+        link.addEventListener('click', (e) => {
+            e.preventDefault();
+            const tmpl = link.getAttribute('data-template');
+            if (tmpl === 'blank') {
+                window.ramonetCanvas?.loadProjectData({ id: 'proj_' + Date.now(), name: 'New Topology', devices: [], connections: [] });
+                window.ramonetCanvas?.resetZoom();
+                window.ramonetTerminal?.attachDevice(null);
+                window.ramonetUI?.showToast('Canvas Cleared', 'Created empty project.', 'info');
+            } else if (tmpl) {
+                window.ramonetUI?.loadNetworkTemplate(tmpl);
+            }
         });
     });
 });

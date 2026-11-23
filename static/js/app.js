@@ -174,14 +174,14 @@ class RamonetUI {
 
     openDeviceInspector(device) {
         if (!device) return;
-        this.updateSelectedDevice(device);
+        this.updateSelectedDevice(device, true);
         const panel = document.getElementById('device-inspector-panel');
         if (panel) {
             panel.classList.remove('closed');
         }
     }
 
-    updateSelectedDevice(device) {
+    updateSelectedDevice(device, openInspector = false) {
         this.selectedDevice = device;
         const panel = document.getElementById('device-inspector-panel');
         if (!panel) return;
@@ -192,7 +192,9 @@ class RamonetUI {
             return;
         }
 
-        panel.classList.remove('closed');
+        if (openInspector || !panel.classList.contains('closed')) {
+            panel.classList.remove('closed');
+        }
         window.ramonetTerminal?.attachDevice(device);
 
         // Populate inspector header & fields
@@ -566,9 +568,9 @@ class RamonetUI {
                     window.ramonetCanvas?.fitToScreen();
                     window.ramonetTerminal?.syncDeviceSelector();
                     if (projectData.devices && projectData.devices.length > 0) {
-                        const targetDev = projectData.devices.find(d => (d.category || '').includes('router') || (d.category || '').includes('switch')) || projectData.devices[0];
+                        const targetDev = projectData.devices.find(d => (d.category || '').includes('switch')) || projectData.devices.find(d => (d.category || '').includes('router')) || projectData.devices[0];
                         window.ramonetTerminal?.attachDevice(targetDev);
-                        window.ramonetCanvas?.selectDevice(targetDev.id);
+                        window.ramonetCanvas?.selectDevice(targetDev.id, false);
                     }
                 }, 120);
                 this.showToast('Topology Ready', `Loaded "${templateName}" with ${projectData.devices?.length || 0} devices.`, 'success');
@@ -603,7 +605,7 @@ class RamonetUI {
         if (starter.devices?.[0]) {
             const targetDev = starter.devices.find(d => (d.category || '').includes('switch')) || starter.devices[0];
             window.ramonetTerminal?.attachDevice(targetDev);
-            window.ramonetCanvas?.selectDevice(targetDev.id);
+            window.ramonetCanvas?.selectDevice(targetDev.id, false);
         }
         this.showToast('Template Generated', `Generated ${name}`, 'success');
     }
