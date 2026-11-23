@@ -288,11 +288,11 @@
     <div class="workbench-drawer minimized" id="workbench-drawer">
         <div class="workbench-header">
             <div class="workbench-tabs">
-                <button class="workbench-tab-btn active" data-tab="cli-terminal">
-                    <i class="fa-solid fa-terminal"></i> CLI Terminal
-                </button>
-                <button class="workbench-tab-btn" data-tab="device-web-gui" id="tab-btn-device-web-gui">
+                <button class="workbench-tab-btn active" data-tab="device-web-gui" id="tab-btn-device-web-gui">
                     <i class="fa-solid fa-globe text-cyan"></i> Device Web GUI
+                </button>
+                <button class="workbench-tab-btn" data-tab="cli-terminal" id="tab-btn-cli-terminal">
+                    <i class="fa-solid fa-terminal"></i> CLI Terminal
                 </button>
                 <button class="workbench-tab-btn" data-tab="packet-inspector">
                     <i class="fa-solid fa-route"></i> Packet Inspector
@@ -308,18 +308,18 @@
             </div>
         </div>
         <div class="workbench-content">
-            <!-- Pane 1: CLI Terminal -->
-            <div class="workbench-tab-pane h-100" id="tab-pane-cli-terminal">
-                <div id="ramonet-terminal-mount" class="h-100"></div>
-            </div>
-            <!-- Pane 2: Device Web GUI -->
-            <div class="workbench-tab-pane d-none h-100" id="tab-pane-device-web-gui">
+            <!-- Pane 1: Device Web GUI (Default active on designer launch) -->
+            <div class="workbench-tab-pane h-100" id="tab-pane-device-web-gui">
                 <div id="device-web-gui-mount" class="h-100 overflow-y-auto p-3">
                     <div class="p-4 text-center text-muted">
                         <i class="fa-solid fa-globe fa-3x mb-2 text-cyan opacity-50"></i>
                         <p class="small">Select a device on canvas to open its interactive Web Management GUI.</p>
                     </div>
                 </div>
+            </div>
+            <!-- Pane 2: CLI Terminal -->
+            <div class="workbench-tab-pane d-none h-100" id="tab-pane-cli-terminal">
+                <div id="ramonet-terminal-mount" class="h-100"></div>
             </div>
             <!-- Pane 3: Packet Flow Inspector -->
             <div class="workbench-tab-pane d-none h-100" id="tab-pane-packet-inspector">
@@ -414,11 +414,6 @@
 <script src="{% static 'js/cli/terminal.js' %}?v=2.2"></script>
 <script>
 document.addEventListener('DOMContentLoaded', async () => {
-    // Ensure RamonetUI is instantiated
-    if (!window.ramonetUI && typeof RamonetUI !== 'undefined') {
-        window.ramonetUI = new RamonetUI();
-    }
-
     // Initialize Canvas
     window.ramonetCanvas = new TopologyCanvas('topology-container');
     window.ramonetVisualizer = new PacketVisualizer(window.ramonetCanvas);
@@ -476,25 +471,25 @@ document.addEventListener('DOMContentLoaded', async () => {
     // Check if scenario, template, or project parameter is in URL
     const urlParams = new URLSearchParams(window.location.search);
     const templateName = urlParams.get('scenario') || urlParams.get('template') || urlParams.get('project');
-    const targetTemplate = templateName || 'Basic Home Network';
-    
-    // Auto-load starter network template and focus Switch1 device
-    if (window.ramonetUI?.loadNetworkTemplate) {
-        window.ramonetUI.loadNetworkTemplate(targetTemplate);
+    if (templateName) {
+        window.ramonetUI?.loadNetworkTemplate(templateName);
     } else {
-        setTimeout(() => {
-            if (!window.ramonetUI && typeof RamonetUI !== 'undefined') {
-                window.ramonetUI = new RamonetUI();
-            }
-            window.ramonetUI?.loadNetworkTemplate(targetTemplate);
-        }, 50);
+        window.ramonetUI?.loadNetworkTemplate('Basic Home Network');
     }
 
-    // Check if CLI should be opened directly
+    // Check if CLI or Web GUI should be opened directly
     if (urlParams.get('open') === 'cli') {
         setTimeout(() => {
             window.ramonetUI?.showWorkbenchTab('cli-terminal');
-        }, 400);
+        }, 350);
+    } else {
+        setTimeout(() => {
+            const dev = window.ramonetCanvas?.selectedDevice || window.ramonetCanvas?.project?.devices?.[0];
+            if (dev) {
+                window.ramonetUI?.renderDeviceWebGUI(dev);
+            }
+            window.ramonetUI?.showWorkbenchTab('device-web-gui');
+        }, 350);
     }
 
     // Bind Toolbar Buttons
@@ -558,8 +553,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     // Inspector Close
     document.getElementById('btn-close-inspector')?.addEventListener('click', () => {
         document.getElementById('device-inspector-panel')?.classList.add('closed');
-        const drawer = document.getElementById('workbench-drawer');
-        if (drawer) drawer.style.right = '0px';
         window.ramonetCanvas.deselectAll();
     });
 

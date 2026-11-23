@@ -211,10 +211,10 @@ def project_template_api(request):
         ]
     else: # Basic Home / SOHO / Default Starter
         devices = [
-            {'id': 'pc1', 'name': 'PC1', 'category': 'computers', 'cli_platform': 'windows_cmd', 'model_name': 'Desktop Workstation', 'power_watts': 65, 'poe_budget_watts': 0, 'icon': 'fa-desktop', 'x': 120, 'y': 180, 'ip': '192.168.1.10', 'subnet_mask': '255.255.255.0', 'gateway': '192.168.1.1', 'interfaces': [{'name': 'eth0', 'ip': '192.168.1.10', 'mask': '255.255.255.0', 'status': 'up'}]},
-            {'id': 'sw1', 'name': 'Switch1', 'category': 'switches', 'cli_platform': 'cisco_ios', 'model_name': 'Managed Switch 24-Port', 'power_watts': 25, 'poe_budget_watts': 0, 'icon': 'fa-network-wired', 'x': 340, 'y': 180, 'interfaces': [{'name': 'Fa0/1', 'status': 'up'}, {'name': 'Fa0/2', 'status': 'up'}, {'name': 'Gi0/1', 'status': 'up'}]},
-            {'id': 'r1', 'name': 'Router1', 'category': 'routers', 'cli_platform': 'cisco_ios', 'model_name': 'Gigabit WAN Router', 'power_watts': 35, 'poe_budget_watts': 0, 'icon': 'fa-route', 'x': 560, 'y': 180, 'ip': '192.168.1.1', 'interfaces': [{'name': 'Gi0/0', 'ip': '192.168.1.1', 'mask': '255.255.255.0', 'status': 'up'}, {'name': 'Gi0/1', 'ip': '10.0.0.1', 'mask': '255.255.255.0', 'status': 'up'}]},
-            {'id': 'srv1', 'name': 'WebServer', 'category': 'servers', 'cli_platform': 'linux_shell', 'model_name': 'Application Server', 'power_watts': 120, 'poe_budget_watts': 0, 'icon': 'fa-server', 'x': 780, 'y': 180, 'ip': '10.0.0.100', 'subnet_mask': '255.255.255.0', 'gateway': '10.0.0.1', 'interfaces': [{'name': 'eth0', 'ip': '10.0.0.100', 'mask': '255.255.255.0', 'status': 'up'}]}
+            {'id': 'pc1', 'name': 'PC1', 'category': 'computers', 'icon': 'fa-desktop', 'x': 120, 'y': 180, 'ip': '192.168.1.10', 'subnet_mask': '255.255.255.0', 'gateway': '192.168.1.1', 'interfaces': [{'name': 'eth0', 'status': 'up'}]},
+            {'id': 'sw1', 'name': 'Switch1', 'category': 'switches', 'icon': 'fa-network-wired', 'x': 340, 'y': 180, 'interfaces': [{'name': 'Fa0/1', 'status': 'up'}, {'name': 'Fa0/2', 'status': 'up'}, {'name': 'Gi0/1', 'status': 'up'}]},
+            {'id': 'r1', 'name': 'Router1', 'category': 'routers', 'icon': 'fa-route', 'x': 560, 'y': 180, 'ip': '192.168.1.1', 'interfaces': [{'name': 'Gi0/0', 'ip': '192.168.1.1', 'mask': '255.255.255.0', 'status': 'up'}, {'name': 'Gi0/1', 'ip': '10.0.0.1', 'mask': '255.255.255.0', 'status': 'up'}]},
+            {'id': 'srv1', 'name': 'WebServer', 'category': 'servers', 'icon': 'fa-server', 'x': 780, 'y': 180, 'ip': '10.0.0.100', 'subnet_mask': '255.255.255.0', 'gateway': '10.0.0.1', 'interfaces': [{'name': 'eth0', 'status': 'up'}]}
         ]
         connections = [
             {'id': 'c1', 'source_device': 'pc1', 'source_port': 'eth0', 'target_device': 'sw1', 'target_port': 'Fa0/1', 'type': 'copper_straight', 'status': 'connected'},

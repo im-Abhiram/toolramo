@@ -179,28 +179,21 @@ class RamonetUI {
         if (panel) {
             panel.classList.remove('closed');
         }
-        const drawer = document.getElementById('workbench-drawer');
-        if (drawer) {
-            drawer.style.right = '360px';
-        }
     }
 
     updateSelectedDevice(device, openInspector = false) {
         this.selectedDevice = device;
         const panel = document.getElementById('device-inspector-panel');
-        const drawer = document.getElementById('workbench-drawer');
         if (!panel) return;
 
         if (!device) {
             panel.classList.add('closed');
-            if (drawer) drawer.style.right = '0px';
             window.ramonetTerminal?.attachDevice(null);
             return;
         }
 
         if (openInspector || !panel.classList.contains('closed')) {
             panel.classList.remove('closed');
-            if (drawer) drawer.style.right = '360px';
         }
         window.ramonetTerminal?.attachDevice(device);
 
@@ -220,19 +213,7 @@ class RamonetUI {
         const subnetSummary = document.getElementById('inspector-subnet-summary');
 
         if (nameEl) nameEl.textContent = device.name;
-        
-        let modelDisplay = device.model_name;
-        if (!modelDisplay) {
-            const catLow = (device.category || '').toLowerCase();
-            const nameLow = (device.name || '').toLowerCase();
-            if (catLow.includes('switch') || nameLow.includes('sw')) modelDisplay = 'Managed Switch 24-Port';
-            else if (catLow.includes('router') || nameLow.includes('r')) modelDisplay = 'Gigabit WAN Router';
-            else if (catLow.includes('firewall') || nameLow.includes('fw')) modelDisplay = 'Next-Gen Firewall';
-            else if (catLow.includes('server') || nameLow.includes('srv')) modelDisplay = 'Application Server';
-            else if (catLow.includes('computer') || nameLow.includes('pc')) modelDisplay = 'Desktop Workstation';
-            else modelDisplay = device.category || 'Hardware Appliance';
-        }
-        if (modelEl) modelEl.textContent = modelDisplay;
+        if (modelEl) modelEl.textContent = device.model_name || device.category;
         if (hostnameInput) hostnameInput.value = device.name || '';
         
         let catDisplay = device.category || 'Endpoint';
@@ -584,15 +565,21 @@ class RamonetUI {
                 const projectData = await resp.json();
                 window.ramonetCanvas?.loadProjectData(projectData);
                 setTimeout(() => {
+                    window.ramonetCanvas?.fitToScreen();
+                    window.ramonetTerminal?.syncDeviceSelector();
                     if (projectData.devices && projectData.devices.length > 0) {
                         const targetDev = projectData.devices.find(d => (d.category || '').includes('switch')) || projectData.devices.find(d => (d.category || '').includes('router')) || projectData.devices[0];
                         window.ramonetTerminal?.attachDevice(targetDev);
-                        window.ramonetCanvas?.selectDevice(targetDev.id, true);
-                        this.openDeviceInspector(targetDev);
+                        window.ramonetCanvas?.selectDevice(targetDev.id, false);
+                        this.renderDeviceWebGUI(targetDev);
+                        const urlParams = new URLSearchParams(window.location.search);
+                        if (urlParams.get('open') === 'cli') {
+                            this.showWorkbenchTab('cli-terminal');
+                        } else {
+                            this.showWorkbenchTab('device-web-gui');
+                        }
                     }
-                    window.ramonetTerminal?.syncDeviceSelector();
-                    window.ramonetCanvas?.fitToScreen();
-                }, 100);
+                }, 120);
                 this.showToast('Topology Ready', `Loaded "${templateName}" with ${projectData.devices?.length || 0} devices.`, 'success');
             } else {
                 throw new Error('Template not found on server');
@@ -608,10 +595,10 @@ class RamonetUI {
             id: 'proj_' + Date.now(),
             name: name,
             devices: [
-                { id: 'pc1', name: 'PC1', category: 'computers', cli_platform: 'windows_cmd', model_name: 'Desktop Workstation', power_watts: 65, poe_budget_watts: 0, icon: 'fa-desktop', x: 120, y: 180, ip: '192.168.1.10', subnet_mask: '255.255.255.0', gateway: '192.168.1.1', interfaces: [{ name: 'eth0', ip: '192.168.1.10', mask: '255.255.255.0', status: 'up' }] },
-                { id: 'sw1', name: 'Switch1', category: 'switches', cli_platform: 'cisco_ios', model_name: 'Managed Switch 24-Port', power_watts: 25, poe_budget_watts: 0, icon: 'fa-network-wired', x: 340, y: 180, interfaces: [{ name: 'Fa0/1', status: 'up' }, { name: 'Fa0/2', status: 'up' }, { name: 'Gi0/1', status: 'up' }] },
-                { id: 'r1', name: 'Router1', category: 'routers', cli_platform: 'cisco_ios', model_name: 'Gigabit WAN Router', power_watts: 35, poe_budget_watts: 0, icon: 'fa-route', x: 560, y: 180, ip: '192.168.1.1', interfaces: [{ name: 'Gi0/0', ip: '192.168.1.1', mask: '255.255.255.0', status: 'up' }, { name: 'Gi0/1', ip: '10.0.0.1', mask: '255.255.255.0', status: 'up' }] },
-                { id: 'srv1', name: 'WebServer', category: 'servers', cli_platform: 'linux_shell', model_name: 'Application Server', power_watts: 120, poe_budget_watts: 0, icon: 'fa-server', x: 780, y: 180, ip: '10.0.0.100', subnet_mask: '255.255.255.0', gateway: '10.0.0.1', interfaces: [{ name: 'eth0', ip: '10.0.0.100', mask: '255.255.255.0', status: 'up' }] }
+                { id: 'pc1', name: 'PC1', category: 'computers', cli_platform: 'windows_cmd', icon: 'fa-desktop', x: 120, y: 180, ip: '192.168.1.10', subnet_mask: '255.255.255.0', gateway: '192.168.1.1', interfaces: [{ name: 'eth0', ip: '192.168.1.10', mask: '255.255.255.0', status: 'up' }] },
+                { id: 'sw1', name: 'Switch1', category: 'switches', cli_platform: 'cisco_ios', icon: 'fa-network-wired', x: 340, y: 180, interfaces: [{ name: 'Fa0/1', status: 'up' }, { name: 'Fa0/2', status: 'up' }, { name: 'Gi0/1', status: 'up' }] },
+                { id: 'r1', name: 'Router1', category: 'routers', cli_platform: 'cisco_ios', icon: 'fa-route', x: 560, y: 180, ip: '192.168.1.1', interfaces: [{ name: 'Gi0/0', ip: '192.168.1.1', mask: '255.255.255.0', status: 'up' }, { name: 'Gi0/1', ip: '10.0.0.1', mask: '255.255.255.0', status: 'up' }] },
+                { id: 'srv1', name: 'WebServer', category: 'servers', cli_platform: 'linux_shell', icon: 'fa-server', x: 780, y: 180, ip: '10.0.0.100', subnet_mask: '255.255.255.0', gateway: '10.0.0.1', interfaces: [{ name: 'eth0', ip: '10.0.0.100', mask: '255.255.255.0', status: 'up' }] }
             ],
             connections: [
                 { id: 'c1', source_device: 'pc1', source_port: 'eth0', target_device: 'sw1', target_port: 'Fa0/1', type: 'copper_straight', status: 'connected' },
@@ -620,16 +607,20 @@ class RamonetUI {
             ]
         };
         window.ramonetCanvas?.loadProjectData(starter);
+        window.ramonetCanvas?.fitToScreen();
+        window.ramonetTerminal?.syncDeviceSelector();
         if (starter.devices?.[0]) {
             const targetDev = starter.devices.find(d => (d.category || '').includes('switch')) || starter.devices[0];
             window.ramonetTerminal?.attachDevice(targetDev);
-            window.ramonetCanvas?.selectDevice(targetDev.id, true);
-            this.openDeviceInspector(targetDev);
+            window.ramonetCanvas?.selectDevice(targetDev.id, false);
+            this.renderDeviceWebGUI(targetDev);
+            const urlParams = new URLSearchParams(window.location.search);
+            if (urlParams.get('open') === 'cli') {
+                this.showWorkbenchTab('cli-terminal');
+            } else {
+                this.showWorkbenchTab('device-web-gui');
+            }
         }
-        window.ramonetTerminal?.syncDeviceSelector();
-        setTimeout(() => {
-            window.ramonetCanvas?.fitToScreen();
-        }, 100);
         this.showToast('Template Generated', `Generated ${name}`, 'success');
     }
 
@@ -943,15 +934,6 @@ class RamonetUI {
     }
 }
 
-// Immediate and bulletproof initialization of RamonetUI
-function initRamonetUI() {
-    if (!window.ramonetUI) {
-        window.ramonetUI = new RamonetUI();
-    }
-}
-
-if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', initRamonetUI);
-} else {
-    initRamonetUI();
-}
+window.addEventListener('DOMContentLoaded', () => {
+    window.ramonetUI = new RamonetUI();
+});

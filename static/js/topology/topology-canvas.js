@@ -460,7 +460,7 @@ class TopologyCanvas {
                     return;
                 }
 
-                this.selectDevice(device.id, true);
+                this.selectDevice(device.id);
                 this.isDraggingNode = true;
                 this.dragTargetNode = device;
                 this.dragOffset = {
@@ -547,7 +547,7 @@ class TopologyCanvas {
         return 'computer';
     }
 
-    selectDevice(deviceId, openInspector = true) {
+    selectDevice(deviceId, openInspector = false) {
         this.deselectAll(false);
         this.selectedDevice = this.project.devices.find(d => d.id === deviceId);
         if (this.selectedDevice) {
@@ -935,7 +935,7 @@ class TopologyCanvas {
         this.project.devices.forEach(d => this.renderDeviceNode(d));
         this.renderConnections();
         this.renderMinimap();
-        this.deselectAll(false);
+        this.deselectAll();
         window.ramonetTerminal?.syncDeviceSelector();
     }
 
