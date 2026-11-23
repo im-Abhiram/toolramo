@@ -51,7 +51,8 @@
     --sidebar-collapsed-width: 74px;
     --header-height: 64px;
 
-    --font-sans: 'Manrope', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    --font-sans: 'Space Grotesk', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    --font-display: 'Space Grotesk', -apple-system, BlinkMacSystemFont, sans-serif;
     --font-mono: 'JetBrains Mono', 'Fira Code', Menlo, Monaco, Consolas, "Courier New", monospace;
     --radius-sm: 6px;
     --radius-md: 10px;
@@ -93,18 +94,29 @@
 }
 
 /* ==========================================================================
-   GLOBAL TYPOGRAPHY — GOOGLE FONT: MANROPE
+   GLOBAL TYPOGRAPHY — SPACE GROTESK + JETBRAINS MONO
+   Modern editorial typography paired with technical terminal details
    ========================================================================== */
+html {
+    scroll-behavior: smooth;
+}
+
 *, *::before, *::after {
     box-sizing: border-box;
 }
 
 html, body {
-    font-family: 'Manrope', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    font-family: var(--font-sans);
 }
 
-button, input, select, textarea, .form-control, .form-select, .btn, .card, .modal, .table, .navbar, .dropdown-menu, .nav, .nav-link, .badge, h1, h2, h3, h4, h5, h6, p, label, strong, b, em, small {
-    font-family: 'Manrope', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+button, input, select, textarea, .form-control, .form-select, .btn, .card, .modal, .table, .navbar, .dropdown-menu, .nav, .nav-link, .badge, p, label, strong, b, em, small {
+    font-family: var(--font-sans);
+}
+
+h1, h2, h3, h4, h5, h6, .brand-title, .editorial-heading {
+    font-family: var(--font-display);
+    letter-spacing: -0.025em;
+    font-weight: 700;
 }
 
 /* ==========================================================================
@@ -212,6 +224,112 @@ body {
     0% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7); }
     70% { box-shadow: 0 0 0 8px rgba(16, 185, 129, 0); }
     100% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
+}
+
+/* ==========================================================================
+   03 — MOTION: Network pulses, hover effects, subtle animations, smooth scrolling
+   ========================================================================== */
+@keyframes networkPulseRing {
+    0% {
+        transform: scale(0.95);
+        box-shadow: 0 0 0 0 rgba(0, 240, 255, 0.7);
+    }
+    70% {
+        transform: scale(1.05);
+        box-shadow: 0 0 0 12px rgba(0, 240, 255, 0);
+    }
+    100% {
+        transform: scale(0.95);
+        box-shadow: 0 0 0 0 rgba(0, 240, 255, 0);
+    }
+}
+
+@keyframes packetPulseStream {
+    0% { stroke-dashoffset: 24; }
+    100% { stroke-dashoffset: 0; }
+}
+
+@keyframes radarSweep {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+@keyframes glowBorderFlow {
+    0% { border-color: rgba(0, 240, 255, 0.2); box-shadow: 0 8px 30px rgba(0,0,0,0.5); }
+    50% { border-color: rgba(0, 240, 255, 0.5); box-shadow: 0 10px 32px rgba(0,0,0,0.6), 0 0 18px rgba(0, 240, 255, 0.22); }
+    100% { border-color: rgba(0, 240, 255, 0.2); box-shadow: 0 8px 30px rgba(0,0,0,0.5); }
+}
+
+.network-pulse-beacon {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.network-pulse-beacon::after {
+    content: '';
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    border-radius: 50%;
+    animation: networkPulseRing 2s cubic-bezier(0.24, 0, 0.38, 1) infinite;
+    pointer-events: none;
+}
+
+.pulse-beacon-cyan::after {
+    border: 1px solid #00f0ff;
+}
+.pulse-beacon-green::after {
+    border: 1px solid #10b981;
+}
+
+/* Modern Editorial Typography Details */
+.editorial-kicker {
+    font-family: var(--font-mono);
+    font-size: 0.68rem;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--primary-accent);
+}
+
+.terminal-meta-chip {
+    font-family: var(--font-mono);
+    font-size: 0.72rem;
+    padding: 2px 8px;
+    border-radius: 4px;
+    background: rgba(14, 21, 41, 0.85);
+    border: 1px solid rgba(0, 240, 255, 0.2);
+    color: #e2e8f0;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+}
+
+/* Subtle Interactive Hover Effects */
+.interactive-elevate {
+    transition: transform 0.24s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.24s ease, border-color 0.24s ease;
+}
+.interactive-elevate:hover {
+    transform: translateY(-4px);
+    border-color: rgba(0, 240, 255, 0.45) !important;
+    box-shadow: 0 14px 34px -4px rgba(0, 0, 0, 0.7), 0 0 20px rgba(0, 240, 255, 0.18) !important;
+}
+
+.btn-cyber-action {
+    position: relative;
+    overflow: hidden;
+    transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+    font-family: var(--font-sans);
+    font-weight: 600;
+}
+.btn-cyber-action:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 6px 20px rgba(0, 240, 255, 0.3);
+}
+.btn-cyber-action:active {
+    transform: scale(0.98);
 }
 
 /* Sleek Scrollbars */

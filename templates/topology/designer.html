@@ -15,8 +15,8 @@
     <!-- Left Device Palette Sidebar -->
     <div class="device-palette-sidebar">
         <div class="device-palette-header d-flex align-items-center justify-content-between">
-            <span class="text-white fw-bold small"><i class="fa-solid fa-boxes-stacked text-cyan me-2"></i>Device Library</span>
-            <span class="badge bg-info text-dark" style="font-size:0.65rem;" title="Drag device onto canvas or click to place"><i class="fa-solid fa-hand-pointer me-1"></i>Click or Drag</span>
+            <span class="editorial-kicker text-cyan"><i class="fa-solid fa-boxes-stacked me-1"></i>HARDWARE REPOSITORY</span>
+            <span class="badge bg-cyan text-dark font-monospace fw-bold" style="font-size:0.65rem;" title="Drag device onto canvas or click to place"><i class="fa-solid fa-hand-pointer me-1"></i>DRAG / CLICK</span>
         </div>
         <div class="device-palette-search">
             <input type="text" class="form-control form-control-sm" id="palette-search-input" placeholder="Search devices (e.g. switch, router)...">
@@ -122,8 +122,9 @@
 
         <!-- Canvas Mode Status Indicator -->
         <div class="canvas-status-pill" id="canvas-status-pill">
-            <span class="badge bg-primary text-dark fw-bold" id="status-mode-badge"><i class="fa-solid fa-arrow-pointer me-1"></i>Selection Mode</span>
-            <span class="text-secondary" id="status-mode-desc">Click device to inspect · Drag to position</span>
+            <span class="network-pulse-beacon pulse-beacon-cyan"><span class="status-dot green"></span></span>
+            <span class="badge bg-primary text-dark fw-bold font-monospace" id="status-mode-badge"><i class="fa-solid fa-arrow-pointer me-1"></i>SELECTION MODE</span>
+            <span class="text-secondary font-monospace" id="status-mode-desc" style="font-size:0.72rem;">Click device to inspect · Drag to position</span>
         </div>
 
         <!-- Minimap -->

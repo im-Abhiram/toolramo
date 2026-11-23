@@ -115,95 +115,206 @@
 
     <!-- Interactive Network Overview & Learning Progress Row -->
     <div class="row g-4 mb-4">
-        <!-- Interactive Network Overview Playground -->
+        <!-- Interactive Infrastructure Map Console -->
         <div class="col-lg-8">
-            <div class="ramonet-card h-100">
-                <div class="ramonet-card-header d-flex justify-content-between align-items-center">
-                    <div class="d-flex align-items-center gap-2">
-                        <i class="fa-solid fa-diagram-project text-cyan"></i>
-                        <span class="text-white fw-bold small">Live Interactive Campus Topology Overview</span>
+            <div class="ramonet-card h-100 d-flex flex-column" style="background: rgba(10, 15, 30, 0.85); border: 1px solid rgba(0, 240, 255, 0.22); box-shadow: 0 12px 36px rgba(0,0,0,0.6);">
+                <div class="ramonet-card-header d-flex flex-wrap justify-content-between align-items-center gap-2 p-3 border-bottom border-secondary border-opacity-25" style="background: rgba(14, 21, 41, 0.95);">
+                    <div>
+                        <div class="editorial-kicker mb-1"><i class="fa-solid fa-satellite-dish text-cyan me-1"></i>04 — EXPERIENCE // INTERACTIVE INFRASTRUCTURE MAP</div>
+                        <div class="d-flex align-items-center gap-2">
+                            <span class="network-pulse-beacon pulse-beacon-green"><span class="status-dot green"></span></span>
+                            <span class="text-white fw-bold small">Enterprise Campus Core & Edge Telemetry</span>
+                            <span class="badge bg-dark text-cyan border border-info border-opacity-25 font-monospace" style="font-size:0.65rem;">CONVERGED · 7 NODES</span>
+                        </div>
                     </div>
-                    <div class="d-flex gap-2">
-                        <button class="btn btn-xs btn-outline-cyan" id="btn-dashboard-ping">
+                    <div class="d-flex flex-wrap align-items-center gap-2">
+                        <!-- Traffic Layer Filter Pills -->
+                        <div class="btn-group btn-group-sm" role="group" id="map-layer-pills">
+                            <button type="button" class="btn btn-xs btn-outline-cyan active" data-flow="all" title="View all network traffic">All Links</button>
+                            <button type="button" class="btn btn-xs btn-outline-cyan" data-flow="icmp" title="Isolate ICMP diagnostic packets">ICMP Ping</button>
+                            <button type="button" class="btn btn-xs btn-outline-cyan" data-flow="http" title="Isolate HTTPS web requests">Web/HTTPS</button>
+                            <button type="button" class="btn btn-xs btn-outline-cyan" data-flow="cctv" title="Isolate PoE CCTV video stream">4K RTSP</button>
+                        </div>
+                        <button class="btn btn-xs btn-outline-cyan" id="btn-dashboard-ping" title="Send live ICMP ping probe across topology">
                             <i class="fa-solid fa-paper-plane me-1"></i> Send Ping Probe
                         </button>
-                        <a href="{% url 'topology:designer' %}" class="btn btn-xs btn-primary-blue">
-                            Open Designer
+                        <a href="{% url 'topology:designer' %}" class="btn btn-xs btn-primary-blue" title="Open full visual drag-and-drop designer">
+                            <i class="fa-solid fa-arrow-up-right-from-square me-1"></i> Open Designer
                         </a>
                     </div>
                 </div>
-                <div class="ramonet-card-body p-0 position-relative" style="height: 330px; background: radial-gradient(circle at center, rgba(32, 47, 75, 0.4) 0%, rgba(11, 16, 32, 0.95) 100%);">
-                    
-                    <!-- SVG Connection Lines -->
+
+                <div class="ramonet-card-body p-0 position-relative flex-grow-1" style="min-height: 350px; background: radial-gradient(circle at 50% 50%, rgba(18, 30, 58, 0.5) 0%, rgba(8, 12, 24, 0.98) 85%); overflow: hidden;">
+                    <!-- Radar Scanning Beam Effect -->
+                    <div class="radar-sweep-beam"></div>
+
+                    <!-- SVG Connection Cables Layer with Glowing Pulses -->
                     <svg id="dashboard-topology-svg" style="position: absolute; top:0; left:0; width:100%; height:100%; z-index: 1;">
                         <defs>
-                            <linearGradient id="linkGrad" x1="0%" y1="0%" x2="100%" y2="0%">
-                                <stop offset="0%" stop-color="#38BDF8" stop-opacity="0.8"/>
-                                <stop offset="100%" stop-color="#34D399" stop-opacity="0.8"/>
+                            <linearGradient id="cyberLinkCyan" x1="0%" y1="0%" x2="100%" y2="0%">
+                                <stop offset="0%" stop-color="#00f0ff" stop-opacity="0.9"/>
+                                <stop offset="100%" stop-color="#38bdf8" stop-opacity="0.8"/>
+                            </linearGradient>
+                            <linearGradient id="cyberLinkPurple" x1="0%" y1="0%" x2="100%" y2="0%">
+                                <stop offset="0%" stop-color="#38bdf8" stop-opacity="0.8"/>
+                                <stop offset="100%" stop-color="#a855f7" stop-opacity="0.9"/>
+                            </linearGradient>
+                            <linearGradient id="cyberLinkGreen" x1="0%" y1="0%" x2="100%" y2="0%">
+                                <stop offset="0%" stop-color="#38bdf8" stop-opacity="0.8"/>
+                                <stop offset="100%" stop-color="#10b981" stop-opacity="0.9"/>
+                            </linearGradient>
+                            <linearGradient id="cyberLinkAmber" x1="0%" y1="0%" x2="100%" y2="0%">
+                                <stop offset="0%" stop-color="#38bdf8" stop-opacity="0.8"/>
+                                <stop offset="100%" stop-color="#fbbf24" stop-opacity="0.9"/>
                             </linearGradient>
                         </defs>
                         <!-- Connection Links -->
-                        <line x1="120" y1="165" x2="250" y2="165" stroke="url(#linkGrad)" stroke-width="2" stroke-dasharray="4,4" id="link-pc-sw"/>
-                        <line x1="250" y1="165" x2="400" y2="90" stroke="url(#linkGrad)" stroke-width="2" stroke-dasharray="4,4" id="link-sw-rtr"/>
-                        <line x1="400" y1="90" x2="560" y2="90" stroke="url(#linkGrad)" stroke-width="2" stroke-dasharray="4,4" id="link-rtr-fw"/>
-                        <line x1="560" y1="90" x2="700" y2="90" stroke="#FB7185" stroke-width="2" stroke-dasharray="2,2"/>
-                        <line x1="250" y1="165" x2="400" y2="240" stroke="url(#linkGrad)" stroke-width="2" stroke-dasharray="4,4" id="link-sw-srv"/>
-                        <line x1="250" y1="165" x2="120" y2="250" stroke="url(#linkGrad)" stroke-width="2" stroke-dasharray="4,4" id="link-sw-cam"/>
+                        <line x1="100" y1="170" x2="240" y2="170" stroke="url(#cyberLinkCyan)" stroke-width="2.5" stroke-dasharray="6,4" class="svg-cable-pulse" id="link-pc-sw"/>
+                        <line x1="240" y1="170" x2="390" y2="90" stroke="url(#cyberLinkPurple)" stroke-width="2.5" stroke-dasharray="6,4" class="svg-cable-pulse" id="link-sw-rtr"/>
+                        <line x1="390" y1="90" x2="550" y2="90" stroke="url(#cyberLinkPurple)" stroke-width="2.5" stroke-dasharray="6,4" class="svg-cable-pulse" id="link-rtr-fw"/>
+                        <line x1="550" y1="90" x2="700" y2="90" stroke="#fb7185" stroke-width="2.5" stroke-dasharray="6,4" class="svg-cable-pulse" id="link-fw-wan"/>
+                        <line x1="240" y1="170" x2="390" y2="250" stroke="url(#cyberLinkGreen)" stroke-width="2.5" stroke-dasharray="6,4" class="svg-cable-pulse" id="link-sw-srv"/>
+                        <line x1="240" y1="170" x2="100" y2="260" stroke="url(#cyberLinkAmber)" stroke-width="2.5" stroke-dasharray="6,4" class="svg-cable-pulse" id="link-sw-cam"/>
+                        <line x1="240" y1="170" x2="550" y2="250" stroke="url(#cyberLinkCyan)" stroke-width="2" stroke-dasharray="4,4" class="svg-cable-pulse" id="link-sw-san"/>
+
+                        <!-- Interactive Animated Packet Probe Ball -->
+                        <circle id="ping-packet-probe" cx="-50" cy="-50" r="6" fill="#00f0ff" stroke="#ffffff" stroke-width="2" style="opacity:0; filter: drop-shadow(0 0 10px #00f0ff); transition: opacity 0.2s;"></circle>
                     </svg>
 
-                    <!-- Interactive Topology Nodes (Positioned HTML elements) -->
-                    <div style="position: absolute; top:0; left:0; width:100%; height:100%; z-index: 2;">
-                        <!-- Node 1: Workstation -->
-                        <div class="dash-node cursor-pointer" style="position: absolute; left: 80px; top: 135px;" onclick="inspectDashNode('Workstation-01', 'PC Workstation', '192.168.10.15', 'Active / Up')">
-                            <div class="node-avatar bg-surface border border-info text-info"><i class="fa-solid fa-desktop"></i></div>
+                    <!-- Interactive Infrastructure Map Nodes -->
+                    <div class="dash-map-nodes-container position-absolute top-0 start-0 w-100 h-100" style="z-index: 2;">
+                        <!-- Node 1: Workstation-01 -->
+                        <div class="dash-node cursor-pointer active-node" style="left: 65px; top: 135px;" onclick="inspectDashNode('Workstation-01', 'Enterprise Desktop PC', '192.168.10.15/24', '192.168.10.1', '52:54:00:1A:B2:3F', 'GigabitEthernet0 (1000M Full)', 'VLAN 10 (Sales)', 'DHCP Client · TCP/IP · ICMP', '0.42 ms', '95W')">
+                            <div class="node-avatar border-info text-info"><i class="fa-solid fa-desktop"></i></div>
                             <span class="node-label">Workstation-01</span>
+                            <span class="node-ip-badge">192.168.10.15</span>
                         </div>
 
-                        <!-- Node 2: Core Switch -->
-                        <div class="dash-node cursor-pointer" style="position: absolute; left: 220px; top: 135px;" onclick="inspectDashNode('Switch-01', 'Layer 3 Switch', '192.168.1.3', 'VLAN 10, 20, 50 Active')">
-                            <div class="node-avatar bg-surface border border-info text-cyan"><i class="fa-solid fa-network-wired"></i></div>
-                            <span class="node-label">Switch-01</span>
+                        <!-- Node 2: Core Switch-01 -->
+                        <div class="dash-node cursor-pointer" style="left: 205px; top: 135px;" onclick="inspectDashNode('Core-Switch-01', 'Managed 24-Port L2/L3 Switch', '192.168.1.3/24', '192.168.1.1', '52:54:00:2B:C3:4A', '24x 1G RJ45 + 4x 10G SFP+', 'VLAN 10, 20, 50, 99', '802.1Q Trunking · RSTP · LLDP', '0.18 ms', '45W')">
+                            <div class="node-avatar border-info text-cyan"><i class="fa-solid fa-network-wired"></i></div>
+                            <span class="node-label">Core-Switch-01</span>
+                            <span class="node-ip-badge">192.168.1.3</span>
                         </div>
 
-                        <!-- Node 3: Core Router -->
-                        <div class="dash-node cursor-pointer" style="position: absolute; left: 370px; top: 60px;" onclick="inspectDashNode('Router-01', 'Enterprise Router', '192.168.1.1', 'OSPF Area 0 Converged')">
-                            <div class="node-avatar bg-surface border border-warning text-warning"><i class="fa-solid fa-route"></i></div>
-                            <span class="node-label">Router-01</span>
+                        <!-- Node 3: Edge Router-01 -->
+                        <div class="dash-node cursor-pointer" style="left: 355px; top: 55px;" onclick="inspectDashNode('Edge-Router-01', 'Enterprise Modular WAN Router', '192.168.1.1/24', '203.0.113.1', '52:54:00:3C:D4:5B', 'Gi0/0/0, Gi0/0/1, SFP0/0/2', 'Sub-Interfaces Gi0/0.10, .20', 'OSPFv2 Area 0 · NAT/PAT · BGP', '0.55 ms', '65W')">
+                            <div class="node-avatar border-warning text-warning"><i class="fa-solid fa-route"></i></div>
+                            <span class="node-label">Edge-Router-01</span>
+                            <span class="node-ip-badge">192.168.1.1</span>
                         </div>
 
-                        <!-- Node 4: Firewall -->
-                        <div class="dash-node cursor-pointer" style="position: absolute; left: 530px; top: 60px;" onclick="inspectDashNode('Firewall-01', 'Perimeter Firewall', '192.168.1.2', 'Stateful Inspection Active')">
-                            <div class="node-avatar bg-surface border border-danger text-danger"><i class="fa-solid fa-shield-halved"></i></div>
-                            <span class="node-label">Firewall-01</span>
+                        <!-- Node 4: Perimeter Firewall -->
+                        <div class="dash-node cursor-pointer" style="left: 515px; top: 55px;" onclick="inspectDashNode('Perimeter-NGFW', 'Stateful Packet Inspection Firewall', '192.168.1.2/24', '203.0.113.1', '52:54:00:4D:E5:6C', 'WAN (igb0), LAN (igb1), DMZ (igb2)', 'DMZ Isolation Zone', 'Stateful Filter · IPS/IDS · VPN', '0.68 ms', '55W')">
+                            <div class="node-avatar border-danger text-danger"><i class="fa-solid fa-shield-halved"></i></div>
+                            <span class="node-label">Perimeter-NGFW</span>
+                            <span class="node-ip-badge">192.168.1.2</span>
                         </div>
 
-                        <!-- Node 5: Internet Cloud -->
-                        <div class="dash-node cursor-pointer" style="position: absolute; left: 670px; top: 60px;" onclick="inspectDashNode('ISP-Gateway-WAN', 'Tier-1 ISP Uplink', '203.0.113.1', 'External WAN Cloud')">
-                            <div class="node-avatar bg-surface border border-secondary text-secondary"><i class="fa-solid fa-cloud"></i></div>
+                        <!-- Node 5: WAN / Internet Gateway -->
+                        <div class="dash-node cursor-pointer" style="left: 665px; top: 55px;" onclick="inspectDashNode('ISP-Gateway-WAN', 'Tier-1 Upstream Transit Provider', '203.0.113.1/30', 'Direct Carrier Peer', '00:00:5E:00:53:01', '10G Fiber Optical WAN', 'Public Autonomous System (AS64512)', 'BGPv4 · MPLS · IPv6 Transit', '4.20 ms', 'N/A')">
+                            <div class="node-avatar border-secondary text-secondary"><i class="fa-solid fa-cloud"></i></div>
                             <span class="node-label">WAN / Internet</span>
+                            <span class="node-ip-badge">203.0.113.1</span>
                         </div>
 
-                        <!-- Node 6: Server -->
-                        <div class="dash-node cursor-pointer" style="position: absolute; left: 370px; top: 210px;" onclick="inspectDashNode('Server-01', 'Linux Multi-Service Server', '192.168.20.5', 'Port 53, 67, 80 Listening')">
-                            <div class="node-avatar bg-surface border border-success text-success"><i class="fa-solid fa-server"></i></div>
-                            <span class="node-label">Server-01</span>
+                        <!-- Node 6: Multi-Service Server -->
+                        <div class="dash-node cursor-pointer" style="left: 355px; top: 220px;" onclick="inspectDashNode('Server-Linux-01', 'Production Multi-Service Server', '192.168.20.5/24', '192.168.20.1', '52:54:00:5E:F6:7D', 'eth0 (1000M), eth1 (10G Fiber)', 'VLAN 20 (DMZ / Services)', 'Nginx Web · BIND9 DNS · SSH', '0.35 ms', '140W')">
+                            <div class="node-avatar border-success text-success"><i class="fa-solid fa-server"></i></div>
+                            <span class="node-label">Server-Linux-01</span>
+                            <span class="node-ip-badge">192.168.20.5</span>
                         </div>
 
-                        <!-- Node 7: IP Camera -->
-                        <div class="dash-node cursor-pointer" style="position: absolute; left: 80px; top: 220px;" onclick="inspectDashNode('Camera-01', '4K PTZ IP Camera', '192.168.50.11', 'RTSP Stream 4.5 Mbps')">
-                            <div class="node-avatar bg-surface border border-warning text-warning"><i class="fa-solid fa-video"></i></div>
-                            <span class="node-label">Camera-01</span>
+                        <!-- Node 7: 4K IP Camera -->
+                        <div class="dash-node cursor-pointer" style="left: 65px; top: 225px;" onclick="inspectDashNode('Camera-PoE-01', '4K Outdoor PTZ Security Camera', '192.168.50.11/24', '192.168.50.1', '52:54:00:6F:07:8E', 'FastEthernet0 (802.3af PoE)', 'VLAN 50 (Surveillance)', 'RTSP (Port 554) · ONVIF Profile S', '1.12 ms', '12.5W')">
+                            <div class="node-avatar border-warning text-warning"><i class="fa-solid fa-video"></i></div>
+                            <span class="node-label">Camera-PoE-01</span>
+                            <span class="node-ip-badge">192.168.50.11</span>
+                        </div>
+
+                        <!-- Node 8: SAN Storage -->
+                        <div class="dash-node cursor-pointer" style="left: 515px; top: 220px;" onclick="inspectDashNode('SAN-Storage-01', 'Enterprise RAID Storage Appliance', '192.168.40.10/24', '192.168.40.1', '52:54:00:7A:18:9F', 'Dual 10G SFP+ iSCSI Multipath', 'VLAN 40 (Storage Fabric)', 'iSCSI · NFSv4 · SMB 3.0', '0.22 ms', '180W')">
+                            <div class="node-avatar border-info text-info"><i class="fa-solid fa-hard-drive"></i></div>
+                            <span class="node-label">SAN-Storage-01</span>
+                            <span class="node-ip-badge">192.168.40.10</span>
                         </div>
                     </div>
 
-                    <!-- Bottom Live Status Toast / Inspector -->
-                    <div id="dash-inspector-box" class="position-absolute bottom-0 start-0 end-0 p-2 px-3 bg-sidebar border-top border-secondary border-opacity-25 d-flex align-items-center justify-content-between small text-secondary" style="z-index: 3;">
-                        <div>
-                            <span class="status-dot green me-1"></span>
-                            <strong class="text-white" id="dash-inspect-name">Workstation-01</strong>
-                            <span class="text-muted ms-2" id="dash-inspect-detail">192.168.10.15 · GigabitEthernet Link Up</span>
+                    <!-- Live Mini-Terminal Diagnostic Drawer (Appears when ping probe runs) -->
+                    <div id="dash-ping-terminal" class="position-absolute bottom-0 start-0 end-0 p-3 bg-dark border-top border-secondary border-opacity-50 font-monospace d-none" style="z-index: 10; max-height: 170px; overflow-y: auto; font-size: 0.75rem; background: rgba(6, 10, 20, 0.98) !important; box-shadow: 0 -8px 24px rgba(0,0,0,0.8);">
+                        <div class="d-flex justify-content-between align-items-center mb-1 text-secondary">
+                            <span><i class="fa-solid fa-terminal text-cyan me-1"></i>ICMP Diagnostic Probe Stream — Workstation-01 ➜ Server-Linux-01</span>
+                            <button type="button" class="btn-close btn-close-white small" onclick="closeDashPingTerminal()"></button>
                         </div>
-                        <span class="badge bg-secondary font-monospace" style="font-size:0.7rem;">Click node to inspect</span>
+                        <div class="text-success" id="dash-ping-terminal-body">
+                            Workstation-01# ping 192.168.20.5 -c 4<br>
+                            PING 192.168.20.5 (192.168.20.5): 56 data bytes<br>
+                            64 bytes from 192.168.20.5: icmp_seq=1 ttl=63 time=0.92 ms [Hop 1: Core-Switch-01, Hop 2: Router-01]<br>
+                            64 bytes from 192.168.20.5: icmp_seq=2 ttl=63 time=0.88 ms [Link RTT stable]<br>
+                            64 bytes from 192.168.20.5: icmp_seq=3 ttl=63 time=0.95 ms [No Jitter Detected]<br>
+                            64 bytes from 192.168.20.5: icmp_seq=4 ttl=63 time=0.84 ms [Round-Trip Complete]<br>
+                            <span class="text-cyan">--- 192.168.20.5 ping statistics --- 4 packets transmitted, 4 packets received, 0.0% packet loss</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Live Node Telemetry Dossier Panel (Modern Editorial Details in JetBrains Mono) -->
+                <div id="dash-inspector-box" class="p-3 border-top border-secondary border-opacity-25" style="background: rgba(14, 21, 41, 0.98);">
+                    <div class="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-2">
+                        <div class="d-flex align-items-center gap-2">
+                            <span class="status-dot green"></span>
+                            <h6 class="text-white fw-bold mb-0" id="dash-inspect-name">Workstation-01</h6>
+                            <span class="badge bg-secondary font-monospace" id="dash-inspect-type" style="font-size:0.68rem;">Enterprise Desktop PC</span>
+                            <span class="badge bg-success bg-opacity-25 text-success font-monospace" style="font-size:0.68rem;">INTERFACE UP</span>
+                        </div>
+                        <div class="d-flex gap-2">
+                            <a href="{% url 'topology:designer' %}?open=cli" class="btn btn-xs btn-outline-cyan">
+                                <i class="fa-solid fa-terminal me-1"></i> Launch Device CLI
+                            </a>
+                            <a href="{% url 'topology:designer' %}?template=Basic+Home+Network" class="btn btn-xs btn-primary-blue">
+                                <i class="fa-solid fa-diagram-project me-1"></i> Edit in Designer
+                            </a>
+                        </div>
+                    </div>
+
+                    <!-- Telemetry Data Grid in JetBrains Mono -->
+                    <div class="row g-2 font-monospace" style="font-size: 0.72rem;">
+                        <div class="col-md-3 col-6">
+                            <div class="p-2 rounded bg-black bg-opacity-40 border border-secondary border-opacity-25">
+                                <div class="text-muted" style="font-size:0.65rem;">L3 IP / CIDR</div>
+                                <div class="text-cyan fw-bold" id="dash-inspect-ip">192.168.10.15/24</div>
+                            </div>
+                        </div>
+                        <div class="col-md-3 col-6">
+                            <div class="p-2 rounded bg-black bg-opacity-40 border border-secondary border-opacity-25">
+                                <div class="text-muted" style="font-size:0.65rem;">DEFAULT GATEWAY</div>
+                                <div class="text-white" id="dash-inspect-gw">192.168.10.1</div>
+                            </div>
+                        </div>
+                        <div class="col-md-3 col-6">
+                            <div class="p-2 rounded bg-black bg-opacity-40 border border-secondary border-opacity-25">
+                                <div class="text-muted" style="font-size:0.65rem;">HARDWARE MAC ADDR</div>
+                                <div class="text-white" id="dash-inspect-mac">52:54:00:1A:B2:3F</div>
+                            </div>
+                        </div>
+                        <div class="col-md-3 col-6">
+                            <div class="p-2 rounded bg-black bg-opacity-40 border border-secondary border-opacity-25">
+                                <div class="text-muted" style="font-size:0.65rem;">LINK SPEED & POWER</div>
+                                <div class="text-success" id="dash-inspect-speed">1000M Full · 95W</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mt-2 pt-2 border-top border-secondary border-opacity-25 font-monospace" style="font-size:0.72rem;">
+                        <div>
+                            <span class="text-muted me-1">PROTOCOLS:</span>
+                            <span class="text-white" id="dash-inspect-protocols">DHCP Client · TCP/IP · ICMP</span>
+                        </div>
+                        <div>
+                            <span class="text-muted me-1">SEGMENTATION:</span>
+                            <span class="text-info" id="dash-inspect-vlan">VLAN 10 (Sales)</span>
+                            <span class="text-muted ms-2 me-1">LATENCY:</span>
+                            <span class="text-warning" id="dash-inspect-latency">0.42 ms</span>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -359,31 +470,71 @@
 
 {% block extra_js %}
 <style>
+.radar-sweep-beam {
+    position: absolute;
+    width: 380px;
+    height: 380px;
+    border-radius: 50%;
+    top: calc(50% - 190px);
+    left: calc(50% - 190px);
+    background: conic-gradient(from 0deg, rgba(0, 240, 255, 0.12) 0deg, transparent 60deg, transparent 360deg);
+    animation: radarSweep 10s linear infinite;
+    pointer-events: none;
+    z-index: 0;
+}
+
+.svg-cable-pulse {
+    animation: packetPulseStream 2s linear infinite;
+}
+
 .dash-node {
+    position: absolute;
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 4px;
-    transition: transform 0.2s ease;
+    gap: 3px;
+    transition: transform 0.22s cubic-bezier(0.16, 1, 0.3, 1), filter 0.22s ease;
+    user-select: none;
 }
 .dash-node:hover {
-    transform: scale(1.1);
+    transform: translateY(-4px) scale(1.08);
+    filter: drop-shadow(0 0 10px rgba(0, 240, 255, 0.6));
+    z-index: 5;
+}
+.dash-node.active-node .node-avatar {
+    border-color: #00f0ff !important;
+    box-shadow: 0 0 0 2px #00f0ff, 0 0 16px rgba(0, 240, 255, 0.7);
 }
 .node-avatar {
-    width: 38px;
-    height: 38px;
-    border-radius: 10px;
+    width: 44px;
+    height: 44px;
+    border-radius: 12px;
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 1.1rem;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.4);
+    font-size: 1.25rem;
+    background: rgba(14, 21, 41, 0.94);
+    border: 1.5px solid rgba(255, 255, 255, 0.12);
+    box-shadow: 0 6px 16px rgba(0,0,0,0.6);
+    transition: all 0.2s ease;
 }
 .node-label {
+    font-family: var(--font-sans);
     font-size: 0.72rem;
-    font-weight: 600;
+    font-weight: 700;
     color: #F1F5F9;
-    text-shadow: 0 2px 4px rgba(0,0,0,0.8);
+    text-shadow: 0 2px 4px rgba(0,0,0,0.9);
+    letter-spacing: -0.01em;
+}
+.node-ip-badge {
+    font-family: var(--font-mono);
+    font-size: 0.62rem;
+    color: #38bdf8;
+    background: rgba(6, 10, 20, 0.85);
+    padding: 1px 5px;
+    border-radius: 4px;
+    border: 1px solid rgba(0, 240, 255, 0.18);
+    letter-spacing: -0.02em;
 }
 .cursor-pointer { cursor: pointer; }
 .hover-border-info:hover {
@@ -394,25 +545,89 @@
 </style>
 
 <script>
-function inspectDashNode(name, type, ip, detail) {
+function inspectDashNode(name, type, ip, gw, mac, speed, vlan, protocols, latency, power) {
+    // Update Active Node Styling
+    document.querySelectorAll('.dash-node').forEach(node => node.classList.remove('active-node'));
+    if (event && event.currentTarget) {
+        event.currentTarget.classList.add('active-node');
+    }
+
+    // Populate Dossier
     document.getElementById('dash-inspect-name').textContent = name;
-    document.getElementById('dash-inspect-detail').textContent = `${type} · IP: ${ip} · ${detail}`;
+    document.getElementById('dash-inspect-type').textContent = type;
+    document.getElementById('dash-inspect-ip').textContent = ip;
+    document.getElementById('dash-inspect-gw').textContent = gw;
+    document.getElementById('dash-inspect-mac').textContent = mac;
+    document.getElementById('dash-inspect-speed').textContent = `${speed} · ${power}`;
+    document.getElementById('dash-inspect-protocols').textContent = protocols;
+    document.getElementById('dash-inspect-vlan').textContent = vlan;
+    document.getElementById('dash-inspect-latency').textContent = latency;
 }
 
+function closeDashPingTerminal() {
+    document.getElementById('dash-ping-terminal')?.classList.add('d-none');
+}
+
+// Interactive Layer Filter Buttons
+document.querySelectorAll('#map-layer-pills button').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+        document.querySelectorAll('#map-layer-pills button').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        const flow = btn.getAttribute('data-flow');
+        
+        const lines = document.querySelectorAll('#dashboard-topology-svg line');
+        lines.forEach(l => {
+            if (flow === 'all') {
+                l.style.opacity = '1';
+                l.setAttribute('stroke-width', '2.5');
+            } else if (flow === 'icmp') {
+                l.style.opacity = (l.id === 'link-pc-sw' || l.id === 'link-sw-srv' || l.id === 'link-sw-rtr') ? '1' : '0.15';
+                if (l.id === 'link-pc-sw' || l.id === 'link-sw-srv') l.setAttribute('stroke-width', '4');
+            } else if (flow === 'http') {
+                l.style.opacity = (l.id === 'link-pc-sw' || l.id === 'link-sw-rtr' || l.id === 'link-rtr-fw') ? '1' : '0.15';
+                if (l.id === 'link-rtr-fw') l.setAttribute('stroke-width', '4');
+            } else if (flow === 'cctv') {
+                l.style.opacity = (l.id === 'link-sw-cam' || l.id === 'link-sw-san') ? '1' : '0.15';
+                if (l.id === 'link-sw-cam') l.setAttribute('stroke-width', '4');
+            }
+        });
+    });
+});
+
+// Interactive Ping Probe Simulation
 document.getElementById('btn-dashboard-ping')?.addEventListener('click', () => {
-    const link = document.getElementById('link-pc-sw');
-    if (link) {
-        link.setAttribute('stroke', '#00f0ff');
-        link.setAttribute('stroke-width', '4');
-        setTimeout(() => {
-            link.setAttribute('stroke', 'url(#linkGrad)');
-            link.setAttribute('stroke-width', '2');
-            window.ramonetUI?.showToast(
-                'ICMP Ping Probe Success',
-                'ICMP Echo Request & Reply verified between Workstation-01 and Core Router (0% Packet Loss, RTT: 1.4ms).',
-                'success'
-            );
-        }, 500);
+    const probe = document.getElementById('ping-packet-probe');
+    const term = document.getElementById('dash-ping-terminal');
+    
+    if (probe) {
+        probe.style.opacity = '1';
+        let step = 0;
+        const waypoints = [
+            { x: 100, y: 170 }, // Workstation
+            { x: 240, y: 170 }, // Switch
+            { x: 390, y: 90 },  // Router
+            { x: 390, y: 250 }, // Server
+            { x: 240, y: 170 }, // Back to Switch
+            { x: 100, y: 170 }  // Back to PC
+        ];
+
+        function stepProbe() {
+            if (step < waypoints.length) {
+                probe.setAttribute('cx', waypoints[step].x);
+                probe.setAttribute('cy', waypoints[step].y);
+                step++;
+                setTimeout(stepProbe, 240);
+            } else {
+                probe.style.opacity = '0';
+                if (term) term.classList.remove('d-none');
+                window.ramonetUI?.showToast(
+                    'ICMP Diagnostic Probe Verified',
+                    'Packet trace completed across 3 hops in 0.89ms. Zero packet loss.',
+                    'success'
+                );
+            }
+        }
+        stepProbe();
     }
 });
 </script>

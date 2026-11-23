@@ -382,6 +382,7 @@ class TopologyCanvas {
                 <div class="port-connector-anchor bottom" data-anchor="bottom" title="Connect Cable (+)"><i class="fa-solid fa-plus"></i></div>
                 <div class="port-connector-anchor left" data-anchor="left" title="Connect Cable (+)"><i class="fa-solid fa-plus"></i></div>
                 <div class="port-connector-anchor right" data-anchor="right" title="Connect Cable (+)"><i class="fa-solid fa-plus"></i></div>
+                <span class="node-status-beacon" title="Node Online: Operational"><span class="node-status-dot"></span></span>
                 <div class="device-node-pic">
                     <img src="${this.getDevicePic(device)}" class="device-pic" alt="${device.name}" draggable="false">
                 </div>
