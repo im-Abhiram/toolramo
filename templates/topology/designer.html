@@ -120,6 +120,25 @@
             <!-- Nodes are rendered with pointer-events: auto -->
         </div>
 
+        <!-- Empty Layout Guide (shown when 0 devices on canvas) -->
+        <div id="canvas-empty-guide" class="canvas-empty-guide text-center select-none pointer-events-none">
+            <div class="empty-guide-badge mb-2">
+                <i class="fa-solid fa-network-wired text-cyan opacity-75"></i>
+                <span class="ms-2 font-monospace text-uppercase" style="font-size: 0.72rem; letter-spacing: 0.08em;">Clean Canvas Ready</span>
+            </div>
+            <h5 class="text-white fw-bold mb-1">Drag or click devices to begin</h5>
+            <p class="text-secondary small mb-3" style="max-width: 440px; margin: 0 auto;">
+                Select devices from the left library to add them to your topology. Connect any two devices using their <span class="text-cyan fw-bold">+</span> cable anchors.
+            </p>
+            <div class="d-inline-flex align-items-center gap-3 px-3 py-1 bg-dark bg-opacity-75 rounded-pill border border-secondary border-opacity-25 small text-muted font-monospace" style="font-size: 0.72rem;">
+                <span><i class="fa-solid fa-hand-pointer text-cyan me-1"></i>Click palette to add</span>
+                <span>•</span>
+                <span><i class="fa-solid fa-plug text-warning me-1"></i>Click or drag (+) to connect</span>
+                <span>•</span>
+                <span><i class="fa-solid fa-globe text-success me-1"></i>Device Web GUI live</span>
+            </div>
+        </div>
+
         <!-- Canvas Mode Status Indicator -->
         <div class="canvas-status-pill" id="canvas-status-pill">
             <span class="network-pulse-beacon pulse-beacon-cyan"><span class="status-dot green"></span></span>
@@ -311,9 +330,14 @@
             <!-- Pane 1: Device Web GUI (Default active on designer launch) -->
             <div class="workbench-tab-pane h-100" id="tab-pane-device-web-gui">
                 <div id="device-web-gui-mount" class="h-100 overflow-y-auto p-3">
-                    <div class="p-4 text-center text-muted">
-                        <i class="fa-solid fa-globe fa-3x mb-2 text-cyan opacity-50"></i>
-                        <p class="small">Select a device on canvas to open its interactive Web Management GUI.</p>
+                    <div class="p-4 text-center text-secondary d-flex flex-column align-items-center justify-content-center h-100">
+                        <div class="mb-3 p-3 rounded-circle bg-dark border border-secondary border-opacity-25" style="width: 64px; height: 64px; display: inline-flex; align-items: center; justify-content: center;">
+                            <i class="fa-solid fa-globe fa-2x text-cyan opacity-75"></i>
+                        </div>
+                        <h6 class="text-white fw-bold mb-1">Device Web GUI · Standby</h6>
+                        <p class="small text-muted mb-0" style="max-width: 440px;">
+                            Add devices from the library and click any device to launch its real-time Web Management Interface.
+                        </p>
                     </div>
                 </div>
             </div>
@@ -354,7 +378,7 @@
         <div class="context-menu-item text-danger" id="ctx-delete"><i class="fa-solid fa-trash-can"></i> Delete Device</div>
     </div>
     <!-- Cable Connection Modal -->
-    <div class="modal fade" id="connectCableModal" tabindex="-1" aria-labelledby="connectCableModalLabel" aria-hidden="true">
+    <div class="modal fade" id="connectCableModal" tabindex="-1" aria-labelledby="connectCableModalLabel" aria-hidden="true" data-bs-backdrop="static">
         <div class="modal-dialog modal-dialog-centered">
             <div class="modal-content bg-dark border border-cyan text-white shadow-lg">
                 <div class="modal-header border-secondary border-opacity-25 py-2">
@@ -474,7 +498,18 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (templateName) {
         window.ramonetUI?.loadNetworkTemplate(templateName);
     } else {
-        window.ramonetUI?.loadNetworkTemplate('Basic Home Network');
+        // Empty layout by default:
+        // Do not auto-load pre-populated devices.
+        // Canvas starts clean so the user can build and connect their network from scratch.
+        window.ramonetCanvas?.loadProjectData({
+            id: 'proj_' + Date.now(),
+            name: 'New Network Topology',
+            devices: [],
+            connections: []
+        });
+        window.ramonetTerminal?.attachDevice(null);
+        window.ramonetTerminal?.syncDeviceSelector();
+        window.ramonetUI?.updateSelectedDevice(null);
     }
 
     // Check if CLI or Web GUI should be opened directly

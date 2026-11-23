@@ -630,9 +630,14 @@ class RamonetUI {
 
         if (!device) {
             mount.innerHTML = `
-                <div class="p-4 text-center text-muted">
-                    <i class="fa-solid fa-globe fa-3x mb-2 text-cyan opacity-50"></i>
-                    <p class="small">No device selected. Click a device on the canvas to open its Web Management GUI.</p>
+                <div class="p-4 text-center text-secondary d-flex flex-column align-items-center justify-content-center h-100">
+                    <div class="mb-3 p-3 rounded-circle bg-dark border border-secondary border-opacity-25" style="width: 64px; height: 64px; display: inline-flex; align-items: center; justify-content: center;">
+                        <i class="fa-solid fa-globe fa-2x text-cyan opacity-75"></i>
+                    </div>
+                    <h6 class="text-white fw-bold mb-1">Device Web GUI · Standby</h6>
+                    <p class="small text-muted mb-0" style="max-width: 440px;">
+                        Add devices from the library and click any device to launch its real-time Web Management Interface.
+                    </p>
                 </div>
             `;
             return;

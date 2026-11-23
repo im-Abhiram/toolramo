@@ -664,15 +664,31 @@
     pointer-events: none;
     font-size: 0.76rem;
 }
-    border-radius: 20px;
-    padding: 0.4rem 0.85rem;
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    z-index: 35;
-    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.5);
+
+/* On-Canvas Empty Layout Guide Watermark */
+.canvas-empty-guide {
+    position: absolute;
+    top: 42%;
+    left: 50%;
+    transform: translate(-50%, -50%);
     pointer-events: none;
-    font-size: 0.76rem;
+    z-index: 5;
+    transition: opacity 0.25s ease, transform 0.25s ease;
+}
+
+.canvas-empty-guide.d-none {
+    display: none !important;
+}
+
+.empty-guide-badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.35rem 0.85rem;
+    background: rgba(14, 21, 41, 0.85);
+    border: 1px solid rgba(0, 240, 255, 0.3);
+    border-radius: 9999px;
+    color: #00f0ff;
+    box-shadow: 0 0 20px rgba(0, 240, 255, 0.15);
 }
 
 .palette-device-pic {
