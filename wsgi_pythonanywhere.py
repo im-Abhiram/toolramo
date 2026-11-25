@@ -20,6 +20,9 @@ os.environ['DJANGO_SECRET_KEY'] = 'ramonet-prod-sec-key-x9q8v7w6p5m4k3j2h1-98765
 os.environ['SECURE_SSL_REDIRECT'] = 'True'
 os.environ['ENABLE_HSTS'] = 'True'
 
+# Gemini AI Chatbot API Key (set your key here or in .env)
+# os.environ['GEMINI_API_KEY'] = 'your-gemini-api-key-here'
+
 # 3. Initialize Django WSGI application
 from django.core.wsgi import get_wsgi_application
 application = get_wsgi_application()

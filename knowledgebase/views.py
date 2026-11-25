@@ -1,10 +1,17 @@
+import json
 from django.shortcuts import render
 from django.http import JsonResponse
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
+from audit.logger import SecurityLogger
 from .models import KnowledgeArticle, ConnectionRule
 from commands.models import CommandEntry
+from .ai_service import (
+    MAX_MESSAGE_LENGTH,
+    ai_chat_rate_limiter,
+    ask_gemini_assistant,
+)
 
 @api_view(['GET'])
 @permission_classes([AllowAny])
@@ -125,3 +132,72 @@ def search_api(request):
         })
 
     return Response(results)
+
+
+def ai_chat_api(request):
+    """
+    CSRF-protected JSON POST endpoint powering the global RAMONET AI Chatbot.
+    Proxies validated questions to Gemini server-side while keeping the API key secret.
+    """
+    if request.method != 'POST':
+        return JsonResponse({'error': 'POST required'}, status=405)
+
+    if len(request.body) > 65536:
+        return JsonResponse({'error': 'Payload exceeds 64 KB limit.'}, status=413)
+
+    try:
+        data = json.loads(request.body.decode('utf-8'))
+    except Exception:
+        return JsonResponse({'error': 'Invalid JSON payload.'}, status=400)
+
+    if not isinstance(data, dict):
+        return JsonResponse({'error': 'Expected JSON object.'}, status=400)
+
+    raw_message = data.get('message')
+    if not isinstance(raw_message, str) or not raw_message.strip():
+        return JsonResponse({'error': 'Please enter a non-empty message.'}, status=400)
+
+    message = raw_message.strip()
+    if len(message) > MAX_MESSAGE_LENGTH:
+        return JsonResponse(
+            {'error': f'Message exceeds maximum length of {MAX_MESSAGE_LENGTH} characters.'},
+            status=400,
+        )
+
+    history = data.get('history', [])
+    if history is not None and not isinstance(history, list):
+        return JsonResponse({'error': '"history" must be a list.'}, status=400)
+
+    page_context = data.get('context', {})
+    if page_context is not None and not isinstance(page_context, dict):
+        page_context = {}
+
+    client_ip = SecurityLogger.get_client_ip(request) or '127.0.0.1'
+    if request.user.is_authenticated:
+        limiter_key = f"user:{request.user.id}:{client_ip}"
+    else:
+        limiter_key = f"ip:{client_ip}"
+
+    allowed, retry_after = ai_chat_rate_limiter.allow_request(limiter_key)
+    if not allowed:
+        SecurityLogger.log_event(
+            action='AI_CHAT_RATE_LIMIT',
+            module='knowledgebase',
+            request=request,
+            details={'retry_after': retry_after},
+            severity='warning',
+        )
+        return JsonResponse(
+            {
+                'error': f'Too many AI requests. Please wait {retry_after} seconds before sending another question.',
+                'retry_after': retry_after,
+            },
+            status=429,
+        )
+
+    result = ask_gemini_assistant(
+        message=message,
+        history=history or [],
+        page_context=page_context,
+    )
+    return JsonResponse(result, status=200)

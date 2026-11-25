@@ -1,0 +1,85 @@
+<!-- Global RAMONET AI Copilot Widget (Gemini Powered) -->
+<button
+    type="button"
+    id="ramonet-ai-fab"
+    class="ramonet-ai-fab"
+    aria-label="Open RAMONET AI Copilot"
+    title="Ask RAMONET AI (Networking & Platform Help)"
+>
+    <span class="ai-fab-pulse"></span>
+    <i class="fa-solid fa-robot"></i>
+    <span class="ai-fab-label">Ask AI</span>
+</button>
+
+<section
+    id="ramonet-ai-panel"
+    class="ramonet-ai-panel"
+    role="dialog"
+    aria-label="RAMONET AI Copilot Chat"
+    aria-hidden="true"
+>
+    <!-- Header -->
+    <div class="ai-panel-header">
+        <div class="d-flex align-items-center gap-2 min-w-0">
+            <div class="ai-avatar-badge">
+                <i class="fa-solid fa-wand-magic-sparkles"></i>
+            </div>
+            <div class="min-w-0">
+                <div class="d-flex align-items-center gap-2">
+                    <h6 class="text-white fw-bold mb-0 text-truncate" style="font-size: 0.92rem;">RAMONET AI Copilot</h6>
+                    <span class="ai-live-pill">Gemini AI</span>
+                </div>
+                <div class="text-secondary text-truncate font-monospace" id="ai-context-subtitle" style="font-size: 0.68rem;">
+                    Networking, CLI, Labs & Platform Help
+                </div>
+            </div>
+        </div>
+        <div class="d-flex align-items-center gap-1 flex-shrink-0">
+            <button type="button" class="btn btn-sm text-secondary ai-icon-btn" id="ai-btn-expand" title="Toggle Expanded View">
+                <i class="fa-solid fa-up-right-and-down-left-from-center"></i>
+            </button>
+            <button type="button" class="btn btn-sm text-secondary ai-icon-btn" id="ai-btn-clear" title="Clear Chat History">
+                <i class="fa-solid fa-trash-can"></i>
+            </button>
+            <button type="button" class="btn btn-sm text-secondary ai-icon-btn" id="ai-btn-close" title="Minimize Chat (Esc)">
+                <i class="fa-solid fa-xmark fa-lg"></i>
+            </button>
+        </div>
+    </div>
+
+    <!-- Scrollable Chat History -->
+    <div class="ai-panel-messages" id="ai-chat-messages">
+        <!-- Populated dynamically by ai-chatbot.js -->
+    </div>
+
+    <!-- Quick Prompt Chips -->
+    <div class="ai-quick-prompts" id="ai-quick-prompts">
+        <button type="button" class="ai-prompt-chip" data-prompt="Explain /26 vs /24 subnetting with usable host examples.">
+            <i class="fa-solid fa-calculator text-cyan me-1"></i>Subnetting /26
+        </button>
+        <button type="button" class="ai-prompt-chip" data-prompt="How do I configure VLAN 10 and a trunk port on a Cisco switch?">
+            <i class="fa-solid fa-network-wired text-info me-1"></i>Switch VLANs
+        </button>
+        <button type="button" class="ai-prompt-chip" data-prompt="How do I connect and test devices in the Network Designer?">
+            <i class="fa-solid fa-plug text-warning me-1"></i>Designer Guide
+        </button>
+        <button type="button" class="ai-prompt-chip" data-prompt="Step-by-step checklist when a PC cannot ping a remote server.">
+            <i class="fa-solid fa-stethoscope text-success me-1"></i>Troubleshoot Ping
+        </button>
+    </div>
+
+    <!-- Composer Input -->
+    <form class="ai-panel-composer" id="ai-chat-form" autocomplete="off">
+        <textarea
+            id="ai-chat-input"
+            class="form-control ai-chat-textarea"
+            rows="1"
+            maxlength="2000"
+            placeholder="Ask about networking, CLI commands, subnetting, or RAMONET..."
+            aria-label="Message RAMONET AI"
+        ></textarea>
+        <button type="submit" id="ai-chat-send-btn" class="btn btn-primary-blue ai-send-btn" title="Send message (Enter)">
+            <i class="fa-solid fa-paper-plane"></i>
+        </button>
+    </form>
+</section>

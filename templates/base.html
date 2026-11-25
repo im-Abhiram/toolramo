@@ -4,6 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="csrf-token" content="{{ csrf_token }}">
     <title>{% block title %}RAMONET — Enterprise Network Simulator & Operations Lab{% endblock %}</title>
     
     <!-- Technical SEO & Social Metadata -->
@@ -132,6 +133,12 @@
                 <i class="fa-solid fa-diagram-project"></i>
                 <span>Designer</span>
             </a>
+
+            <!-- Global Gemini AI Copilot Trigger -->
+            <button type="button" class="btn btn-sm btn-outline-cyan d-inline-flex align-items-center gap-1" id="btn-header-ai-chat" title="Ask RAMONET AI Copilot (Networking & Platform Help)">
+                <i class="fa-solid fa-robot text-cyan"></i>
+                <span class="small d-none d-md-inline">AI Help</span>
+            </button>
 
             <!-- User Menu Dropdown -->
             <div class="dropdown">
@@ -674,8 +681,12 @@
     });
     </script>
     
+    <!-- Global Gemini AI Chatbot Widget -->
+    {% include 'components/ai_chatbot.html' %}
+
     <!-- Viral Social Share Modal & Utility -->
     {% include 'components/share_modal.html' %}
+    <script src="{% static 'js/assistant/ai-chatbot.js' %}?v=1.0"></script>
     <script src="{% static 'js/share.js' %}?v=2.2"></script>
     {% block extra_js %}{% endblock %}
 </body>

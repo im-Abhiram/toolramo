@@ -1,7 +1,7 @@
 from django.urls import path
 from simulation.views import trace_packet_api
 from commands.views import execute_command_api
-from knowledgebase.views import device_guide_api, how_to_connect_api, search_api
+from knowledgebase.views import device_guide_api, how_to_connect_api, search_api, ai_chat_api
 from projects.views import project_template_api
 from audit.views import storage_stats_api
 from troubleshooting.views import verify_solution_api
@@ -19,6 +19,7 @@ urlpatterns = [
     path('knowledgebase/guide/', device_guide_api, name='api_device_guide'),
     path('knowledgebase/how-to-connect/', how_to_connect_api, name='api_how_to_connect'),
     path('knowledgebase/search/', search_api, name='api_search'),
+    path('knowledgebase/chat/', ai_chat_api, name='api_ai_chat'),
     
     # Projects
     path('projects/template/', project_template_api, name='api_project_template'),

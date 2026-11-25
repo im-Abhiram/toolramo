@@ -9,6 +9,20 @@ from django.core.exceptions import ImproperlyConfigured
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
+# Load local .env file cleanly (zero third-party dependency required)
+_ENV_FILE = BASE_DIR / '.env'
+if _ENV_FILE.is_file():
+    with open(_ENV_FILE, 'r', encoding='utf-8') as _f:
+        for _raw_line in _f:
+            _line = _raw_line.strip()
+            if not _line or _line.startswith('#') or '=' not in _line:
+                continue
+            _k, _v = _line.split('=', 1)
+            _k = _k.strip()
+            _v = _v.strip().strip('"').strip("'")
+            if _k:
+                os.environ.setdefault(_k, _v)
+
 # Security: Debug Flag
 DEBUG = os.environ.get('DJANGO_DEBUG', 'True').lower() in ('true', '1', 'yes')
 
@@ -205,6 +219,17 @@ LOGIN_REDIRECT_URL = 'dashboard'
 LOGOUT_REDIRECT_URL = 'accounts:login'
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+# Gemini AI Chatbot Configuration (kept strictly server-side)
+GEMINI_API_KEY = os.environ.get('GEMINI_API_KEY', '').strip()
+GEMINI_MODELS = [
+    m.strip()
+    for m in os.environ.get(
+        'GEMINI_MODELS',
+        'gemini-flash-lite-latest,gemini-3-flash-preview,gemini-3.5-flash-lite,gemini-flash-latest,gemini-3.8-flash'
+    ).split(',')
+    if m.strip()
+]
 
 # Security Audit Logging Configuration
 LOGGING = {
