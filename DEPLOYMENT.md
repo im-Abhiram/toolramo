@@ -12,10 +12,16 @@ This guide provides complete, production-tested instructions for deploying and u
 
 ## ⚡ FAST UPDATE: How to Update Your Already Deployed App on PythonAnywhere
 
-If you have already deployed RAMONET on PythonAnywhere, updating with the latest fixes (drag & drop, clean login, bug fixes) takes only 30 seconds:
+If you have already deployed RAMONET on PythonAnywhere, updating with the latest features (**Gemini AI Copilot**, **empty-canvas Network Designer with Device Web GUI default**, **Space Grotesk + JetBrains Mono UI**, and security fixes) takes about 30 seconds:
 
 1. Open your **Bash console** on PythonAnywhere ([pythonanywhere.com/user/ramonet/consoles/](https://www.pythonanywhere.com/user/ramonet/consoles/)).
-2. Run the following update sequence:
+2. Run this single copy-paste update command (or follow the step-by-step commands below):
+
+```bash
+cd /home/ramonet/ramonet && workon ramonet-env && git checkout -- db.sqlite3 && git pull origin main && pip install -r requirements.txt && python manage.py migrate && python manage.py seed_data && python manage.py seed_academy && python manage.py collectstatic --noinput && touch /var/www/ramonet_pythonanywhere_com_wsgi.py
+```
+
+Step-by-step equivalent:
 
 ```bash
 # 1. Go to project directory
@@ -24,7 +30,7 @@ cd /home/ramonet/ramonet
 # 2. Activate virtualenv
 workon ramonet-env
 
-# 3. Discard local database modifications to avoid merge conflict, then pull
+# 3. Discard local SQLite runtime changes to avoid merge conflict, then pull latest code
 git checkout -- db.sqlite3
 git pull origin main
 
@@ -34,14 +40,14 @@ git pull origin main
 # 4. Install any package requirements
 pip install -r requirements.txt
 
-# 5. Apply migrations
+# 5. Apply database migrations
 python manage.py migrate
 
-# 6. Re-seed device library and Academy courses (safe, skips existing)
+# 6. Re-seed device library, command reference & Academy courses (safe, skips existing)
 python manage.py seed_data
 python manage.py seed_academy
 
-# 7. Collect updated static assets (CSS, JS, icons)
+# 7. Collect updated static assets (CSS, JS, device SVGs, AI chatbot scripts)
 python manage.py collectstatic --noinput
 
 # 8. Reload your web app instantly:
@@ -49,6 +55,19 @@ touch /var/www/ramonet_pythonanywhere_com_wsgi.py
 ```
 
 *Or go to the **Web** tab in PythonAnywhere and click the green **Reload ramonet.pythonanywhere.com** button.*
+
+### One-Time Gemini AI Chatbot Secret Setup on PythonAnywhere
+Because `.env` is excluded from git for security, configure `GEMINI_API_KEY` once on PythonAnywhere (either in `.env` inside `/home/ramonet/ramonet/` or inside your WSGI file):
+
+```bash
+cat << 'EOF' > /home/ramonet/ramonet/.env
+GEMINI_API_KEY=your-gemini-api-key-here
+EOF
+chmod 600 /home/ramonet/ramonet/.env
+touch /var/www/ramonet_pythonanywhere_com_wsgi.py
+```
+
+> **Note for PythonAnywhere Free Accounts:** Free PythonAnywhere accounts restrict outbound internet access to an official allowlist (`generativelanguage.googleapis.com` requires either requesting allowlist approval on the PythonAnywhere Forums or using a paid/Hacker account). If outbound access is restricted or the upstream API is unavailable, RAMONET AI automatically degrades gracefully to its built-in local knowledgebase without throwing errors.
 
 ### Creating Your Administrator Account (No Default Passwords):
 To create your personal admin account, simply run in the Bash console:
@@ -62,8 +81,8 @@ Follow the prompt to type your chosen username, email, and password.
 ## 1. Architecture & Platform Prerequisites
 
 - PythonAnywhere account username: **`ramonet`**
-- Python version: **Python 3.10** or **Python 3.11**
-- Storage footprint: Ultra-lightweight (~600 KB SQLite database, zero external runtime CDNs) — well within PythonAnywhere's 512 MB free tier quota.
+- Python version: **Python 3.10 – 3.13** (use **Python 3.10+**; note Django 6.x requires Python 3.12+, while Django 5.x supports Python 3.10+)
+- Storage footprint: Ultra-lightweight (~620 KB SQLite database, self-hosted assets + Python stdlib Gemini client) — well within PythonAnywhere's 512 MB free tier quota.
 - Client storage: Heavy topologies and simulation states reside in browser IndexedDB.
 
 ---
@@ -119,7 +138,7 @@ pip install --upgrade pip
 pip install -r requirements.txt
 ```
 
-*RAMONET uses only `Django>=6.0` and `djangorestframework>=3.18`, keeping the footprint minimal and fast.*
+*RAMONET uses only `Django>=5.0,<6.1` and `djangorestframework>=3.14,<4.0`, keeping the footprint minimal and fast (even the Gemini AI client uses Python's standard library).*
 
 ---
 
@@ -208,7 +227,7 @@ os.environ['DJANGO_DEBUG'] = 'False'
 os.environ['DJANGO_ALLOWED_HOSTS'] = 'ramonet.pythonanywhere.com,localhost,127.0.0.1'
 
 # Generate a unique production secret key (or set a 64+ char random string)
-os.environ['DJANGO_SECRET_KEY'] = 'ramonet-prod-sec-key-x9q8v7w6p5m4k3j2h1-9876543210-abcdef'
+os.environ['DJANGO_SECRET_KEY'] = 'replace-with-generated-random-64-char-secret-key'
 
 # Enforce HTTPS redirect and HSTS
 os.environ['SECURE_SSL_REDIRECT'] = 'True'
@@ -234,8 +253,9 @@ Click the green **Save** button (top right).
    **[https://ramonet.pythonanywhere.com](https://ramonet.pythonanywhere.com)**
 
 ### Verification Checklist:
-- [ ] **Home Dashboard:** Page loads with dark theme, real-time clock, and navigation cards.
-- [ ] **Network Designer:** Accessible at `/topology/designer/`, canvas drag-and-drop renders.
+- [ ] **Home Dashboard:** Page loads with dark theme, Space Grotesk typography, real-time clock, and interactive infrastructure map.
+- [ ] **Network Designer:** Accessible at `/topology/designer/`, starts with a clean empty canvas, `+` anchor cabling connects devices, and **Device Web GUI** opens by default alongside CLI Terminal.
+- [ ] **RAMONET AI Copilot:** Click **AI Help** in the top navigation bar or the bottom-right **Ask AI** button (`POST /api/knowledgebase/chat/`) and confirm Gemini AI or local KB responses work cleanly.
 - [ ] **RAMONET Academy:** Accessible at `/academy/`, 14 courses listed.
 - [ ] **Digital Twin Studio:** Accessible at `/projects/digital-twin/` (sandbox cloning and diff comparison).
 - [ ] **Packet Capture & Analyzer:** Accessible at `/simulation/analyzer/` (OSI 7-layer Wireshark dissection).
@@ -277,3 +297,4 @@ Click the green **Save** button (top right).
 | **DisallowedHost Error** | Domain not in `ALLOWED_HOSTS` | Ensure `DJANGO_ALLOWED_HOSTS` in WSGI file includes `ramonet.pythonanywhere.com`. |
 | **429 Too Many Requests on Login** | Rate limiter triggered (5 failed attempts) | Wait 5 minutes for the lockout window to expire, or restart the web app from the Web tab. |
 | **Database Locked Error** | File permission conflict | Ensure `db.sqlite3` is writable (`chmod 664 /home/ramonet/ramonet/db.sqlite3`). |
+| **AI Chatbot Uses `Local KB` Fallback** | Missing `GEMINI_API_KEY` or PythonAnywhere free-tier outbound block | Add `GEMINI_API_KEY=...` to `/home/ramonet/ramonet/.env` or WSGI file and reload. On PythonAnywhere free accounts, request `generativelanguage.googleapis.com` allowlist approval or upgrade to a paid tier. |
