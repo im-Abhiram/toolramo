@@ -18,6 +18,7 @@ class RamonetAIChatbot {
         this.panel = document.getElementById('ramonet-ai-panel');
         this.fab = document.getElementById('ramonet-ai-fab');
         this.headerBtn = document.getElementById('btn-header-ai-chat');
+        this.sidebarBtn = document.getElementById('btn-sidebar-ai-chat');
         this.messagesEl = document.getElementById('ai-chat-messages');
         this.formEl = document.getElementById('ai-chat-form');
         this.inputEl = document.getElementById('ai-chat-input');
@@ -41,6 +42,7 @@ class RamonetAIChatbot {
     bindEvents() {
         this.fab?.addEventListener('click', () => this.toggle());
         this.headerBtn?.addEventListener('click', () => this.toggle());
+        this.sidebarBtn?.addEventListener('click', () => this.toggle());
         this.closeBtn?.addEventListener('click', () => this.close());
         this.clearBtn?.addEventListener('click', () => this.clearHistory());
         this.expandBtn?.addEventListener('click', () => this.toggleExpand());
@@ -109,6 +111,7 @@ class RamonetAIChatbot {
         this.panel.classList.add('open');
         this.panel.setAttribute('aria-hidden', 'false');
         this.fab?.classList.add('active');
+        this.sidebarBtn?.classList.add('active');
         this.updateContextSubtitle();
         this.scrollToBottom();
         setTimeout(() => this.inputEl?.focus(), 120);
@@ -119,6 +122,7 @@ class RamonetAIChatbot {
         this.panel.classList.remove('open');
         this.panel.setAttribute('aria-hidden', 'true');
         this.fab?.classList.remove('active');
+        this.sidebarBtn?.classList.remove('active');
     }
 
     toggle() {

@@ -37,6 +37,7 @@ class AIChatbotTests(TestCase):
         self.assertContains(resp_calc, 'ramonet-ai-panel')
         self.assertContains(resp_calc, 'ramonet-ai-fab')
         self.assertContains(resp_calc, 'btn-header-ai-chat')
+        self.assertContains(resp_calc, 'btn-sidebar-ai-chat')
         self.assertContains(resp_calc, 'ai-chatbot.js')
         self.assertContains(resp_calc, 'name="csrf-token"')
 

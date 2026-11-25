@@ -6,7 +6,7 @@
 {% block main_class %}full-screen{% endblock %}
 
 {% block extra_css %}
-<link rel="stylesheet" href="{% static 'css/topology.css' %}">
+<link rel="stylesheet" href="{% static 'css/topology.css' %}?v=3.0">
 {% endblock %}
 
 {% block content %}
@@ -70,7 +70,7 @@
             <div class="toolbar-divider"></div>
             <!-- Quick Prebuilt Network Template Dropdown -->
             <div class="dropdown d-inline-block">
-                <button class="toolbar-btn dropdown-toggle" id="btn-templates-dropdown" data-bs-toggle="dropdown" aria-expanded="false" title="Load Prebuilt Network Topologies (Campus, STP, VLAN, SOHO)">
+                <button class="toolbar-btn toolbar-mode-btn dropdown-toggle" id="btn-templates-dropdown" data-bs-toggle="dropdown" aria-expanded="false" title="Load Prebuilt Network Topologies (Campus, STP, VLAN, SOHO)">
                     <i class="fa-solid fa-diagram-project text-cyan me-1"></i>
                     <span class="toolbar-btn-text">Templates</span>
                 </button>

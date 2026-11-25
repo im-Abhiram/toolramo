@@ -69,8 +69,8 @@
     <link rel="stylesheet" href="{% static 'vendor/bootstrap/bootstrap.min.css' %}">
     <link rel="stylesheet" href="{% static 'vendor/fontawesome/css/all.min.css' %}">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" crossorigin="anonymous" referrerpolicy="no-referrer">
-    <link rel="stylesheet" href="{% static 'css/ramonet-theme.css' %}?v=2.3">
-    <link rel="stylesheet" href="{% static 'css/terminal.css' %}?v=2.3">
+    <link rel="stylesheet" href="{% static 'css/ramonet-theme.css' %}?v=3.0">
+    <link rel="stylesheet" href="{% static 'css/terminal.css' %}?v=3.0">
     {% block extra_css %}{% endblock %}
 </head>
 <body>
@@ -173,6 +173,17 @@
     <div class="ramonet-shell">
         <!-- Collapsible Grouped Left Sidebar -->
         <aside class="ramonet-sidebar" id="ramonet-sidebar">
+            <!-- Dedicated AI NetOps Copilot Button -->
+            <div class="sidebar-ai-dock">
+                <button type="button" class="sidebar-ai-btn" id="btn-sidebar-ai-chat" title="Open RAMONET AI Copilot (Networking & Platform Help)">
+                    <span class="sidebar-ai-icon"><i class="fa-solid fa-robot"></i></span>
+                    <span class="sidebar-ai-meta">
+                        <span class="sidebar-ai-title">AI NetOps Copilot</span>
+                        <span class="sidebar-ai-sub">Gemini · Ask Anything</span>
+                    </span>
+                    <span class="sidebar-ai-status" aria-hidden="true"></span>
+                </button>
+            </div>
             
             <!-- GROUP 1: WORKSPACE -->
             <div class="nav-group-header" data-bs-toggle="collapse" data-bs-target="#nav-group-workspace">

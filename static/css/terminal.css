@@ -3,7 +3,7 @@
    ========================================================================== */
 
 .ramonet-terminal-container {
-    background-color: #0A0F1D;
+    background-color: #070B10;
     color: #38BDF8;
     font-family: var(--font-mono);
     font-size: 0.86rem;
@@ -15,8 +15,8 @@
 }
 
 .terminal-header {
-    background-color: #111827;
-    border-bottom: 1px solid #1E293B;
+    background-color: #111822;
+    border-bottom: 1px solid rgba(148, 163, 184, 0.15);
     padding: 0.4rem 0.85rem;
     display: flex;
     align-items: center;
